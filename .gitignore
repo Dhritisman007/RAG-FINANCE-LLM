@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# macOS resource forks & metadata
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Raw & processed data (large files — not tracked in git)
+finrag/data/raw/
+finrag/data/processed/
+finrag/data/vectorstore/
+
+# ChromaDB (stored locally outside repo)
+*.sqlite3
+chroma_db/
+.finrag_chroma_db/
+
+# Secrets & environment
+.env
+*.key
+
+# IDE / editor
+.cursor/
+.vscode/
+.idea/
+
+# Jetro / agent config (local only)
+.jetro/
+.mcp.json
+.windsurfrules
+AGENT.md
+CLAUDE.md
+.agents/
+
+# Project scratch
+projects/
