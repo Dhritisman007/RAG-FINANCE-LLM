@@ -1,0 +1,647 @@
+[
+  {
+    "query": "What is an EMI and how is it calculated?",
+    "expected_tier": 1,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "The P/E ratio formula and calculation are as follows:\nP/E\u00a0Ratio = Market\u00a0value\u00a0per\u00a0share Earnings\u00a0per\u00a0share \\text{P/E Ratio} = \\frac{\\text{Market value per share}}{\\text{Earnings per share}} P/E\u00a0Ratio = Earnings\u00a0per\u00a0share Market\u00a0value\u00a0per\u00a0share \u200b\nDivide the stock price by the\u00a0EPS to determine the P/E value.\nThe stock price (P) can be found by searching a stock\u2019s ticker on a reputable financial website. This concrete value reflects what investors currently pay for the stock, but the EPS\u00a0is related to earnings reported at different times.\nEPS is generally given in two ways. Trailing 12 months (TTM) represents the company's performance over the past 12 months. Another is found\u00a0in earnings releases, which often provide EPS\u00a0guidance. This is the company's advice on what it expects in future earnings. These different versions of EPS form the basis of trailing and forward P/E, respectively.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "P/E Ratio Formula and Calculation",
+        "distance": 0.34780067205429077
+      },
+      {
+        "text": "Volatility is a statistical measure of the dispersion of data around its mean over a certain period. It is calculated as the standard deviation multiplied by the square root of the number of time periods, T. In finance, it represents this dispersion of market prices on an annualized basis.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is Volatility, Mathematically?",
+        "distance": 0.3484680652618408
+      },
+      {
+        "text": "The return on investment (ROI) formula is as follows:\nROI = Current\u00a0Value\u00a0of\u00a0Investment \u2212 Cost\u00a0of\u00a0Investment Cost\u00a0of\u00a0Investment \\begin{aligned} &\\text{ROI} = \\dfrac{\\text{Current Value of Investment}-\\text{Cost of Investment}}{\\text{Cost of Investment}}\\\\ \\end{aligned} \u200b ROI = Cost\u00a0of\u00a0Investment Current\u00a0Value\u00a0of\u00a0Investment \u2212 Cost\u00a0of\u00a0Investment \u200b \u200b\nThe \"Current Value of Investment\" is the value of an investment at a given moment. For stocks or other similar investments, it is the current market value, plus any fees or other expenses incurred at the time of purchase.\nFor a project, it includes factors like the discounted cash flow over the investment's lifetime and any maintenance costs incurred. \"Cost of Investment\" is how much an investment was purchased for, including fees and expenses. Project costs at the time the project was financed are included.\nBecause ROI is measured as a percentage, it can be easily compared with returns from other investments, allowing one to measure a variety of investment types against one another.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How to Calculate Return on Investment (ROI)",
+        "distance": 0.35276633501052856
+      },
+      {
+        "text": "The formula for calculating APR is straightforward. It consists of multiplying the periodic interest rate by the number of periods in a year in which the rate is applied. The exact formula is as follows:\nAPR = ( ( Fees + Interest Principal n ) \u00d7 365 ) \u00d7 100 where: Interest = Total\u00a0interest\u00a0paid\u00a0over\u00a0life\u00a0of\u00a0the\u00a0loan Principal = Loan\u00a0amount n = Number\u00a0of\u00a0days\u00a0in\u00a0loan\u00a0term \\begin{aligned} &\\text{APR} = \\left ( \\left ( \\frac{ \\frac{ \\text{Fees} + \\text{Interest} }{ \\text {Principal} } }{ n } \\right ) \\times 365 \\right ) \\times 100 \\\\ &\\textbf{where:} \\\\ &\\text{Interest} = \\text{Total interest paid over life of the loan} \\\\ &\\text{Principal} = \\text{Loan amount} \\\\ &n = \\text{Number of days in loan term} \\\\ \\end{aligned} \u200b APR = ( ( n Principal Fees + Interest \u200b \u200b ) \u00d7 3 6 5 ) \u00d7 1 0 0 where: Interest = Total\u00a0interest\u00a0paid\u00a0over\u00a0life\u00a0of\u00a0the\u00a0loan Principal = Loan\u00a0amount n = Number\u00a0of\u00a0days\u00a0in\u00a0loan\u00a0term \u200b",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How Do You Calculate APR?",
+        "distance": 0.3540988564491272
+      },
+      {
+        "text": "Calculating present value allows an investor to compare the potential performance of various investments by determining the current worth of the number of dollars that each investment will return by a future date.\nPresent value (PV) is based on the concept that a sum of money in hand today is probably worth more than the same sum in the future because it can be invested and earn a return in the meantime.\nPresent value (PV) is calculated by discounting the future value by the estimated rate of return that the money could earn if invested.\nKatie Kerpel / Investopedia",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is Present Value?",
+        "distance": 0.3548741936683655
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "How does compound interest work?",
+    "expected_tier": 1,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Compound interest means earning interest on both your original principal and accumulated interest over time, i.e., \"interest on interest.\"\nCompounding interest multiplies your savings or debt at an accelerated rate.\nThe Rule of 72 (or 72 \u00f7 interest rate) helps estimate how long it takes for money to double under compounding.\nInterest can be compounded on a variety of frequencies, such as daily, monthly, quarterly, or annually.\nThe higher the number of compounding periods, the larger the effect of compounding.\nMany account types offer compound interest, including high-yield savings accounts and CDs .",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Key Takeaways",
+        "distance": 0.14379245042800903
+      },
+      {
+        "text": "The second way to calculate compound interest is to use a fixed formula.\nThe compound interest formula is [ ( P ( 1 + i ) n ) - P ], where P is the principal, i is the annual interest rate, and n is the number of periods.\nUsing the same financial information as in Approach One, enter \u201cPrincipal value\u201d into cell A1 and \u201c1000\u201d into cell B1.\nNext, enter \u201cInterest rate\u201d into cell A2 and \u201c.05\u201d into cell B2.\nEnter \u201cCompound periods\u201d into cell A3 and \u201c5\u201d into cell B3.\nNow you can calculate the compound interest in cell B4 by entering \u201c=(B1*(1+B2)^B3)-B1\u201d, which gives you $276.28.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Approach Two: Fixed Formula",
+        "distance": 0.14974182844161987
+      },
+      {
+        "text": "Compound interest refers to earning interest on both a principle balance and any previously accumulated interest; you're earning interest on interest.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "compound interest",
+        "distance": 0.15653622150421143
+      },
+      {
+        "text": "Compound interest is interest that is added to the initial principal of a deposit, investment , or loan, thereby increasing the balance and, in turn, increasing the amount of interest earned or paid in the next period.\nThe power of compounding helps a sum of money grow faster than if just simple interest were calculated on the principal alone. The greater the number of compounding periods, the greater the compound interest growth will be. For savings and investments, compound interest is your friend, as it multiplies your money at an accelerated rate. But if you have debt, compounding interest can make it increasingly difficult to pay off.\nInvestopedia / Julie Bang",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is Compound Interest?",
+        "distance": 0.15972059965133667
+      },
+      {
+        "text": "Compound interest simply means you're earning interest on both your original saved money plus any interest you earn on that original amount. Although the term \"compound interest\" includes the word interest, the concept applies beyond interest-bearing bank accounts and loans, including investments such as mutual funds.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is a Simple Definition of Compound Interest?",
+        "distance": 0.16022443771362305
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What is the difference between a mutual fund and a stock?",
+    "expected_tier": 1,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Mutual funds and ETFs are pooled funds that offer investors a stake in a diversified portfolio. \u200bHowever, there are some crucial differences.\nAmong the most important is that ETF shares are traded on stock exchanges like regular stocks, while mutual fund shares are traded only once daily after markets close. This means ETFs can be traded anytime during market hours, offering more liquidity, flexibility, and real-time pricing. This flexibility means you can short-sell them or engage in the many strategies you would use for stocks.\nAnother significant difference is pricing and valuation. ETF prices, like stocks , fluctuate throughout the day according to supply and demand. Meanwhile, funds are priced only at the end of each trading day based on the NAV of the underlying portfolio. This also means that ETFs have the potential for larger premiums/discounts to NAV than mutual funds.\nCompared with mutual funds , ETFs tend to have certain tax advantages and are often more cost-efficient.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Mutual Funds vs. ETFs",
+        "distance": 0.166398823261261
+      },
+      {
+        "text": "A mutual fund is a financial vehicle in which shareholders put their money together to invest in securities (e.g., stocks, bonds, money market instruments). A fund manager chooses the best investments, and every investor shares in the profits if the investments do well.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "mutual funds basics",
+        "distance": 0.17975091934204102
+      },
+      {
+        "text": "Mutual funds are investment portfolios funded by everyone who buys the fund\u2019s shares. When someone buys a mutual fund share, they gain part-ownership of all of the fund\u2019s underlying assets. The fund\u2019s performance depends on its assets, so if it\u2019s full of stocks going up, it will go up. If they\u2019re going down, so will the fund.\nA mutual fund decides how to divide money across sectors, industries, and companies based on its strategy. Many funds are index or passive funds , so they don\u2019t need a lot of hands-on management. They mirror assets of indexes like the S&P 500 or the Dow.\nThe biggest fund managers are Vanguard and Fidelity .",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How Mutual Funds Work",
+        "distance": 0.1859949231147766
+      },
+      {
+        "text": "An index fund usually refers to a mutual fund that tracks an index. An index ETF is constructed in much the same way and will hold the stocks of an index. However, the difference between an index fund and an ETF is that an ETF tends to be more cost-effective and liquid than an index mutual fund. You can also buy an ETF throughout the trading day, while a mutual fund trades via a broker after the close of each trading day.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How Is an ETF Different From an Index Fund?",
+        "distance": 0.18758976459503174
+      },
+      {
+        "text": "Researching and comparing funds can be more difficult than for other securities. Unlike stocks, mutual funds do not offer investors the opportunity to juxtapose the P/E ratio, sales growth, earnings per share , or other important data.\nA mutual fund\u2019s NAV can offer some basis for comparison, but given the diversity of portfolios, comparing the proverbial apples to apples can be difficult, even among funds with similar names or stated objectives. Only index funds tracking the same markets tend to be genuinely\u00a0comparable.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Evaluating Mutual Funds",
+        "distance": 0.19133669137954712
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What does bond duration mean?",
+    "expected_tier": 1,
+    "notes": "trap: 'duration' also appears in quant/microstructure contexts",
+    "top_k_results": [
+      {
+        "text": "Duration is a measure of the sensitivity of the price of a bond or other debt instrument to a change in interest rates. The higher the duration, the more a bond\u2019s price will generally drop as interest rates rise. This also indicates a higher level of interest rate risk. If rates were to rise 1%, a bond or bond fund with a five-year average duration would likely lose about 5% of its value.\nDifferent factors can affect a bond\u2019s duration, including the time to maturity and the coupon rate .",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How Duration Influences Investment Decisions",
+        "distance": 0.11946254968643188
+      },
+      {
+        "text": "A bond\u2019s duration is its sensitivity to interest rate changes. When you buy a bond, you\u2019re lending money and getting paid back with interest over time till it matures; however, bonds can be bought or sold before maturity, and the price you get for selling depends on the current interest rates.\nDuration will tell you how much a bond\u2019s price will change if interest rates change, so you can determine if your bond is worth more or less. It helps you understand the risk of losing money if you sell before the bond matures.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Simplifying Duration for Beginners",
+        "distance": 0.12905842065811157
+      },
+      {
+        "text": "The price sensitivity of a bond is called duration because it calculates a length of time. Duration measures a bond price\u2019s sensitivity to changes in interest rates by calculating the weighted average length of time that it will take for an investor to receive all the principal and interest payments.\nThis amount of time changes based on changes in interest rates. A bond with a longer time to maturity will have a price that is more likely to be affected by interest rate changes and thus will have a longer duration than a short-term bond. Economists use a hazard rate calculation to determine the likelihood of the bond\u2019s performance at a given future time.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Why Is Bond Price Sensitivity Called Duration?",
+        "distance": 0.13210469484329224
+      },
+      {
+        "text": "The duration of a bond can refer to two things:\nThe Macaulay duration is the weighted average time until all the bond\u2019s cash flows are paid. By accounting for the present value of future bond payments, the Macaulay duration helps an investor evaluate and compare bonds independent of their term or time to maturity.\nModified duration is not measured in years. It measures the expected change in a bond\u2019s price given a 1% change in interest rates.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Different Types of Bond Duration",
+        "distance": 0.13321155309677124
+      },
+      {
+        "text": "Duration indicates how much a bond\u2019s value is expected to change with interest rate fluctuations.\nHigher duration implies greater price sensitivity to rising interest rates.\nMacaulay and modified durations are key types, measuring time and price change, respectively.\nDuration measures how long it takes for an investor to be repaid a bond\u2019s price through its total cash flows, and it indicates how much a bond\u2019s price might change with a shift in interest rates. Understanding duration helps investors assess interest rate risk and make informed decisions about bond investments. Duration provides investors with an insight into the price sensitivity of bonds as the interest rate environment fluctuates.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Key Takeaways",
+        "distance": 0.13651156425476074
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "How do call and put options work?",
+    "expected_tier": 1,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Think of a call option as a reservation to buy something at a set price before a certain date. You pay a small fee to make that reservation, and if the price of that item (usually a stock) goes up, you can still buy it at the lower price you reserved. If you do, you'll make a profit.\nIf the price doesn't go up, you don't have to buy it, and the only thing you lose out on is the fee you paid to reserve it. People use call options to try to make money when they think a stock's price will rise. The overall goal is to benefit from price changes in a stock without having to buy it right away.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Explain Like I'm 5",
+        "distance": 0.17521601915359497
+      },
+      {
+        "text": "Put options allow the holder to sell a security at a guaranteed price, even if the market price for that security has fallen lower. That makes them useful for hedging strategies as well as for speculative traders. Along with call options, puts are among the most basic derivative contracts.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "The Bottom Line",
+        "distance": 0.189008891582489
+      },
+      {
+        "text": "Call options are financial contracts that give\u00a0the buyer the right, but not the obligation, to buy a stock, bond, commodity, or other asset or instrument at a specified price within a specific period. A call seller must sell the asset if the buyer exercises the call.\nA call buyer profits when the underlying asset increases in price. Share prices can increase for several reasons, including positive company news and during acquisitions . The seller profits from the premium if the price drops below the strike price at expiration because the buyer typically won't exercise the option.\nA call option may be contrasted with a put option , which gives the holder the right to sell (force the buyer to purchase) the asset at a specified price on or before expiration.\nInvestopedia / Joules Garcia",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is a Call Option?",
+        "distance": 0.19028770923614502
+      },
+      {
+        "text": "Options are versatile financial products. These contracts involve a buyer and seller, where the buyer pays a premium for the rights granted by the contract. Call options allow the holder to buy the asset at a stated price within a specific time frame. Put options , on the other hand, allow the holder to sell the asset at a stated price within a specific time frame. Each call option has a bullish buyer and a bearish seller, while put options have a bearish buyer and a bullish seller.\nTraders and investors buy and sell options for several reasons. Options allow traders to leverage a position in an asset for less cost than buying the shares directly. Investors use options to hedge or reduce the risk exposure of their portfolios.\nIn some cases, the option holder can\u00a0generate income when they buy call options or become an options writer. Options are also one of the most direct ways to invest in oil. For options traders, an option\u2019s daily trading\u00a0volume\u00a0and\u00a0open interest\u00a0are the two key numbers to watch to make the most well-informed investment decisions.\nAmerican options can be exercised any time before expiration, whereas European options can only be exercised at expiration. Exercising means using your right to buy or sell the underlying security.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Understanding How Options Function",
+        "distance": 0.1958950161933899
+      },
+      {
+        "text": "Some investors use call options to generate income through a covered call strategy. This strategy involves owning an underlying stock while at the same time writing a call option, or giving someone else the right to buy your stock.\nThe investor collects the option premium and hopes the option expires worthless (below the strike price). This strategy generates additional income for the investor but can also limit profit potential if the underlying stock price rises sharply.\nCovered calls work because if the stock rises above the strike price, the buyer can use their option to purchase it from you at that lower price. This means the option writer doesn't profit from the stock's movement above the strike price. The writer's maximum profit on the option is the premium received.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Using Covered Calls for Income",
+        "distance": 0.1991559863090515
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What is a systematic investment plan (SIP)?",
+    "expected_tier": 1,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "A systematic investment plan (SIP) is a disciplined approach where investors make regular, equal payments into investment accounts like mutual funds.\nSIPs leverage dollar-cost averaging, helping to mitigate the impact of market volatility by investing fixed amounts at regular intervals, regardless of market conditions.\nSIPs require ongoing commitments and can involve setup fees, but they impose investment discipline and are typically less emotionally driven.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Key Takeaways",
+        "distance": 0.058108508586883545
+      },
+      {
+        "text": "Systematic investment plans are a disciplined investment approach that allows individuals to invest a fixed amount at regular intervals in selected investment instruments.\nSIPs offer benefits such as regular investing, flexibility, the potential for dollar cost averaging, and the opportunity to begin with small amounts. They provide individuals with a systematic and gradual way to invest, reducing the impact of market volatility and potentially generating long-term wealth accumulation.\nThe comments, opinions, and analyses expressed on Investopedia are for informational purposes only. Read our warranty and liability disclaimer for more info.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "The Bottom Line",
+        "distance": 0.085693359375
+      },
+      {
+        "text": "A systematic investment plan (SIP) lets you invest a fixed amount of money at regular intervals. SIPs encourage disciplined investing and can make investing more affordable. They\u2019re used in mutual funds and retirement accounts. Keep reading to learn how SIPs work, their pros and cons, and how they can fit into your investment strategy.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is a Systematic Investment Plan (SIP)?",
+        "distance": 0.11378586292266846
+      },
+      {
+        "text": "Systematic investment plans (SIPs) are a disciplined investment technique that involves investing at regular intervals in equal amounts.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "SIP (systematic investment plan)",
+        "distance": 0.11768996715545654
+      },
+      {
+        "text": "Mutual funds and other investment companies offer investors a variety of investment options including systematic investment plans. SIPs give investors a chance to invest small sums of money over a longer period rather than having to make large lump sums all at once. Most SIPs require payments into the plans consistently, either weekly, monthly, or quarterly.\nSystematic investing works on regular and periodic purchases of shares or units of securities of a fund or other investment. Dollar-cost averaging involves buying the same fixed-dollar amount of a security regardless of its price at each periodic interval.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "How Do Systematic Investment Plans (SIPs) Work?",
+        "distance": 0.15604639053344727
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What risk factors does the company disclose in its 10-K?",
+    "expected_tier": 2,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "The Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K and Part II, Item 1A of the Form 10-Q for the quarter ended March 28, 2026 (the \u201csecond quarter 2026 Form 10-Q\u201d), in each case under the heading \u201cRisk Factors.\u201d Except for the risk factors set forth below and those disclosed in Part II, Item 1A of the second quarter 2026 Form 10-Q , which are incorporated by reference herein, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nThe Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K and Part II, Item 1A of the Form 10-Q for the quarter ended March 28, 2026 (the \u201csecond quarter 2026 Form 10-Q\u201d), in each case under the heading \u201cRisk Factors.\u201d Except for the risk factors set forth below and those disclosed in Part II, Item 1A of the\nsecond quarter 2026 Form 10-Q\n, which are incorporated by reference herein, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nFuture operating results depend upon the Company\u2019s ability to obtain components and computing resources in sufficient quantities and on commercially reasonable terms.\nFuture operating results depend upon the Company\u2019s ability to obtain components and computing resources in sufficient quantities and on commercially reasonable terms.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AAPL 10-Q filed 2026-07-31",
+        "distance": 0.23728036880493164
+      },
+      {
+        "text": "The Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K under the heading \u201cRisk Factors.\u201d Except as set forth below, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nThe Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K under the heading \u201cRisk Factors.\u201d Except as set forth below, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nThe Company\u2019s products and services may be affected from time to time by design and manufacturing defects that could materially adversely affect the Company\u2019s business and result in harm to the Company\u2019s reputation.\nThe Company\u2019s products and services may be affected from time to time by design and manufacturing defects that could materially adversely affect the Company\u2019s business and result in harm to the Company\u2019s reputation.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AAPL 10-Q filed 2026-05-01",
+        "distance": 0.247001051902771
+      },
+      {
+        "text": "\u2022 The other risks and uncertainties detailed in Part I, Item 1A: Risk Factors in JPMorganChase\u2019s 2024 Form 10-K.\nThe other risks and uncertainties detailed in Part I, Item 1A: Risk Factors in JPMorganChase\u2019s 2024 Form 10-K.\nAny forward-looking statements made by or on behalf of the Firm speak only as of the date they are made, and JPMorganChase does not undertake to update any forward-looking statements. The reader should, however, consult any further disclosures of a forward-looking nature the Firm may make in any subsequent Annual Reports on Form 10-K, Quarterly Reports on Form 10-Q or Current Reports on Form 8-K.\nAny forward-looking statements made by or on behalf of the Firm speak only as of the date they are made, and JPMorganChase does not undertake to update any forward-looking statements. The reader should, however, consult any further disclosures of a forward-looking nature the Firm may make in any subsequent Annual Reports on Form 10-K, Quarterly Reports on Form 10-Q or Current Reports on Form 8-K.\nJPMorgan Chase & Co.\nJPMorgan Chase & Co.\nConsolidated statements of income (unaudited)\nConsolidated statements of income (unaudited)\nThree months ended September 30,\nNine months ended September 30,\n(in millions, except per share data)\n2025\n2024\n2025\n2024\nRevenue\nInvestment banking fees\n2,612\n2,231\n7,289\n6,489\nPrincipal transactions\n7,109\n5,988\n21,872\n19,592\nLending- and deposit-related fees\n2,349\n1,924\n6,729\n5,654\nAsset management fees\n5,120\n4,479\n14,626\n12,927\nCommissions and other fees\n2,204\n1,936\n6,431\n5,665\nInvestment securities gains/(losses)\nInvestment securities gains/(losses)\n105\n( 16 )\n( 929 )\nMortgage fees and related income\n383\n402\n1,024\n1,025\nCard income\n1,140\n1,345\n3,700\n3,895\nOther income\n1,439\n960\n4,516\n11,237\nNoninterest revenue\n22,461\n19,249\n66,201\n65,555\nInterest income\n49,439\n50,416\n144,533\n146,367\nInterest expense\n25,473\n27,011\n74,085\n77,134\nNet interest income\n23,966\n23,405\n70,448\n69,233\nTotal net revenue\n46,427\n42,654\n136,649\n134,788",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "JPM 10-Q filed 2025-11-04",
+        "distance": 0.2523203492164612
+      },
+      {
+        "text": "This Form 10-K contains forward-looking statements within the meaning of the Private Securities Litigation Reform Act of 1995. These forward-looking statements are based on the current beliefs and expectations of JPMorganChase\u2019s management, speak only as of the date of this Form 10-K and are subject to significant risks and uncertainties. Refer to Forward-looking Statements on page 160 and Part 1, Item 1A: Risk Factors in this Form 10-K on pages 9\u201331 for a discussion of certain of those risks and uncertainties and the factors that could cause JPMorganChase\u2019s actual results to differ materially because of those risks and uncertainties. There is no assurance that actual results will be in line with any outlook information set forth herein, and the Firm does not undertake to update any forward-looking statements.\nINTRODUCTION\nINTRODUCTION\nJPMorgan Chase & Co. (NYSE: JPM), a financial holding company incorporated under Delaware law in 1968, is a leading financial services firm based in the United States of America (\u201cU.S.\u201d), with operations worldwide. JPMorganChase had $4.4 trillion in assets and $362.4 billion in stockholders\u2019 equity as of December\u00a031, 2025. The Firm is a leader in investment banking, financial services for consumers and small businesses, commercial banking, financial transaction processing and asset management. Under the J.P. Morgan and Chase brands, the Firm serves millions of customers, predominantly in the U.S., and many of the world\u2019s most prominent corporate, institutional and government clients globally.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "JPM 10-K filed 2026-02-13",
+        "distance": 0.2611124515533447
+      },
+      {
+        "text": "The Company\u2019s Annual Reports on Form 10-K, Quarterly Reports on Form 10-Q, Current Reports on Form 8-K, and amendments to reports filed pursuant to Sections 13(a) and 15(d) of the Securities Exchange Act of 1934, as amended (\u201cExchange Act\u201d), are filed with the U.S. Securities and Exchange Commission (\u201cSEC\u201d). Such reports and other information filed by the Company with the SEC are available free of charge at investor.apple.com/investor-relations/sec-filings/default.aspx when such reports are available on the SEC\u2019s website. The Company periodically provides certain information for investors on its corporate website, www.apple.com, and its investor relations website, investor.apple.com. This includes press releases and other information about financial performance, information on corporate governance, and details related to the Company\u2019s annual meeting of shareholders. The information contained on the websites referenced in this Form 10-K is not incorporated by reference into this filing. Further, the Company\u2019s references to website URLs are intended to be inactive textual references only.\nApple Inc. | 2025 Form 10-K | 4\nApple Inc. | 2025 Form 10-K | 4\nItem 1A.\u00a0\u00a0\u00a0\u00a0Risk Factors\nItem 1A.\u00a0\u00a0\u00a0\u00a0Risk Factors",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AAPL 10-K filed 2025-10-31",
+        "distance": 0.2661650776863098
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What was the company's revenue and gross profit last quarter?",
+    "expected_tier": 2,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "In 2025, we recognized total revenues of $94.83 billion, representing a decrease of $2.86 billion compared to the prior year. In 2025, our net income attributable to common stockholders was $3.79 billion, representing a decrease of $3.30 billion compared to the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies to enable increased deliveries and deployments of our products, and invest in research and development to accelerate our AI, software and fleet-based profits for further revenue growth.\nIn 2025, we recognized total revenues of $94.83 billion, representing a decrease of $2.86 billion compared to the prior year. In 2025, our net income attributable to common stockholders was $3.79 billion, representing a decrease of $3.30 billion compared to the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies to enable increased deliveries and deployments of our products, and invest in research and development to accelerate our AI, software and fleet-based profits for further revenue growth.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "TSLA 10-K filed 2026-01-29",
+        "distance": 0.280422568321228
+      },
+      {
+        "text": "Search advertising revenue increased $304 million or 9%. Search advertising revenue excluding traffic acquisition costs increased 12% driven by higher search volume and revenue per search, as well as continued benefit from third-party partnerships.\nOperating income increased $146 million or 4%.\nOperating income increased $146 million or 4%.\nCost of revenue decreased $584 million or 10% primarily driven by lower hardware sales.\nCost of revenue decreased $584 million or 10% primarily driven by lower hardware sales.\nGross margin increased $405 million or 6% driven by growth in Search advertising and Gaming. Gross margin percentage increased driven by sales mix shift to higher margin businesses.\nGross margin increased $405 million or 6% driven by growth in Search advertising and Gaming. Gross margin percentage increased driven by sales mix shift to higher margin businesses.\nOperating expenses increased $259 million or 7% driven by impairment and other related expenses in our Gaming business and continued investments in research and development compute capacity, AI talent, and data to support product development that benefits the entire portfolio.\nOperating expenses increased $259 million or 7% driven by impairment and other related expenses in our Gaming business and continued investments in research and development compute capacity, AI talent, and data to support product development that benefits the entire portfolio.\nRevenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 2%, and 3%, respectively.\nRevenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 2%, and 3%, respectively.\nNine Months Ended March 31, 2026 Compared with Nine Months Ended March 31, 2025",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-Q filed 2026-04-29",
+        "distance": 0.2823528051376343
+      },
+      {
+        "text": "As of September\u00a027, 2025 and September\u00a028, 2024, the Company had total deferred revenue of $ 13.7 billion and $ 12.8 billion, respectively. As of September\u00a027, 2025, the Company expects 66 % of total deferred revenue to be realized in less than a year, 23 % within one-to-two years, 9 % within two-to-three years and 2 % in greater than three years.\nAs of September\u00a027, 2025 and September\u00a028, 2024, the Company had total deferred revenue of $ 13.7 billion and $ 12.8 billion, respectively. As of September\u00a027, 2025, the Company expects 66 % of total deferred revenue to be realized in less than a year, 23 % within one-to-two years, 9 % within two-to-three years and 2 % in greater than three years.\nNote 3 \u2013 Earnings Per Share\nNote 3 \u2013 Earnings Per Share\nThe following table shows the computation of basic and diluted earnings per share for 2025, 2024 and 2023 (net income in millions and shares in thousands):\nThe following table shows the computation of basic and diluted earnings per share for 2025, 2024 and 2023 (net income in millions and shares in thousands):\n2025 2024 2023 Numerator: Net income $ 112,010 $ 93,736 $ 96,995 Denominator: Weighted-average basic shares outstanding 14,948,500 15,343,783 15,744,231 Effect of dilutive share-based awards 56,197 64,312 68,316 Weighted-average diluted shares 15,004,697 15,408,095 15,812,547 Basic earnings per share $ 7.49 $ 6.11 $ 6.16 Diluted earnings per share $ 7.46 $ 6.08 $ 6.13\n2025\n2024\n2023\nNumerator:\nNet income\n112,010\n93,736\n96,995\nDenominator:\nWeighted-average basic shares outstanding\n14,948,500\n15,343,783\n15,744,231\nEffect of dilutive share-based awards\n56,197\n64,312\n68,316\nWeighted-average diluted shares\n15,004,697\n15,408,095\n15,812,547\nBasic earnings per share\n7.49\n6.11\n6.16\nDiluted earnings per share\n7.46\n6.08\n6.13",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AAPL 10-K filed 2025-10-31",
+        "distance": 0.2907385230064392
+      },
+      {
+        "text": "Operating expenses, excl. depreciation and depletion includes the following GAAP line items, as reflected on the Income Statement: Production and manufacturing expenses; Selling, general and administrative expenses; Exploration expenses, including dry holes; and Non-service pension and postretirement benefit expense.\n(2) Primarily Corporate and Financing Interest revenue of $ 1,212 million.\n(2)\nPrimarily Corporate and Financing Interest revenue of $ 1,212 million.\n(3) Includes non-cash additions.\n(3)\nIncludes non-cash additions.\nDue to rounding, numbers presented may not add up precisely to the totals indicated.\nTable of Contents\nTable of Contents\nFinancial Table of Contents\nFinancial Table of Contents\nNOTES TO CONSOLIDATED FINANCIAL STATEMENTS\nNOTES TO CONSOLIDATED FINANCIAL STATEMENTS\n(millions of dollars)\nUpstream\nEnergy Products\nChemical Products\nSpecialty Products\nSegment Total\nU.S.\nNon-U.S.\nU.S.\nNon-U.S.\nU.S.\nNon-U.S.\nU.S.\nNon-U.S.\nYear ended December 31, 2024\nYear ended December 31, 2024\nRevenues and other income\nSales and other operating revenue\n22,929\n14,202\n101,325\n159,531\n8,558\n14,338\n5,790\n12,463\n339,136\nIncome from equity affiliates\n( 36 )\n5,649\n140\n( 109 )\n166\n615\n( 26 )\n6,399\nIntersegment revenue\n24,633\n41,809\n23,626\n26,034\n7,329\n3,893\n2,462\n573\n130,359\nOther income\n890\n670\n295\n192\n116\n2,197\nSegment revenues and other income\n48,416\n62,330\n125,386\n185,648\n16,058\n18,853\n8,274\n13,126\n478,091\nCosts and other items\nCrude oil and product purchases\n18,325\n10,388\n110,205\n153,811\n8,510\n12,621\n4,160\n8,753\n326,773\nOperating expenses, excl. depreciation and depletion (1)\nOperating expenses, excl. depreciation and depletion\n(1)\n9,822\n10,695\n8,034\n8,924\n4,781\n4,419\n1,931\n2,316\n50,922\nDepreciation and depletion (includes impairments)\n11,510\n8,014\n799\n734\n611\n485\n104\n133\n22,390\nInterest expense\n185\n291\nOther taxes and duties\n334\n2,750\n3,421\n19,699\n185\n26,542\nTotal costs and other deductions\n40,176\n31,929\n122,468\n183,178\n13,971\n17,604\n6,202\n11,390\n426,918\nSegment income (loss) before income taxes\n8,240\n30,401\n2,918\n2,470\n2,087\n1,249\n2,072\n1,736\n51,173",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "XOM 10-K filed 2026-02-18",
+        "distance": 0.2965766191482544
+      },
+      {
+        "text": "During the three months ended March\u00a031, 2026, we recognized total revenues of $22.39\u00a0billion, representing an increase of $3.05 billion compared to the same period in the prior year. During the three months ended March\u00a031, 2026, our net income attributable to common stockholders was $477 million, representing an increase of $68 million compared to the same period in the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies, including through vertical integration of our battery and semiconductor supply chains, to enable increased deliveries and deployments of our products, and invest in research and development to accelerate our AI, software and fleet-based profits for further revenue growth.\nWe ended the first quarter of 2026 with $44.74 billion in cash and cash equivalents and short-term investments, representing an increase of $684 million from the end of 2025. Our cash flows provided by operating activities were $3.94 billion during the three months ended March\u00a031, 2026, compared to $2.16 billion during the same period ended March\u00a031, 2025, representing an increase of $1.78 billion. Capital expenditures amounted to $2.49 billion during the three months ended March\u00a031, 2026, compared to $1.49 billion during the same period ended March\u00a031, 2025, representing an increase of $1.00 billion. Overall growth has allowed our business to generally fund itself. As we make critical high-value investments in our AI initiatives and expand manufacturing capabilities, including for our semiconductor and Optimus businesses, we intend to manage the business such that we maintain a strong balance sheet and sufficient liquidity.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "TSLA 10-Q filed 2026-04-23",
+        "distance": 0.30168402194976807
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What does the management discussion and analysis section say about performance?",
+    "expected_tier": 2,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Management\u2019s discussion and analysis of financial condition and results of operations, entitled \u201cManagement\u2019s discussion and analysis,\u201d appears on pages 46\u2013160. Such information should be read in conjunction with the Consolidated Financial Statements and Notes thereto, which appear on pages 165\u2013314.\nManagement\u2019s discussion and analysis of financial condition and results of operations, entitled \u201cManagement\u2019s discussion and analysis,\u201d appears on pages 46\u2013160. Such information should be read in conjunction with the Consolidated Financial Statements and Notes thereto, which appear on pages 165\u2013314.\nItem 7A. Quantitative and Qualitative Disclosures About Market Risk.\nItem 7A. Quantitative and Qualitative Disclosures About Market Risk.\nRefer to the Market Risk Management section of Management\u2019s discussion and analysis on pages 133-142 for a discussion of quantitative and qualitative disclosures about market risk.\nRefer to the Market Risk Management section of Management\u2019s discussion and analysis on pages 133-142 for a discussion of quantitative and qualitative disclosures about market risk.\nParts II and III\nParts II and III\nItem 8. Financial Statements and Supplementary Data.\nItem 8. Financial Statements and Supplementary Data.\nThe Consolidated Financial Statements, together with the Notes thereto and the report thereon dated February\u00a013, 2026, of PricewaterhouseCoopers LLP, the Firm\u2019s independent registered public accounting firm (PCAOB ID 238 ), appear on pages 162\u2013314.\nThe Consolidated Financial Statements, together with the Notes thereto and the report thereon dated February\u00a013, 2026, of PricewaterhouseCoopers LLP, the Firm\u2019s independent registered public accounting firm (PCAOB ID 238 ), appear on pages 162\u2013314.\nThe \u201cGlossary of Terms and Acronyms\u2019\u2019 is included on pages 320\u2013327.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "JPM 10-K filed 2026-02-13",
+        "distance": 0.2641052007675171
+      },
+      {
+        "text": "Management\u2019s discussion and analysis\nManagement\u2019s discussion and analysis\nThe following table summarizes the predominant business activities and related market risks, as well as positions which give rise to market risk and certain measures used to capture those risks, for each LOB and Corporate.\nThe following table summarizes the predominant business activities and related market risks, as well as positions which give rise to market risk and certain measures used to capture those risks, for each LOB and Corporate.\nIn addition to the predominant business activities, each LOB and Corporate may engage in principal investing activities. To the extent principal investments are deemed market risk sensitive, they are reflected in relevant risk measures and captured in the table below. Refer to Investment Portfolio Risk Management on page 132 for additional discussion on principal investments.\nIn addition to the predominant business activities, each LOB and Corporate may engage in principal investing activities. To the extent principal investments are deemed market risk sensitive, they are reflected in relevant risk measures and captured in the table below. Refer to Investment Portfolio Risk Management on page 132 for additional discussion on principal investments.\nLOBs and Corporate\nPredominant business activities\nRelated market risks\nRelated market risks\nPositions included in Risk Management VaR\nPositions included in earnings-at-risk\nPositions included in other sensitivity-based measures\nCCB\n\u2022 Originates and services mortgage loans\nOriginates and services mortgage loans\n\u2022 Originates loans and takes deposits\nOriginates loans and takes deposits\n\u2022 Risk from changes in the probability of newly originated mortgage commitments closing\nRisk from changes in the probability of newly originated mortgage commitments closing",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "JPM 10-K filed 2026-02-13",
+        "distance": 0.31178784370422363
+      },
+      {
+        "text": "January 28, 2026\nJanuary 28, 2026\nPART I\nPART I\nItem 2\nItem 2\nITEM 2. MANAGEMENT\u2019S DISCUSSION AND ANALYSIS OF FINANCIAL CONDITION AND RESULTS OF OPERATIONS\nITEM 2. MANAGEMENT\u2019S DISCUSSION AND ANALYSIS OF\nFINANCIAL CONDITION AND RESULTS OF OPERATIONS\nNote About Forward-Looking Statements\nNote About Forward-Looking Statements",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-Q filed 2026-01-28",
+        "distance": 0.3337668180465698
+      },
+      {
+        "text": "April 29, 2026\nApril 29, 2026\nPART I\nPART I\nItem 2\nItem 2\nITEM 2. MANAGEMENT\u2019S DISCUSSION AND ANALYSIS OF FINANCIAL CONDITION AND RESULTS OF OPERATIONS\nITEM 2. MANAGEMENT\u2019S DISCUSSION AND ANALYSIS OF\nFINANCIAL CONDITION AND RESULTS OF OPERATIONS\nNote About Forward-Looking Statements\nNote About Forward-Looking Statements",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-Q filed 2026-04-29",
+        "distance": 0.3378775715827942
+      },
+      {
+        "text": "Reference is made to the section entitled \u201c Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations \u201d in the Financial Section of this report.\nReference is made to the section entitled \u201c\nManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\n\u201d in the Financial Section of this report.\nITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES ABOUT MARKET RISK\nITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES ABOUT MARKET RISK\nReference is made to the section entitled \u201c Market Risks \u201d in the Financial Section of this report. All statements, other than historical information incorporated in this Item 7A, are forward-looking statements. The actual impact of future market changes could differ materially due to, among other things, factors discussed in this report.\nReference is made to the section entitled \u201c\nMarket Risks\n\u201d in the Financial Section of this report. All statements, other than historical information incorporated in this Item 7A, are forward-looking statements. The actual impact of future market changes could differ materially due to, among other things, factors discussed in this report.\nTable of Contents\nTable of Contents\nFinancial Table of Contents\nFinancial Table of Contents\nITEM 8. FINANCIAL STATEMENTS AND SUPPLEMENTARY DATA\nITEM 8. FINANCIAL STATEMENTS AND SUPPLEMENTARY DATA\nReference is made to the following in the Financial Section of this report:\nReference is made to the following in the Financial Section of this report:\n\u2022 Consolidated financial statements , together with the report thereon of PricewaterhouseCoopers LLP (PCAOB ID 238 ) dated February\u00a018, 2026, beginning with the section entitled \u201c Report of Independent Registered Public Accounting Firm \u201d and continuing through Note 20 ;\nConsolidated financial statements",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "XOM 10-K filed 2026-02-18",
+        "distance": 0.33968013525009155
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What litigation risks are mentioned in the filing?",
+    "expected_tier": 2,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "We are subject to a variety of claims and lawsuits. These claims may arise from a wide variety of business practices and initiatives, including major new product releases, AI services, significant business transactions, warranty or product claims, employment practices, and regulation. As we continue to expand our business and offerings, we may experience new and novel legal claims. Adverse outcomes in some or all of these claims may result in significant monetary damages or injunctive relief that could adversely affect our ability to conduct our business. Litigation and other claims are subject to inherent uncertainties and management\u2019s view of these matters may change in the future. An adverse impact to our financial condition and results of operations could occur for the period in which the effect of an unfavorable outcome becomes probable and reasonably estimable.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-Q filed 2026-01-28",
+        "distance": 0.2275957465171814
+      },
+      {
+        "text": "We are subject to a variety of claims and lawsuits. These claims may arise from a wide variety of business practices and initiatives, including major new product releases, AI products and services, significant business transactions, warranty or product claims, employment practices, and regulation. As we continue to expand our business and offerings, we may experience new and novel legal claims. Adverse outcomes in some or all of these claims may result in significant monetary damages or injunctive relief that could adversely affect our ability to conduct our business. Litigation and other claims are subject to inherent uncertainties and management\u2019s view of these matters may change in the future. An adverse impact to our financial condition and results of operations could occur for the period in which the effect of an unfavorable outcome becomes probable and reasonably estimable.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-K filed 2026-07-29",
+        "distance": 0.2279825210571289
+      },
+      {
+        "text": "We are also subject to various other legal proceedings, risks and claims that arise from the normal course of business activities. For example, on August 5, 2023, a putative class action was filed in the United States District Court for the Northern District of California, purportedly on behalf of all U.S. individuals impacted by a data misappropriation incident earlier that year. Several additional lawsuits followed, each asserting claims under various state laws and seeking monetary damages and other relief. If an unfavorable ruling or development were to occur in these or other possible legal proceedings, risks and claims, there exists the possibility of a material adverse impact on our business, results of operations, prospects, cash flows, financial position or brand.\nWe are also subject to various other legal proceedings, risks and claims that arise from the normal course of business activities. For example, on August 5, 2023, a putative class action was filed in the United States District Court for the Northern District of California, purportedly on behalf of all U.S. individuals impacted by a data misappropriation incident earlier that year. Several additional lawsuits followed, each asserting claims under various state laws and seeking monetary damages and other relief. If an unfavorable ruling or development were to occur in these or other possible legal proceedings, risks and claims, there exists the possibility of a material adverse impact on our business, results of operations, prospects, cash flows, financial position or brand.\nLetters of Credit\nLetters of Credit\nAs of December\u00a031, 2025, we had $ 556 million of unused letters of credit outstanding.\nAs of December\u00a031, 2025, we had $ 556 million of unused letters of credit outstanding.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "TSLA 10-K filed 2026-01-29",
+        "distance": 0.23180001974105835
+      },
+      {
+        "text": "The outcome of litigation or government investigations is inherently uncertain. If one or more legal matters were resolved against the Company or an indemnified third party in a reporting period for amounts above management\u2019s expectations, the Company\u2019s results of operations, financial condition and stock price for that reporting period could be materially adversely affected. Further, such an outcome can result in significant monetary damages, disgorgement of revenue or profits, remedial corporate measures or injunctive relief against the Company. Adverse resolution of legal matters has from time to time required, and can in the future require, the Company to change its business practices. It can also limit the Company\u2019s ability to enjoin others from using, or to derive value from, its intellectual property rights, and to develop, manufacture, use, import or offer for sale certain products and services, all of which could materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.\nWhile the Company maintains insurance coverage for certain types of claims, such insurance coverage may be insufficient to cover all losses or all types of claims that may arise.\nWhile the Company maintains insurance coverage for certain types of claims, such insurance coverage may be insufficient to cover all losses or all types of claims that may arise.\nThe Company is subject to complex and changing laws and regulations worldwide, which exposes the Company to potential liabilities, increased costs and other adverse effects on the Company\u2019s business.\nThe Company is subject to complex and changing laws and regulations worldwide, which exposes the Company to potential liabilities, increased costs and other adverse effects on the Company\u2019s business.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AAPL 10-K filed 2025-10-31",
+        "distance": 0.23517662286758423
+      },
+      {
+        "text": "We have claims and lawsuits against us that may result in adverse outcomes.\nWe are subject to a variety of claims and lawsuits. These claims may arise from a wide variety of business practices and initiatives, including major new product releases, AI services, significant business transactions, warranty or product claims, employment practices, and regulation. As we continue to expand our business and offerings, we may experience new and novel legal claims. Adverse outcomes in some or all of these claims may result in significant monetary damages or injunctive relief that could adversely affect our ability to conduct our business. Litigation and other claims are subject to inherent uncertainties and management\u2019s view of these matters may change in the future. An adverse impact to our financial condition and results of operations could occur for the period in which the effect of an unfavorable outcome becomes probable and reasonably estimable.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "MSFT 10-Q filed 2026-04-29",
+        "distance": 0.2353242039680481
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "How does a limit order book work?",
+    "expected_tier": 3,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "The limit order book (LOB) is the collection of buy and sell orders at an y point in\ntime. We will explain how it works from the perspective of a buyer. Con sider the example\nof a stylized LOB given in Figure 14. There are six buy orders at a price of 2.50, two buy\norders at a price of 3.00, and three orders to buy at 3.50. Note tha t we do not know if at\neach level, the order sizes represent order submission by a single pa rticipant, or are simply\naggregated by the exchange by their limit price. For our purposes it is not important who\nexactly places which orders at which level, so we can safely assume th at all orders at each\nlevel are placed by a single trader. Currently the best buy order is t he one at 3.50 for\nthree shares. Assume a new buyer wants to enter the market. Th ey could place a limit\norder at 3.50 or less, but will have to wait before the current order s at 3.50 are matched\nby a seller, or are cancelled by the respective buyer. They could alte rnatively place a limit\norder between 3.50 and 4.00, thus narrowing the bid-ask spread, b ut declaring that they\n32\nare willing to pay more than the current best bid o\ufb00er. This would move the indicative\nmid-price up. Or, lastly, they could place a market order. Assume th ey place a market\norder for four shares. In this scenario the two limit sell orders at f our, and the two limit\nsell orders at 4.50 will be executed, and the order be fully \ufb01lled. The o utermost ask level\nat 5.00 will become the best ask o\ufb00er, and the mid-price will move from 3.75 to 4.25. At\nlast, consider the following strategy for our hypothetical buyer, who wants to buy four\nshares at a price of four. They could place a market order for two s hares, which will\nimmediately be matched by the best ask price at 4.00, and also place a lim it buy order",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Stochastic Price Dynamics Implied By the Limit Order Book",
+        "distance": 0.16080212593078613
+      },
+      {
+        "text": "which will later represent the ask (resp. the bid) prices. Here we use the convention\na(0) =\u221e, b (0) = 0. (2.3)\n3\nThe set of limit order book con\ufb01gurations is de\ufb01ned as:\nL :={X = (X+,X\u2212)\u2208E, a (X)>b (X)}. (2.4)\nX+ (resp. X\u2212) then represent the buy (resp. sell) orders in the limit order book and the condition (2.4) is\ninterpreted as requiring that any outstanding buy order has a lower price than any outstanding sell order.\nThe setL will be referred to as the set of \u201cadmissible\u201d LOB con\ufb01gurations by opposition to the set E which\ncorresponds to \ufb01ctional order book con\ufb01gurations in which the constraint a(X) > b(X) is not enforced.\nThena(X) (resp. b(X) ) is the ask (resp. bid) price associated with the order book con\ufb01guration X. Figure\n3 shows an admissible con\ufb01guration of an order book.\n1 2 3 4 5 6 7 8 9\n1\n2\n3\n4\n5 buy orderssell orders\nFigure 3: An admissible con\ufb01guration of a limit order book, where the blue bars denote buy orders and the red bars denote\nsell orders. In this case, X+ = [1, 3, 2, 1, 0, 0, 0, 0, 0], and X\u2212 = [0, 0, 0, 0, 0, 1, 0, 3, 2]. Its ask price is 6 and bid price is 4.\n2.2 Order \ufb02ow\nThe state of the order book is modi\ufb01ed through order arrivals, executions or cancellations.\nWe distinguish four types of \u2019elementary\u2019 events: limit buy and sell orders and cancellation of buy and\nsell orders. A limit buy/sell order is an order to buy/sell a speci\ufb01ed amount of shares at a speci\ufb01ed price\nand a cancellation of buy/sell order is an order to cancel a certain amount of standing buy/sell shares in an\norder book. Each event is speci\ufb01ed by a price i\u2208{ 1,...,d } and a size z\u2208 N\\{0}. Let\nei := (0, 0,..., 1, 0,..., 0)\u2208 Nd,\nwhere \u201c1\u201d is in the i\u2212th position. Then an order book event of size z at price i maps a con\ufb01guration X\u2208E\nto a new con\ufb01guration X + \u2206X\u2208E. This way X\u2192X + \u2206X is described as below:\n\uf8f1\n\uf8f4\uf8f4\uf8f4\uf8f2\n\uf8f4\uf8f4\uf8f4\uf8f3",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "A mathematical framework for modelling order book dynamics",
+        "distance": 0.19919079542160034
+      },
+      {
+        "text": "The result is a model which is su\ufb03ciently simple to allow analytical insight, and su\ufb03-\nciently realistic to provide a number of features of real life order books.\nWe are speci\ufb01cally interested in processes governing order book formation and recovery,\nand we look at some simple solutions to the resulting transport equation which are relevant\nin that context.\n2 Basic dynamics of the Limit Order Book\nSimple schematics of the limit order book is shown in Figure 1. We denote by S the price\nlevel, and by h(S,t ) the total quantity of limit orders available at level S at time t. We use\nsubscript to denote partial di\ufb00erentiation, so ht =\u2202h/\u2202t and hS =\u2202h/\u2202S .\n2.1 Conservation laws\nThe quantity between two price levels S1 and S2 is given by\nV (S1,S 2,t ) =\n\u222b S2\nS1\nh(S,t ) dS (1)\n\u2217JR is a Fund Manager at Pine Tree and a Visiting Senior Research Fellow at King\u2019s College London,\njan.rosenzweig@kcl.ac.uk\n1\narXiv:1910.09202v2  [q-fin.TR]  8 Dec 2020\nand the quantity \ufb02ux is de\ufb01ned as\nQ(S1,S 2,t ) = d\ndtV (S1,S 2,t ), (2)\nthe instantaneous rate of \ufb02ow of quantity through the given part of the order book. Then,\ndi\ufb00erentiating (1) with respect to time and using integration by parts, we get the law of\nconservation of quantity in the form\nht(S,t )\u2212QS(S,t ) =P (S,t ) (3)\nwhereQ(S,t ) is taken to mean Q(\u2212\u221e,S,t ) for the bid side, and Q(S,\u221e,t ) for the ask side.\nNote that it is unusual to make the underlying dynamics lognormal in orderbook models,\nsince the e\ufb00ects of lognormality are tiny on relevant price and time scales. Hence we formally\nallow bids lower than zero, but this has no meaningful e\ufb00ects on the analysis.\nEquation (3) is analogous to the standard physical conservation of mass. The left hand\nside contains the conserved terms, or \ufb02ow of quantity through the orderbook, and the right",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Conservation Laws in a Limit Order Book",
+        "distance": 0.206318199634552
+      },
+      {
+        "text": "Figure 1: MU(Micron) limit order book on 1st July 2019, with limit buy orders in blue and limit sell orders in red.\n18, 19, 20]. Queueing models [7, 10, 16, 18] represent the limit order book as a system of interacting queues,\ndriven by an order \ufb02ow described as a spatial point process. Another class of models represents the state of\nthe order book as a (pair of) densities, solution of a (stochastic) partial di\ufb00erential equation (SPDE) [8, 13].\nThese two classes of models are connected by scaling limits such as \ufb02uid limits [12, 14, 15] and di\ufb00usion\nlimits [6, 7, 17] of discrete order book models under suitable assumptions.\nThe sheer variety of stochastic models for limit order book dynamics makes it di\ufb03cult to perform a\ncomparative analysis, especially since these models use di\ufb00erent representations and assumptions as starting\npoints. In the present work we propose an approach which these models into a unifying overall framework,\nwhich can be useful for model comparison, model construction and also for investigating asymptotic behaviour\nunder various scaling assumptions. Speci\ufb01cally, we propose to decompose the dynamics of the limit order\nbook process into two separate ingredients:\n\u2022 the incoming order \ufb02ow, represented as a spatial point process, and\n\u2022 the market clearing procedure, represented as an operator acting of a pair of distributions of buy and\nsell orders.\nCurrent\nstate:\nXt\u2208L\nIntermediate\nstate:\nXt+ \u2206X\u2208E\nState at time\nt + \u2206t:\nXt+\u2206t\u2208L\nOrder \ufb02ow\nStochastic\nClearing operator\nDeterministic\nExisting models\nFigure 2: Decomposition of the order book dynamics.\nThe dynamics of the order book is decomposed as shown in Figure 2: at time t, the current state of the\norder book is Xt belonging to an appropriate state space L. An order \ufb02ow \u2206 X arrives in the order book",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "A mathematical framework for modelling order book dynamics",
+        "distance": 0.2085927128791809
+      },
+      {
+        "text": "\ufb02ow and the clearing operator. Our model provides a \ufb02exible framework for modelling and simulating\norder book dynamics and studying various scaling limits of discrete order book models. We show that\nour framework includes previous models as special cases and yields insights into the interplay between\norder \ufb02ow and price dynamics.\nKey words: Limit order book, stochastic model, quantitative \ufb01nance, market microstructure, measure-\nvalued process\nAMS Subject classi\ufb01cation: 91-10, 91Gxx\nAcknowledgements: PD holds a visiting professor association with the Department of Mathematics,\nImperial College London, UK.\n1 Introduction\nIn the last few decades major \ufb01nancial markets have transitioned to electronic platforms where market\nparticipants may post buy and sell orders through a centralized limit order book (LOB) [5]. These orders\nare then matched and executed according to time and price priority rules. The state of the limit order\nbook, which represents outstanding buy and sell orders, constantly evolves through the arrival, execution\nand cancellation of buy and sell orders. Figure 1 shows a typical shape of the order book.\nA quantitative understanding of the dynamics of limit order books is therefore important both from a\ntheoretical standpoint for understanding the dynamics of supply and demand in order-driven markets, and\nfrom the standpoint of applications to intraday market modeling and optimal trade execution.\nThe empirical study of limit order book dynamics has revealed various empirical regularities [2, 3] across\na range of di\ufb00erent time scales [5]. Faced with the challenge of accommodating these empirical features,\nmany stochastic models for limit order book dynamics have been developed in the literature [6, 7, 9, 10, 16,\n1\narXiv:2302.01169v1  [q-fin.MF]  2 Feb 2023",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "A mathematical framework for modelling order book dynamics",
+        "distance": 0.2135680913925171
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What is latency arbitrage in high-frequency trading?",
+    "expected_tier": 3,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "link between settlement latency and violations of the law of one price to document the\neconomic relevance of settlement latency as a friction in blockchain-based trading.\n6.1 Settlement Latency and Price Differences\nFirst, we investigate the relationship between the observed price difference and expected\nsettlement latency, latency volatility, and spot volatility. The theoretical analysis in\nSection 2 yields that marginal costs for arbitrageurs increase with settlement latency. In\nturn, periods of high price risk for arbitrageurs due to settlement latency are consistent\nwith persistent large observed price differences.\nTable 5 provides the estimation results of linear regressions of hourly averages of cross-\nexchange price differences on exchange pair fixed effects (FE) and various regressors. In\ncolumns (1) and (2), we include the average estimated exchange-specific arbitrage bound\nor, alternatively, its underlying components, i.e., the average hourly spot volatility on\nthe high-price exchange, the hourly median, and the variance of realized waiting times\nof transactions entering the mempool until being included in a block for the first time.\nConsistent with our theoretical framework, we find a statistically significant positive\nrelationship between cross-exchange price differences and the components of the arbitrage\nbounds. Substituting the estimated arbitrage bounds by their components confirms that\nlarge price differences are consistent with periods of high price risk due to settlement\n31\nlatency.\nIn columns (3) and (4), we interact the estimated arbitrage bounds with high-price\nexchange-specific dummy variables indicating whether the exchange offers margin trading\ninstruments (Margin) and access for institutional traders ( Business Accounts). We find",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
+        "distance": 0.17154496908187866
+      },
+      {
+        "text": "3. Settlement Latency and Limits to Arbitrage\nAs shown in a simplified framework in Section 2, marginal costs of cross-exchange arbi-\ntrage increase with settlement latency, volatility, and risk aversion. In this section, we\nfocus on the cross-exchange strategy and substantially relax the assumptions within the\nframework to reflect uncertainty in settlement latency and to allow for general utility func-\ntions. The theoretical framework is sufficiently general to reflect market frictions related\nto cryptocurrency trading such that we can empirically quantify costs for arbitrageurs\ndue to settlement latency and the resulting economic consequences.\nMore precisely, to empirically analyze the economic magnitudes and implications of\nsettlement latency, we first relax the assumptions that volatility is constant over time\nand that the settlement latency is deterministic. Then, we introduce transaction costs\nand price impact. In our framework, we endogenize the optimal trade quantity and the\noptimal choice of settlement fees.\nFirst, we generalize the return dynamics compared to the simplistic framework from\nSection 2.\nAssumption 1. For a given settlement latency \u03c4 , we model the high-price exchange log\nprice change bs\nt+\u03c4 \u2212 bs\nt as a Brownian motion with drift \u00b5s\nt such that\nrb,s\n(t:t+\u03c4 ) = \u03b4b,s\nt + \u03c4 \u00b5s\nt +\nt+\u03c4Z\nt\n\u03c3s\nt dW s\nk , (7)\nwhere \u03c3s\nt denotes the spot volatility of the bid price process on the exchange s, and W s\nk\ndenotes a Wiener process. We assume that \u03c3s\nt is constant over the interval [t, t+ \u03c4 ].7\nWe now let the latency \u03c4 denote the random waiting time until a transfer of the asset\nbetween CEXes is settled. Only weak assumptions regarding the stochastic nature of the\nsettlement latency \u03c4 are required.\n7Time-varying and stochastic volatility can be incorporated through a change of the timescale of",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
+        "distance": 0.17164462804794312
+      },
+      {
+        "text": "The main result of this paper is that settlement latency exposes cross-exchange ar-\nbitrageurs to substantial costs. Settlement latency is the waiting time until blockchain\nvalidation of a transaction. Settlement latency makes arbitrage trades costly since it ex-\nposes arbitrageurs to substantial price risk: Due to the absence of a trusted intermediary,\nexploiting price differences requires the transfer of a blockchain-based assetacross CEXes\nand, therefore, time-consuming blockchain validation.\nConsider the decision problem of a risk-averse cross-exchange arbitrageur who mon-\nitors the prices of a blockchain-based asset on two CEXes. Whenever she buys on one\nexchange that quotes a lower price (low-price exchange), she must wait until blockchain\nvalidation of the asset transfer before selling on the other exchange (high-price exchange).\nThus, the settlement latency underlying this transfer exposes the arbitrageur to the risk\nof adverse price movements. Consequently, risk-averse arbitrageurs exploit concurrent\nprice differences only if these price differences are sufficiently large to compensate for the\nprice risk due to settlement latency.\nWe derive a closed-form expression for the arbitrageur\u2019s certainty equivalent and show\nthat it increases with (i) the expected settlement latency, (ii) the variance of the settle-\nment latency, (iii) price volatility on the high-price CEX, and (iv) the arbitrageur\u2019s risk\naversion. Our characterization of the certainty equivalent also accounts for transaction\ncosts and optimally chosen settlement fees which incentivize validators to enable faster\nvalidation (e.g., Easley et al., 2019; Huberman et al., 2021; Lehar and Parlour, 2022).\nSettlement latency can be effectively circumvented only if the arbitrageur deposits",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
+        "distance": 0.17304670810699463
+      },
+      {
+        "text": "time t. While the mempool size is observable at any point in time, we use the optimal\nfee as derived in Lemma 5 as a proxy for the individually chosen settlement fees.\nWe cannot reject the null hypothesis that the correlation between volatility and ex-\npected latency is significantly different from zero, which suggests that settlement latency\nconstitutes a source of risk that is not captured by price fluctuations. In other words,\nperiods of high spot volatility ( \u03c3s\nt )2 are not driven by high cross-exchange asset flows.\nInstead, settlement latency seems to be primarily driven by intraday fluctuation patterns\nof high network activity which are not necessarily related to cross-exchange arbitrage\nactivity. For instance, Sokolov (2021) finds that network activity spikes during periods of\nransomware attacks which increases network fees and thus, according to our theoretical\nframework, renders cross-exchange arbitrage activity more expensive.\n5.3 Estimation of Arbitrage Bounds\nHaving estimated spot volatilities (\u03c3s\nt )2 as well as the first two moments of the settlement\nlatency distribution, bEt (\u03c4 ) and bVt (\u03c4 ), we analyze the contribution of these components\nto the arbitrage bounds ds\nt . For that purpose, we estimate the arbitrage bounds according\nto our theoretical framework in Section 3 and delineate \u02c6ds\nt into individual components.\nBased on the empirically relevant CRRA case of Lemma 2, the estimated arbitrage\n27\nTable 3: Parameter estimates for the latency prediction models\nExponential Gamma\nW/o Covariates W/ Covariates W/o Covariates W/ Covariates\nIntercept 3.31 1.41 3.86 1.19\n[2.510, 4.246] [-0.070, 3.675] [2.626, 5.250] [0.013, 2.596]\n\u03b1 0.62 0.63\n[0.358, 0.902] [0.365, 0.900]\nFee per Byte -0.22 -0.22\n[-0.486, -0.031] [-0.501, -0.031]\nMempool Size 0.23 0.31\n[-0.043, 0.452] [0.059, 0.530]\nLR (Covariates) 91.33 74.59",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
+        "distance": 0.17655450105667114
+      },
+      {
+        "text": "as of Equation (29) and the respective bounds based on the assumption Bs = 1 for all\nexchanges. We observe that the impact of exchange-specific security components on\narbitrage bounds is substantial and accounts, on average, for 23% of the bounds.\nMoreover, our theoretical framework allows us to directly analyze the relevance of\nthe latency variance. As the uncertainty of the arbitrageurs\u2019 returns increases with the\nvariance of the settlement latency, we can compare the estimated arbitrage bounds to\nthe (hypothetical) case of a deterministic latency. The last column in Table 4 reports the\npercentage increase in arbitrage bounds when adjusting for the randomness in latency.\nThe values correspond to the percentage difference between the median arbitrage bound\n30\nand bounds based on the assumption Vt(\u03c4 ) = Vt(\u03c4B) = 0. We find that the impact of\nthe latency volatility is substantial and accounts, on average, for 41% of the arbitrage\nbounds.\n6. Settlement Latency and Cross-Exchange Activity\nIn this section, we empirically investigate the major predictions of our analysis in depth:\nBased on our findings in Section 2, we hypothesize that (i) settlement latency is a costly\nfriction for cross-exchange arbitrageurs, (ii) that mitigating CEX default risk reduces\nmarginal cross-exchange arbitrage costs, and (iii) order flow chases arbitrage opportuni-\nties. The general representation of arbitrage costs due to settlement latency in Section 3\nforms the underlying base to account for transaction costs and the role of settlement fees\nin the validation process. More precisely, we reported, in line with existing literature,\nsubstantial price differences across CEXes and derived estimates of the relevant deter-\nminants of price risk related to settlement latency in Section 4. Next, we analyze the",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
+        "distance": 0.18602848052978516
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "How is bid-ask spread modeled in market microstructure research?",
+    "expected_tier": 3,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Keywords\u2014 Spread dynamic, Hawkes process, High-frequency data, Market microstructure, Ergodic\nMarkov process\n1 Introduction\nThe bid-ask spread, defined at a given time in a Limit Order Book by the difference between the small-\nest ask (selling) price and the largest bid (buying) price, is a quantity of great interest for financial se-\ncurities. It corresponds to the cost of an \u201cimmediate\u201d transaction as respect to a more patient one.\nMany studies in economics literature are devoted to the bid-ask spread which is, in general, decomposed\ninto order processing costs, adverse selection costs and inventory risk (for the liquidity providers/market\nmakers who earn money from the spread) [Glosten and Harris, 1988, Stoll, 1989, Huang and Stoll, 1997,\nGlosten and Milgrom, 1985]. The spread is often used as a proxy for market liquidity a small spread being\nassociated with very liquid markets. For a literature review of liquidity measures, we refer the reader to\n[D \u00b4 \u0131az and Escribano, 2020, Goyenko et al., 2009, Fong et al., 2017, Fosset et al., 2020b]. Let us also men-\ntion that the bid-ask spread has been proved to be very closely related to realized volatility. Indeed, many em-\npirical studies [Goyenko et al., 2009, Fong et al., 2017] tend to prove that these two quantities are highly pos-\nitively correlated [Bessembinder, 1994, Zumbach, 2004, Wyart et al., 2008, Dayri and Rosenbaum, 2015].\nMany other statistical properties of the bid-ask spread have been the focus of various works. For in-\nstance, it has been shown that spread has a distribution that is fat-tailed and its dynamics is charac-\nterized by a long range (power-law) auto-correlation function [Mike and Farmer, 2008, Plerou et al., 2005,\n\u2217Corresponding author. Email: ruan@ceremade.dauphine.fr\n1\narXiv:2303.02038v2  [q-fin.TR]  6 Jun 2023",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "The self-exciting nature of the bid-ask spread dynamics",
+        "distance": 0.12690460681915283
+      },
+      {
+        "text": "In this paper we propose an approach which is inspired by these two papers but that will focus more on fitting\nempirical features and matching observed properties from market data. More specifically, we propose a new\n\u201cState Dependent Spread Hawkes\u201d (SDSH) model in order to account for the bid-ask spread fluctuations.\nOur model can be seen as a generalization of the two previously introduced models in the sense that it\nis a 2 K-variate (K possibly greater than 1) Hawkes process that is able to account for the different jump\nsizes (up to size K). It includes enough kernels to encode the influence of the various past jumps on the\nvarious future jumps. Each component includes a non-linearity component, as in the previous models, in\norder to ensure strictly positive values for the spread. In order to allow more complex dynamics, each kernel\nis written as a sum of several exponential functions (and not only one, as in the previous models). Our\nambition is to capture all the aspects of the dynamics of the bid-ask spread that were not captured by the\nprevious models.\nThe paper is organized as follows. The next section (Section 2) is devoted to a detailed definition of our new\nmodel for the bid-ask spread. The Markov and ergodicity properties of this model is studied in a particular\ncase. Section 3 illustrates this model with some numerical simulations and presents the estimation procedure\non these simulations. Section 4, the core of our paper, is devoted to empirical results. This sections is divided\nin 4 subsections. The first two ones correspond to a quick presentation and basic statistical properties of the\nreal financial time-series that will be used all along the section. The third one is devoted to estimation of\nour model on these data. Parameters estimation (including the kernels and the constraint parameters) are",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "The self-exciting nature of the bid-ask spread dynamics",
+        "distance": 0.17284971475601196
+      },
+      {
+        "text": "Abstract: The bid-ask spread, which is defined by the difference between the best selling price and the best buying price in a Limit Order Book at a given time, is a crucial factor in the analysis of financial securities. In this study, we propose a \"State-dependent Spread Hawkes model\" (SDSH) that accounts for various spread jump sizes and incorporates the impact of the current spread state on its intensity functions. We apply this model to the high-frequency data from the Cac40 Euronext market and capture several statistical properties, such as the spread distributions, inter-event time distributions, and spread autocorrelation functions. We illustrate the ability of the SDSH model to forecast spread values at short-term horizons.\nThe self-exciting nature of the bid-ask spread dynamics\nRuihua RUAN\u22171, Emmanuel BACRY1 and Jean-Fran\u00b8 cois MUZY2\n1CEREMADE, CNRS-UMR 7534, Universit\u00b4 e Paris-Dauphine PSL\nPlace du Mar\u00b4 echal de Lattre de Tassigny, 75016 Paris, France\n2SPE CNRS-UMR 6134, Universit\u00b4 e de Corse BP 52, 20250 Corte, France\nJune 7, 2023\nAbstract\nThe bid-ask spread, which is defined by the difference between the best selling price and\nthe best buying price in a Limit Order Book at a given time, is a crucial factor in the analysis\nof financial securities. In this study, we propose a \u201dState-dependent Spread Hawkes model\u201d\n(SDSH) that accounts for various spread jump sizes and incorporates the impact of the current\nspread state on its intensity functions. We apply this model to the high-frequency data from\nthe Cac40 Euronext market and capture several statistical properties, such as the spread dis-\ntributions, inter-event time distributions, and spread autocorrelation functions. We illustrate\nthe ability of the SDSH model to forecast spread values at short-term horizons.",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "The self-exciting nature of the bid-ask spread dynamics",
+        "distance": 0.17959880828857422
+      },
+      {
+        "text": "The goal of the present paper is two-fold. First, we develop a new framework for modeling market microstruc-\nture, in which the shape of the LOB, and its dynamics, ariseendogenously from the interactions between the agents.\nAmong the many advantages of such an approach is the possibility of modeling the market reaction to changes in\nthe rules of the exchange: e.g., limited trading frequency, transaction tax, etc. The second, and most important,\ngoal of the present work is to investigate the liquidity effects of trading frequency, using the proposed modeling\nframework. In particular, the main results of this paper (cf. the discussion in Section 3, as well as Theorems 4.1, 4.2\nand Corollary 4.1, in Section 4) describe the dual effect of high trading frequency. On the one hand, if the agents\nchoose to provide liquidity in equilibrium, higher trading frequency decreases the bid-ask spread and makes the\nexpected pro\ufb01ts of all market participants converge to the same (fundamental) value, thus, improving the market\n\u2217This version: February 13, 2017. First version August 28, 2015.\n\u2020Partial support from the NSF grant DMS-1411824 is acknowledged by both authors.\n\u2021We thank the anonymous referees and the Associate Editor for constructive comments that helped us improve the paper signi\ufb01cantly.\n\u00a7Address the correspondence to Sergey Nadtochiy, Mathematics Department, University of Michigan, 530 Church Street, Ann Arbor, MI\n48109, USA; e-mail: sergeyn@umich.edu.\n1\narXiv:1508.07914v4  [q-fin.TR]  9 May 2017\nef\ufb01ciency. On the other hand, higher trading frequency also makes the LOB more sensitive to the deviations of the\nagents\u2019 attitudes from market-neutrality. It is, of course, clear that a strong bullish or bearish signal induces market",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Liquidity Effects of Trading Frequency",
+        "distance": 0.20076894760131836
+      },
+      {
+        "text": "paper but ask different questions. Rahman\net al. [2025] survey decentralised prediction-\nmarket microstructure as a methodological\ndomain, framing the open questions across\nvenues without bringing matching tick-level\ndata. Tsang and Yang [2026] run a single-\nevent time-series microstructure study on the\n2024 US presidential election market, docu-\nmenting episode-level patterns around Biden\u2019s\nwithdrawal, the September debate, and the\nOctober whale trades, and reporting a roughly\norder-of-magnitude decline in Kyle\u2019s\u03bbas the\nmarket matured; the unit of analysis is one\nmarket over many time slices, with\u03bbestimated\non aggregated rather than tick-level data. The\npresent paper is the cross-sectional, tick-level\ncomplement: 600 markets observed simultane-\nously over a single 28-day scrape window, with\nmicrostructure measures computed on the full\nevent tape and a direct on-chain trade record.\nTo our knowledge, neither authoritative on-\nchain trade direction nor a continuous off-\nchain order-book archive at tick resolution has\nbeen brought to bear at the cross-sectional\nscale we use here. The classical microstructure\nreferences behind our measurement choices\nare O\u2019Hara [1995] and Hasbrouck [2007] for\norder-book theory, Foucault et al. [2013] for\nthe liquidity-provider angle, and Huang and\nStoll [1997], Madhavan et al. [1997] for spread\ndecomposition.\nPolymarket changed this. Since 2021 the\nvenue has run a limit-order-book exchange on\nPolygon, settling in USDC against an on-chain\nconditional-token contract. Our data covers\n52 calendar days of the public order-book feed\n(2026-02-21 to 2026-04-15) at tick resolution:\n30,287,264,368 events across 385,198 distinct\nmarkets. A 28-day overlap window (2026-02-\n28 to 2026-03-27) is mirrored on chain, where\nthe CTF Exchange V1 contract logs 255 million\nOrderFilledevents whose payloads identify\nboth counterparties and the aggressor side. We",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "The Anatomy of a Decentralized Prediction Market: Microstructure Evidence from the Polymarket Order Book",
+        "distance": 0.20146864652633667
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "What is optimal execution and price impact?",
+    "expected_tier": 3,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "ance. Combining these ingredients, we obtain a reduced-form passive impact rate that decays\nexponentially with quote distance. The model describes passive execution at a tactical level,\nwhere fills arise from a sequence of quote adjustments that balance execution probability, ad-\nverse selection, and opportunity cost. We formulate and solve an optimal liquidation problem\nin which the trader controls the aggressiveness of passive sell quotes. This generates a trade-off\nbetween higher fill intensity and larger accumulated impact on the one hand, and lower impact\nbut greater non-execution risk on the other. Empirical calibration using NASDAQ equities and\npublic FX supports the empirical foundations of the model. We also analyse extensions with\nheterogeneous decay rates, transient impact, and target execution schedules.\nMathematics Subject Classification (2020):93E20, 60H30, 91G80\nJEL Classification:C02, C61, G11\nKeywords:optimal trading, market impact, passive impact, limit orders\n1 Introduction\nPrice impact refers to the empirical observation that executing a large order adversely affects the\nprice of a risky asset in a persistent manner, resulting in less favourable execution prices. Conse-\nquently, an agent seeking to liquidate a large position, known as a metaorder, typically splits it\ninto smaller components, referred to as child orders, which are executed over a period of hours or\ndays. Price impact is therefore a central ingredient in determining the optimal execution schedule\nof such an order [9, 11, 17, 41]. Classical execution theories, such as those of Bertsimas and Lo [8]\nand Almgren and Chriss [2], model trading costs as the price response generated by an investor\u2019s\nown market orders. In this framework, the trader controls an execution rate and faces a trade-off",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Optimal Execution with Passive Market Impact",
+        "distance": 0.22281622886657715
+      },
+      {
+        "text": "paper we consider a recently introduced market impact model (Bouchaud\net al. , 2004, [1]), which has the property of describing both the volume\nand the temporal dependence of price change due to trading. We show\nhow this model can be used to describe price impact also in aggregated\ntrade time or in real time. We then solve analytically and calibrate with\nreal data the optimal execution problem both for risk neutral and for risk\naverse investors and we derive an e\ufb03cient frontier of optimal execution.\nWhen we include spread costs the problem must be solved numerically\nand we show that the introduction of such costs regularizes the solution.\n\u2217We acknowledge the Linear Quantitative Research team at J.P. Morgan for providing\nsupport, insights, advices and data. We thank Jean-Philippe Bouchaud, Gianbiagio Curato,\nDaniel Nehren, Xavier Abdobal, Alex Alekseev, Oleg Bogoslavskiy, Junfeng Li, Sami Haj\nSlimane for useful discussion. This work is partially supported by the grant SNS11LILLB\n\u201cPrice formation, agent\u2019s heterogeneity, and market e\ufb03ciency\u201d\n1\narXiv:1206.0682v1  [q-fin.TR]  4 Jun 2012\nContents\n1 Introduction 2\n2 Optimal execution problem 4\n2.1 The Almgren Chriss execution scheme . . . . . . . . . . . . . . . 6\n3 Data 7\n4 Propagator model in trade time 8\n5 The propagator model under other time measures 10\n5.1 Calibration of the propagator model in real time . . . . . . . . . 10\n5.2 Variance explained by the model . . . . . . . . . . . . . . . . . . 11\n6 Optimal execution model 14\n6.1 Baseline case: risk neutral investor without spread costs . . . . . 15\n6.2 Optimal execution with spread costs . . . . . . . . . . . . . . . . 16\n6.3 Optimal execution with risk aversion . . . . . . . . . . . . . . . . 17\n7 Empirically calibrated optimal execution strategies 18\n7.1 Optimal execution without spread costs . . . . . . . . . . . . . . 19",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Calibration of optimal execution of financial transactions in the presence of transient market impact",
+        "distance": 0.22785794734954834
+      },
+      {
+        "text": "when an investor faces the task of closing a large position in an illiquid market. The\nscienti\ufb01c literature on optimal trade execution problems deals with the optimization of\n\u2217Institute of Mathematics, University of Gie\u00dfen, Arndtstr. 2, 35392 Gie\u00dfen, Germany. Email:\njulia.ackermann@math.uni-giessen.de, Phone: +49 (0)641 9932113.\n\u2020Institute of Mathematics, University of Gie\u00dfen, Arndtstr. 2, 35392 Gie\u00dfen, Germany. Email:\nthomas.kruse@math.uni-giessen.de, Phone: +49 (0)641 9932102.\n\u2021Faculty of Mathematics, University of Duisburg-Essen, Thea-Leymann-Str. 9, 45127 Essen, Germany.\nEmail: mikhail.urusov@uni-due.de, Phone: +49 (0)201 1837428.\n1\narXiv:2112.03789v2  [q-fin.TR]  22 Jul 2022\nsuch trading schedules. The inputs are time horizonT\u2208 (0,\u221e), sizex\u2208 R (shares of a\nstock) of the \ufb01nancial position to be closed until timeT and model of the price impact.\nThe literature on optimal trade execution takes price impact as exogenously given.\nDepending on how the price impact is modeled the majority of current literature can be\nnaturally divided into two groups.\nIn the \ufb01rst group of models, execution strategies(Xt)t\u2208[0,T ] have absolutely continuous\npaths t\u21a6\u2192Xt, and the price impact at any timet depends only on the derivative\u02d9Xt at\ntime t. In particular, the price impact at timet is independent of all orders executed\nat times prior tot and does not in\ufb02uence the impact of the orders executed at times\nafter t. Essentially, what is modeled in this approach is only market depth, and the\nprice impact is purely instantaneous in the sense described above.1\nIn the second group of models, trades induce a transient price impact that decays over\ntime due to resilience e\ufb00ects of the price. In such models, the execution price at timet\nis in\ufb02uenced in a nontrivial way by orders \ufb01lled at times prior tot, and the execution at",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Self-exciting price impact via negative resilience in stochastic order books",
+        "distance": 0.23241370916366577
+      },
+      {
+        "text": "impact is accumulated, whereas a less aggressive quote reduces immediate impact but increases non-\nexecution risk and inventory costs. The solution is further analysed in Section 4 using empirically\nrealistic fill intensity and price impact parameters, which are estimated in Section 5 using NASDAQ\nstock data and LSEG FX market data.\nWe observe that the agent\u2019s optimal quote is closer to the midprice when the remaining inventory\nis large, reflecting increased urgency due to risk aversion and the terminal penalty. This effect\nreverses toward the end of the trading period because inventory is marked to the impacted midprice,\ncreating a situation in which the trader would prefer to incur the inventory penalty associated with\nan additional unit rather than bear the impact on the entire position (see Figure 1). We also observe\nin Figure 11 that the median inventory trajectory for passive order execution is remarkably close\nto that of the Almgren\u2013Chriss model, which considers only market orders. A key result of Almgren\nand Chriss [2] is that permanent price impact does not affect the trading rate but only the optimal\nstrategy\u2019s P&L. In contrast, in the passive-order case, permanent impact drives the convexity of\nthe liquidation curve (see the detailed explanation below Figure 11).\nExtensions of the model, including cases in which the fill intensity and the passive impact term\nhave different decay rates, as well as models with transient passive impact and target execution\nschedules, are studied in Section 6. In particular, the fill intensity and passive impact decay rates\nare found to differ in the FX data reported in Table 5, which makes the derivation of the optimal\nquote considerably more involved. One possible explanation is that this difference arises because",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Optimal Execution with Passive Market Impact",
+        "distance": 0.23486381769180298
+      },
+      {
+        "text": "Abstract: Trading large volumes of a financial asset in order driven markets requires the use of algorithmic execution dividing the volume in many transactions in order to minimize costs due to market impact. A proper design of an optimal execution strategy strongly depends on a careful modeling of market impact, i.e. how the price reacts to trades. In this paper we consider a recently introduced market impact model (Bouchaud et al., 2004), which has the property of describing both the volume and the temporal dependence of price change due to trading. We show how this model can be used to describe price impact also in aggregated trade time or in real time. We then solve analytically and calibrate with real data the optimal execution problem both for risk neutral and for risk averse investors and we derive an efficient frontier of optimal execution. When we include spread costs the problem must be solved numerically and we show that the introduction of such costs regularizes the solution.\nCalibration of optimal execution of \ufb01nancial\ntransactions in the presence of transient market\nimpact\nEnzo Busseti a,b and Fabrizio Lillo a,c,d\u2217\na Scuola Normale Superiore di Pisa, Piazza dei Cavalieri 7, I-56126 Pisa, Italy\nb J.P. Morgan, Linear Quantitative Research, 10 Aldermanbury, London EC2V 7RF,\nUK\nc Dipartimento di Fisica, viale delle Scienze I-90128, Palermo, Italy\nd Santa Fe Institute, 1399 Hyde Park Road, Santa Fe NM 87501, USA\nAbstract\nTrading large volumes of a \ufb01nancial asset in order driven markets\nrequires the use of algorithmic execution dividing the volume in many\ntransactions in order to minimize costs due to market impact. A proper\ndesign of an optimal execution strategy strongly depends on a careful\nmodeling of market impact, i.e. how the price reacts to trades. In this",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Calibration of optimal execution of financial transactions in the presence of transient market impact",
+        "distance": 0.23517227172851562
+      }
+    ],
+    "flags": []
+  },
+  {
+    "query": "How do market makers manage order flow toxicity?",
+    "expected_tier": 3,
+    "notes": null,
+    "top_k_results": [
+      {
+        "text": "Nutz, Webster, and Zhao [31] studied the problem of CRB which optimally unwinds\nan order flow arriving from clients by using both internalization and externalization,\nwhile taking into account transient price impact induced from the outflow. In their\nmodel Nutz et al. assume that the order flow is a diffusion process with parameters\nwhich are known to the desk. The sign of the drift term in the inflow determines the\ntype of toxicity, which could be mean-reverting or momentum driven. Moreover, in\n[31] the externalization does not affect the inflow created by informed traders. From\nthe mathematical perspective, the model of Nutz et al. differs from standard optimal\nexecution problems such as [11, 26, 29] insofar as in their model the inventory to be\nexecuted is random and determined by the inflow.\n2\nThe main objective of this paper is to combine the two streams of literature, i.e.\nthe statistical estimation of toxicity and the optimal unwinding in the presence of\ntoxicity, into a unified tractable framework. The data analysis in Section 4.1 of in-\nstitutional FX flow implies that the inflow\u2019s drift parameter, which represent toxicity\ncan change on a daily basis from being mean reverting to having momentum (i.e. pos-\nitive trend). While the trajectories of the inflow are observed by the desk, the drift\nand the noise of the inflow are not observables and are subject to inference throughout\nthe trading day. This turns the liquidation problem faced by the desk to a partially\nobserved stochastic control problem. Moreover, as suggested by Brunnermeier and\nPedersen [9], if the desk externalizes their accumulated inventory, other agents in the\nmarket can interact with this flow introducing feedback. The desk is also allowed\nto exploit price predicting signals in the unwind strategy. We will capture all three",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Unwinding Toxic Flow with Partial Information",
+        "distance": 0.19777953624725342
+      },
+      {
+        "text": "Abstract: We consider a central trading desk which aggregates the inflow of clients' orders with unobserved toxicity, i.e. persistent adverse directionality. The desk chooses either to internalise the inflow or externalise it to the market in a cost effective manner. In this model, externalising the order flow creates both price impact costs and an additional market feedback reaction for the inflow of trades. The desk's objective is to maximise the daily trading P&L subject to end of the day inventory penalization. We formulate this setting as a partially observable stochastic control problem and solve it in two steps. First, we derive the filtered dynamics of the inventory and toxicity, projected to the observed filtration, which turns the stochastic control problem into a fully observed problem. Then we use a variational approach in order to derive the unique optimal trading strategy. We illustrate our results for various scenarios in which the desk is facing momentum and mean-reverting toxicity. Our implementation shows that the P&L performance gap between the partially observable problem and the full information case are of order $0.01\\%$ in all tested scenarios.\nUnwinding Toxic Flow with Partial Information\nAlexander Barzykin 1, Robert Boyce \u22172, and Eyal Neuman 2\n1HSBC\n2Department of Mathematics, Imperial College London\nJuly 8, 2024\nAbstract\nWe consider a central trading desk which aggregates the inflow of clients\u2019\norders with unobserved toxicity, i.e. persistent adverse directionality. The desk\nchooses either to internalise the inflow or externalise it to the market in a cost\neffective manner. In this model, externalising the order flow creates both price\nimpact costs and an additional market feedback reaction for the inflow of trades.",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Unwinding Toxic Flow with Partial Information",
+        "distance": 0.21296358108520508
+      },
+      {
+        "text": "strategies. The statistical properties of toxic flows and indicators that predict them,\nsuch as volume imbalance and trade intensity, have received a considerable amount\nof attention in [13, 18, 16, 17] among others.\nOne of the fundamental problems faced by modern financial institutions is how to\noptimally unwind a stochastic order flow. Hence, in addition to the academic work on\ndetection and prediction of toxic flows, some effort was dedicated to optimisation of\ntrading performance despite their presence. It is a common practice that market mak-\ners and brokers unwind the order flow by matching their clients\u2019 opposite transactions\nin a process called internalization. The remaining orders are routed and executed in\nthe market as out-flow orders (also known as externalization). Butz and Oomen [10]\nproposed a simple model for internalization using queuing theory, in which the agent\ncan skew their prices in order to control inventory risk. Barzykin et al. [6] proposed\na stochastic optimal control model which combines internalization and externaliza-\ntion. In their model, the dealer sets quotes to attract flow while they simultaneously\nhedge in a separate liquidity pool. The common situation of an informed trader with\ninformation about the trend of an asset price and a broker who trades at a loss was\nstudied in Cartea and S\u00e1nchez-Betancourt [12]. However in their setting, the broker\ntakes advantage of knowing the parameters of the toxic order flow which he uses as a\nsignal in order to decide whether to internalise or externalise, depending on the state\nin the market.\nIn pursuit of minimising firm-wide trading costs due to price impact, many in-\nstitutions have centralised trading activity, including into desks commonly known as\ncentral risk books (CRBs), which net opposite orders of clients. In a recent work",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Unwinding Toxic Flow with Partial Information",
+        "distance": 0.22593611478805542
+      },
+      {
+        "text": "The desk\u2019s objective is to maximise the daily trading P&L subject to end of the\nday inventory penalization. We formulate this setting as a partially observable\nstochastic control problem and solve it in two steps. First, we derive the filtered\ndynamics of the inventory and toxicity, projected to the observed filtration,\nwhich turns the stochastic control problem into a fully observed problem. Then\nwe use a variational approach in order to derive the unique optimal trading\nstrategy. We illustrate our results for various scenarios in which the desk is\nfacing momentum and mean-reverting toxicity. Our implementation shows that\nthe P&L performance gap between the partially observable problem and the\nfull information case are of order0.01% in all tested scenarios.\nMathematics Subject Classification (2010):91G10, 49N10, 49N90, 93E20, 93E11, 60G35\nJEL Classification: C61, C73, G11, G24, G32,\nKeywords: central risk book, market making, optimal liquidation, price impact, partially\nobservable stochastic control\n\u2217RB is supported by the EPSRC Centre for Doctoral Training in Mathematics of Random\nSystems: Analysis, Modelling and Simulation (EP/S023925/1) and by the G-Research Travel Grant.\n1\narXiv:2407.04510v1  [q-fin.TR]  5 Jul 2024\n1 Introduction\nThe common market situation where buyers and sellers have different information\nhas played a central role in understanding and modeling financial ecosystems. In\nparticular models of informed traders have been at the core of financial research\never since the pioneering work of Glosten and Milgrom [22], Kyle [25], Easley and\nO\u2019Hara [15]. Toxic order flow refers to the situation where agents adversely select\nmarket makers who may be unaware that they are providing liquidity at a loss. This\nphenomena has a profound effect on market making and on high-frequency trading",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Unwinding Toxic Flow with Partial Information",
+        "distance": 0.23724621534347534
+      },
+      {
+        "text": "agent (orange) for true value ofb = \u22120.2.\n5 Conclusion\nIn this paper we have considered a model for a central trading desk which aggregates\nthe inflow of clients\u2019 orders with unobserved toxicity. The desk then faces a continuous\n25\ndilemma of whether to internalise their inventory and save on transaction costs and\nmarketimpactbutbeartheriskofadverseselection, ortoexternaliseinacosteffective\nmanner and reduce risk. Using institutional FX flow as an example, we showed that\nthe probabilistic properties of the order flow\u2019s drift can randomly change from mean-\nreverting to momentum-driven from day to day, while the distribution parameters of\nthe toxicity remain stable throughout a one year horizon. Our empirical study also\npointed out that unwinding the order flow creates a significant feedback effect on the\nflow.\nThe desk\u2019s typical objective is to maximise the risk-adjusted daily P&L. As in the\ncurrent CRB setting the desk does not influence the flow directly, we have considered\na utility maximizing trading P&L subject to end of the day inventory penalization.\nWe have formulated the aforementioned setting as a partially observable stochastic\ncontrol problem and solved it in two steps. First, we derived the filtered dynamics\nof the inventory and toxicity, projected to the observed filtration, which turns the\nstochastic control problem into a fully observed problem. Then we used a variational\napproach in order to derive the unique optimal trading strategy. We have illustrated\nour results for various scenarios in which the desk is facing momentum and mean-\nreverting toxicity. We have shown that feedback of externalization has a prominent\neffect on the P&L, even for small values of the feedback parameter. We then studied\nthe P&L performance gap between the partially observable problem and the full",
+        "tier": 3,
+        "source": "arxiv",
+        "section_heading": "Unwinding Toxic Flow with Partial Information",
+        "distance": 0.24185889959335327
+      }
+    ],
+    "flags": []
+  }
+]
