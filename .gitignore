@@ -24,6 +24,9 @@ finrag/data/raw/
 finrag/data/processed/
 finrag/data/vectorstore/
 
+# Personal portfolio holdings — private, never committed
+finrag/data/portfolio/holdings.csv
+
 # ChromaDB (stored locally outside repo)
 *.sqlite3
 chroma_db/
