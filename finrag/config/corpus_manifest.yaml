@@ -1,0 +1,135 @@
+# Financial Knowledge RAG Agent — Corpus Manifest
+# This is the single source of truth for what gets ingested.
+# Day 2/3 scrapers read this file; they do not hardcode source lists themselves.
+
+target_total_docs: 100  # soft target, range 90-110
+
+tier1_fundamentals:
+  description: >
+    Plain-language financial concepts. Short, high-clarity documents.
+    Used to answer "what is X" / "how do I calculate X" style queries.
+  target_count: 35
+  doc_type: "explainer"
+  sources:
+    - name: investopedia
+      base_url: "https://www.investopedia.com"
+      topics:
+        - "EMI (Equated Monthly Installment) / loan amortization"
+        - "compound interest"
+        - "simple interest"
+        - "mutual funds basics"
+        - "SIP (systematic investment plan)"
+        - "bonds and yield"
+        - "bond duration"
+        - "stocks basics"
+        - "options basics (calls/puts)"
+        - "futures basics"
+        - "derivatives overview"
+        - "diversification"
+        - "expense ratio"
+        - "net asset value (NAV)"
+        - "credit score basics"
+        - "dollar-cost averaging"
+        - "annual percentage rate (APR)"
+        - "annual percentage yield (APY)"
+        - "inflation"
+        - "time value of money"
+        - "present value"
+        - "net present value (NPV)"
+        - "dividends"
+        - "price-to-earnings (P/E) ratio"
+        - "market capitalization"
+        - "index funds"
+        - "exchange-traded funds (ETF)"
+        - "asset allocation"
+        - "risk tolerance"
+        - "mortgage basics"
+        - "call options"
+        - "put options"
+        - "yield to maturity"
+        - "capital gains"
+        - "return on investment (ROI)"
+        - "volatility"
+        - "compound annual growth rate (CAGR)"
+      # scraper will search-and-fetch one canonical article per topic
+    - name: rbi_investor_education
+      base_url: "https://www.rbi.org.in"
+      note: "RBI financial literacy / investor education PDFs (loans, interest, EMI)"
+    - name: sebi_investor_education
+      base_url: "https://investor.sebi.gov.in"
+      note: "SEBI investor education booklets (mutual funds, bonds, derivatives basics)"
+    - name: khan_academy_finance
+      base_url: "https://www.khanacademy.org/economics-finance-domain"
+      note: "core finance & capital markets unit — interest, bonds, stocks modules"
+
+tier2_filings:
+  description: >
+    Real structured SEC filings. Tests section/table-aware chunking and
+    long-document, entity-grounded retrieval.
+  target_count: 25
+  doc_type: "sec_filing"
+  source:
+    name: sec_edgar
+    api_base: "https://data.sec.gov"
+    full_text_search: "https://efts.sec.gov/LATEST/search-index"
+    filing_index_base: "https://www.sec.gov/cgi-bin/browse-edgar"
+  companies: # pick a diversified, well-known set — large caps across sectors
+    - ticker: AAPL
+      cik: "0000320193"
+      filings: ["10-K", "10-Q"]
+    - ticker: MSFT
+      cik: "0000789019"
+      filings: ["10-K", "10-Q"]
+    - ticker: JPM
+      cik: "0000019617"
+      filings: ["10-K", "10-Q"]
+    - ticker: TSLA
+      cik: "0001318605"
+      filings: ["10-K", "10-Q"]
+    - ticker: XOM
+      cik: "0000034088"
+      filings: ["10-K", "10-Q"]
+  filings_per_company: "latest 10-K + latest 2 10-Q"
+  user_agent_required: true
+  note: >
+    SEC requires a descriptive User-Agent header with contact email on all
+    requests (e.g. "FinRAG-Coach research@yourdomain.com"). Enforce in scraper.
+
+tier3_microstructure:
+  description: >
+    Advanced / technical papers on market microstructure and HFT.
+    Tests handling of dense math, jargon, and quantitative queries.
+  target_count: 35
+  doc_type: "research_paper"
+  source:
+    name: arxiv
+    api_base: "http://export.arxiv.org/api/query"
+    categories: ["q-fin.TR", "q-fin.MF", "q-fin.ST"]
+  search_queries:
+    - "market microstructure"
+    - "high frequency trading"
+    - "limit order book"
+    - "market making algorithm"
+    - "price impact optimal execution"
+    - "order flow toxicity"
+    - "latency arbitrage"
+    - "bid-ask spread modeling"
+  max_results_per_query: 10
+  date_filter: "prefer last 10 years, allow seminal older papers if highly cited"
+
+metadata_schema:
+  # applied uniformly at ingestion (Day 5 will formalize this further)
+  fields:
+    - source        # e.g. "investopedia", "sec_edgar", "arxiv"
+    - tier          # 1, 2, or 3
+    - doc_type      # explainer | sec_filing | research_paper
+    - title
+    - url
+    - date_fetched
+    - date_published  # if available
+    - company_ticker  # tier2 only, else null
+    - arxiv_id        # tier3 only, else null
+
+storage:
+  raw_dir: "data/raw/{tier}/"
+  filename_convention: "{tier}_{source}_{slug}.{ext}"

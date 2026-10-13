@@ -47,17 +47,39 @@ INVESTOPEDIA_SLUG_MAP = {
     "compound interest": "compoundinterest",
     "simple interest": "simple-interest",
     "mutual funds basics": "mutualfund",
-    "SIP (systematic investment plan)": "systematic-investment-plan-sip",
+    "SIP (systematic investment plan)": "systematicinvestmentplan",
     "bonds and yield": "bond",
     "bond duration": "duration",
-    "stocks vs bonds": "072914/difference-between-stocks-and-bonds.asp",
-    "options basics (calls/puts)": "options",
+    "stocks basics": "stock",
+    "options basics (calls/puts)": "option",
     "futures basics": "futures",
     "derivatives overview": "derivative",
     "diversification": "diversification",
     "expense ratio": "expenseratio",
     "net asset value (NAV)": "nav",
     "credit score basics": "credit_score",
+    "dollar-cost averaging": "dollarcostaveraging",
+    "annual percentage rate (APR)": "apr",
+    "annual percentage yield (APY)": "apy",
+    "inflation": "inflation",
+    "time value of money": "timevalueofmoney",
+    "present value": "presentvalue",
+    "net present value (NPV)": "npv",
+    "dividends": "dividend",
+    "price-to-earnings (P/E) ratio": "price-earningsratio",
+    "market capitalization": "marketcapitalization",
+    "index funds": "indexfund",
+    "exchange-traded funds (ETF)": "etf",
+    "asset allocation": "assetallocation",
+    "risk tolerance": "risktolerance",
+    "mortgage basics": "mortgage",
+    "call options": "calloption",
+    "put options": "putoption",
+    "yield to maturity": "yieldtomaturity",
+    "capital gains": "capitalgain",
+    "return on investment (ROI)": "returnoninvestment",
+    "volatility": "volatility",
+    "compound annual growth rate (CAGR)": "cagr",
 }
 
 
@@ -97,14 +119,16 @@ BOILERPLATE_CLASS_HINTS = re.compile(
 def extract_main_text(html: str) -> str:
     soup = BeautifulSoup(html, "lxml")
 
-    for tag in soup(BOILERPLATE_TAGS):
-        tag.decompose()
-    for tag in soup.find_all(class_=BOILERPLATE_CLASS_HINTS):
-        tag.decompose()
-    for tag in soup.find_all(id=BOILERPLATE_CLASS_HINTS):
-        tag.decompose()
-
-    candidate = soup.find("article") or soup.find("main")
+    # Pick the content container FIRST, then strip boilerplate only inside it.
+    # Stripping the whole document first deletes the article on sites like
+    # Investopedia, where <main>/<article> are nested inside a <header> element
+    # and the <article> itself carries an "sc-ad-container" class.
+    candidate = (
+        soup.find(id=re.compile(r"^article-body"))
+        or soup.find(class_="article-body")
+        or soup.find("article")
+        or soup.find("main")
+    )
 
     if candidate is None:
         # fallback: score all divs by paragraph density
@@ -119,6 +143,13 @@ def extract_main_text(html: str) -> str:
 
     if candidate is None:
         return ""
+
+    for tag in candidate(BOILERPLATE_TAGS):
+        tag.decompose()
+    for tag in candidate.find_all(class_=BOILERPLATE_CLASS_HINTS):
+        tag.decompose()
+    for tag in candidate.find_all(id=BOILERPLATE_CLASS_HINTS):
+        tag.decompose()
 
     # Keep paragraph/heading/list structure as plain text with blank-line separation
     # so Day 4's section-aware chunker has something to work with.
