@@ -43,7 +43,8 @@ REQUEST_DELAY_SEC = 1.5  # be polite, avoid hammering source sites
 # need a small allowlist rather than guessed URLs.
 
 INVESTOPEDIA_SLUG_MAP = {
-    "EMI (Equated Monthly Installment) / loan amortization": "amortization",
+    "equated monthly installment (EMI)": "equated_monthly_installment",
+    "loan amortization": "amortization",
     "compound interest": "compoundinterest",
     "simple interest": "simple-interest",
     "mutual funds basics": "mutualfund",

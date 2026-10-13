@@ -14,7 +14,8 @@ tier1_fundamentals:
     - name: investopedia
       base_url: "https://www.investopedia.com"
       topics:
-        - "EMI (Equated Monthly Installment) / loan amortization"
+        - "equated monthly installment (EMI)"
+        - "loan amortization"
         - "compound interest"
         - "simple interest"
         - "mutual funds basics"
