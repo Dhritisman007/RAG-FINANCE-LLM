@@ -33,6 +33,13 @@ BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 BATCH_SIZE = 64
 
+# HNSW index settings. Chroma's default (16 neighbours, ef_construction=100)
+# left whole topic clusters unreachable from some queries — e.g. every SIP /
+# YTM / CAGR chunk was missed even with ef_search=1000 (recall@5 = 0 on 5 of
+# 199 test queries). 32 neighbours + ef_construction=400 gave recall@5 = 1.0
+# against exact search on all 199. Cosine fits normalized sentence embeddings.
+HNSW_CONFIG = {"space": "cosine", "max_neighbors": 32, "ef_construction": 400, "ef_search": 200}
+
 
 # ---------- 1. Embedder (real model, lazily imported so this module stays
 #               testable without the heavy sentence-transformers/torch stack) ----------
@@ -108,7 +115,7 @@ def build_collection(embedder=None) -> chromadb.Collection:
         pass
     collection = client.create_collection(
         name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},  # cosine similarity fits normalized sentence embeddings
+        configuration={"hnsw": HNSW_CONFIG},
     )
 
     for i in range(0, len(chunks), BATCH_SIZE):
