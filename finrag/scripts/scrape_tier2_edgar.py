@@ -10,6 +10,8 @@ For each company in config/corpus_manifest.yaml:
 Usage:
     python scripts/scrape_tier2_edgar.py
     python scripts/scrape_tier2_edgar.py --ticker AAPL   # single company, for testing
+    python scripts/scrape_tier2_edgar.py --reextract     # re-fetch + re-extract the
+                                                         # filings already on disk
 
 IMPORTANT: SEC requires a descriptive User-Agent with a real contact email
 on every request, or you will get blocked. Edit CONTACT_EMAIL below.
@@ -18,12 +20,17 @@ import argparse
 import json
 import re
 import time
+import warnings
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
 import requests
 import yaml
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+
+# EDGAR iXBRL documents are XHTML; the lxml HTML parser handles them fine.
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 ROOT = Path(__file__).parent.parent
 MANIFEST_PATH = ROOT / "config" / "corpus_manifest.yaml"
@@ -107,13 +114,21 @@ def extract_filing_text(html: str) -> str:
     keep headings/paragraphs/table rows so section structure survives for Day 4 chunking.
     """
     soup = BeautifulSoup(html, "lxml")
-    for tag in soup(["script", "style"]):
+    # ix:header is the hidden machine-readable XBRL block (contexts, units,
+    # dei facts) — not filing prose, and tens of thousands of tokens of noise.
+    for tag in soup(["script", "style", "ix:header"]):
         tag.decompose()
 
+    # Emit each piece of text exactly once:
+    #   - tables as one flattened line (and nothing nested inside them)
+    #   - otherwise only the innermost block elements; <span> is inline, so it
+    #     is never emitted on its own. EDGAR's iXBRL wraps every paragraph as
+    #     <div><span>text</span></div> — emitting both doubled ~23% of lines.
     lines = []
-    for el in soup.find_all(["h1", "h2", "h3", "h4", "p", "li", "table", "div", "span"]):
-        # avoid double-counting nested elements: only leaf-ish text-bearing tags
-        if el.find(["p", "table", "div"]):
+    for el in soup.find_all(BLOCK_TAGS + ["table"]):
+        if el.find_parent("table"):
+            continue
+        if el.name != "table" and el.find(BLOCK_TAGS + ["table"]):
             continue
         text = el.get_text(" ", strip=True)
         if not text or len(text) < 3:
@@ -123,9 +138,37 @@ def extract_filing_text(html: str) -> str:
         else:
             lines.append(text)
 
+    lines = drop_page_furniture(lines)
     cleaned = "\n".join(lines)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
     return cleaned
+
+
+BLOCK_TAGS = ["h1", "h2", "h3", "h4", "p", "li", "div"]
+FURNITURE_MAX_CHARS = 80
+FURNITURE_MIN_REPEATS = 5
+
+
+def drop_page_furniture(lines: list[str]) -> list[str]:
+    """
+    Remove running headers/footers ("Table of Contents",
+    "Apple Inc. | 2025 Form 10-K | 6") — short lines that repeat many times
+    once page numbers/digits are ignored — and collapse consecutive repeats.
+    """
+    def norm(line: str) -> str:
+        return re.sub(r"\d+", "#", line.strip())
+
+    counts = Counter(norm(l) for l in lines if len(l.strip()) <= FURNITURE_MAX_CHARS)
+    furniture = {k for k, n in counts.items() if n >= FURNITURE_MIN_REPEATS}
+
+    kept = []
+    for line in lines:
+        if len(line.strip()) <= FURNITURE_MAX_CHARS and norm(line) in furniture:
+            continue
+        if kept and line == kept[-1]:
+            continue
+        kept.append(line)
+    return kept
 
 
 def save_doc(ticker: str, filing: dict, url: str, text: str) -> None:
@@ -186,8 +229,36 @@ def run(single_ticker: str | None = None) -> None:
             time.sleep(REQUEST_DELAY_SEC)
 
 
+def reextract_existing() -> None:
+    """
+    Re-fetch the exact filings already saved (by the url in each .meta.json)
+    and re-run text extraction — picks up extractor fixes without changing
+    which filings are in the corpus.
+    """
+    metas = sorted(p for p in OUT_DIR.glob("*.meta.json") if not p.name.startswith("._"))
+    print(f"=== Tier 2 re-extract: {len(metas)} filings ===")
+    for meta_path in metas:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+        html = fetch_html(metadata["url"])
+        if html is None:
+            continue
+        text = extract_filing_text(html)
+        txt_path = meta_path.with_name(meta_path.name.replace(".meta.json", ".txt"))
+        old_chars = metadata.get("char_count", 0)
+        txt_path.write_text(text, encoding="utf-8")
+        metadata["char_count"] = len(text)
+        meta_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+        print(f"  [RE-EXTRACTED] {txt_path.name}: {old_chars} -> {len(text)} chars")
+        time.sleep(REQUEST_DELAY_SEC)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ticker", type=str, default=None, help="Scrape a single company by ticker")
+    parser.add_argument("--reextract", action="store_true",
+                        help="Re-fetch and re-extract the filings already in data/raw/tier2")
     args = parser.parse_args()
-    run(single_ticker=args.ticker)
+    if args.reextract:
+        reextract_existing()
+    else:
+        run(single_ticker=args.ticker)
