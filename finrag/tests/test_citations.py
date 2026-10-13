@@ -9,7 +9,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from citations import citations_from_chroma_results, deduplicate_citations, format_citations_block  # noqa: E402
+from citations import (  # noqa: E402
+    citations_from_chroma_results,
+    deduplicate_citations,
+    format_citations_block,
+    suppress_near_duplicates,
+)
 from rag_loop import build_prompt  # noqa: E402
 
 FILING = "AAPL 10-K filed 2025-10-31"
@@ -92,7 +97,32 @@ def test_markers_point_to_matching_source_after_reorder() -> None:
     print(f"  (old docs[:len(citations)] pairing would misalign markers {mismatches})")
 
 
+def test_near_duplicates_suppressed_and_backfilled() -> None:
+    # Realistic chunk length (~100 words) — a page footer is a small fraction of it.
+    risk = ("The Company's operations are also subject to the risks of industrial accidents at its "
+            "suppliers and contract manufacturers. While the Company's suppliers are required to "
+            "maintain safe working environments and operations, an industrial accident could occur "
+            "and could result in serious injuries or loss of life, disruption to the Company's "
+            "business, and harm to the Company's reputation. Major public health issues, including "
+            "pandemics, have adversely affected, and could in the future materially adversely affect, "
+            "the Company due to their impact on the global economy and demand for consumer products; "
+            "the imposition of protective public safety measures; and disruptions in the Company's "
+            "operations, supply chain, and sales and distribution channels.")
+    results = fake_results([
+        ("aapl_10k_45", risk, 0.10),
+        ("aapl_10q_44", risk + " Apple Inc. | Q3 2026 Form 10-Q | 12", 0.11),  # near-copy
+        ("aapl_10k_50", "Single-source custom components can face shortages and price increases.", 0.20),
+        ("aapl_10k_60", "Adverse economic conditions can reduce demand for the Company's products.", 0.30),
+    ])
+    cites = deduplicate_citations(citations_from_chroma_results(results))
+    cites = suppress_near_duplicates(cites, k=3)
+    assert [c.chunk_id for c in cites] == ["aapl_10k_45", "aapl_10k_50", "aapl_10k_60"], [c.chunk_id for c in cites]
+    assert [c.rank for c in cites] == [1, 2, 3]
+    print("PASS (c): near-copy 10-Q chunk skipped, next distinct chunk backfills the slot")
+
+
 if __name__ == "__main__":
     test_same_section_chunks_not_collapsed()
     test_markers_point_to_matching_source_after_reorder()
+    test_near_duplicates_suppressed_and_backfilled()
     print("\nAll citation tests passed.")

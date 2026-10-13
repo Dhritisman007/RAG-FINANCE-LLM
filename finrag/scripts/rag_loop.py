@@ -53,6 +53,7 @@ from citations import (  # noqa: E402
     citations_from_chroma_results,
     format_citations_block,
     deduplicate_citations,
+    suppress_near_duplicates,
 )
 from portfolio_store import find_held_tickers, format_position, get_holding, load_holdings  # noqa: E402
 
@@ -63,6 +64,9 @@ EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 DEFAULT_MODEL = "llama3.2"
 DEFAULT_K = 5
+# Over-fetch so near-duplicate candidates (e.g. a 10-Q restating a 10-K) can be
+# skipped and backfilled while still returning k distinct passages.
+OVERFETCH = 3
 # Pinned to localhost on purpose — prompts may contain private portfolio data.
 OLLAMA_HOST = "http://127.0.0.1:11434"
 
@@ -255,23 +259,26 @@ def rag_query(
     positions = [get_holding(t, holdings) for t in held]
 
     citations: list[Citation] = []
+    limit = k * len(held) if held else k  # k distinct passages per held ticker
     if held:
         print(f"\n📁 Portfolio-aware query — position(s) from local holdings:")
         for h in positions:
             print(f"   {format_position(h)}")
         for t in held:
             print(f"🔍 Retrieving top-{k} {t} SEC filing chunks (tier=2, company_ticker={t})…")
-            results = retrieve(query, collection, k=k, ticker=t)
+            results = retrieve(query, collection, k=k * OVERFETCH, ticker=t)
             citations += citations_from_chroma_results(results, preview_chars=150)
         if not citations:
             print("[WARN] No filing chunks for those tickers — falling back to unfiltered retrieval.")
 
     if not citations:
         print(f"\n🔍 Retrieving top-{k} chunks…")
-        results = retrieve(query, collection, k=k, tier=tier)
+        results = retrieve(query, collection, k=k * OVERFETCH, tier=tier)
         citations = citations_from_chroma_results(results, preview_chars=150)
+        limit = k
 
     citations = deduplicate_citations(citations)
+    citations = suppress_near_duplicates(citations, k=limit)
 
     if not citations:
         print("[WARN] No results returned — is the vector store populated?")

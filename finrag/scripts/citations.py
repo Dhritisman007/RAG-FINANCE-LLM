@@ -15,6 +15,7 @@ Usage (from rag_loop.py or any other script):
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -214,3 +215,35 @@ def deduplicate_citations(citations: list[Citation]) -> list[Citation]:
     for i, c in enumerate(deduped, start=1):
         c.rank = i
     return deduped
+
+
+def _shingles(text: str, n: int = 5) -> set[str]:
+    words = re.findall(r"\w+", text.lower())
+    return {" ".join(words[i:i + n]) for i in range(max(1, len(words) - n + 1))}
+
+
+def suppress_near_duplicates(
+    citations: list[Citation],
+    k: int,
+    threshold: float = 0.8,
+) -> list[Citation]:
+    """
+    Greedily keep the closest citations, skipping any whose text is a near-copy
+    (5-word-shingle Jaccard >= threshold) of one already kept — e.g. a 10-Q
+    restating a 10-K risk factor. Returns at most k, re-ranked from 1.
+
+    Pass more than k candidates (over-fetch) so skipped slots get backfilled.
+    """
+    kept: list[Citation] = []
+    kept_shingles: list[set[str]] = []
+    for c in sorted(citations, key=lambda x: x.distance):
+        s = _shingles(c.text or c.text_preview)
+        if any(len(s & o) / len(s | o) >= threshold for o in kept_shingles):
+            continue
+        kept.append(c)
+        kept_shingles.append(s)
+        if len(kept) == k:
+            break
+    for i, c in enumerate(kept, start=1):
+        c.rank = i
+    return kept
