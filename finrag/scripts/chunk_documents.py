@@ -83,7 +83,25 @@ def split_oversized_unit(unit: str, max_tokens: int) -> list[str]:
             current = candidate
     if current:
         pieces.append(current)
-    return pieces or [unit]
+
+    # Last resort for text with no sentence boundaries (flattened tables,
+    # long lists): hard-split on whitespace so no piece exceeds max_tokens.
+    out = []
+    for piece in pieces or [unit]:
+        if count_tokens(piece) <= max_tokens:
+            out.append(piece)
+            continue
+        words, current = piece.split(), ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if count_tokens(candidate) > max_tokens and current:
+                out.append(current)
+                current = word
+            else:
+                current = candidate
+        if current:
+            out.append(current)
+    return out
 
 
 def pack_section_into_chunks(units: list[str], max_tokens: int) -> list[dict]:
