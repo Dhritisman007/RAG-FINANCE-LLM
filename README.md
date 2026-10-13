@@ -57,14 +57,14 @@ corpus_manifest.yaml
 
 | Tier | Source | Content | Docs | Chunks |
 |------|--------|---------|------|--------|
-| 1 | Investopedia | Finance explainers (EMI/amortization, compound interest, SIP, bonds, options, ETFs, NPV, …) | 37 | 734 |
-| 2 | SEC EDGAR | 10-K / 10-Q — AAPL, MSFT, JPM, TSLA, XOM | 15 | 5,541 |
+| 1 | Investopedia | Finance explainers (EMI/amortization, compound interest, SIP, bonds, options, ETFs, NPV, …) | 37 | 747 |
+| 2 | SEC EDGAR | 10-K / 10-Q — AAPL, MSFT, JPM, TSLA, XOM | 15 | 3,205 |
 | 3 | arXiv (q-fin) | Market microstructure, HFT, optimal execution | 79 | 3,267 |
 
 **Pipeline stats:**
-- 131 documents → 9,542 chunks
-- 737 exact duplicates flagged and dropped → **8,805 chunks embedded**
-- 466 chunks contain tables (4.9%) · 2,540 contain formulas (26.6%)
+- 131 documents → 7,219 chunks
+- 278 exact duplicates flagged and dropped → **6,941 chunks embedded**
+- 821 chunks contain tables (11.4%) · 2,509 contain formulas (34.8%)
 
 ---
 
@@ -79,10 +79,12 @@ Fetches one Investopedia article per manifest topic (37 topics, mapped in `INVES
 ### Day 3 — SEC + arXiv scraping
 Fetches filings from SEC EDGAR and papers from arXiv; writes `{slug}.txt` + `{slug}.meta.json` per document.
 
+The EDGAR extractor emits each piece of text exactly once: only innermost block elements (`<span>` is treated as inline), each table as a single flattened line, and the hidden `ix:header` XBRL block dropped. Running headers/footers (short lines repeating 5+ times, digits ignored — e.g. `Apple Inc. | 2025 Form 10-K | 6`) are removed. `--reextract` re-fetches the filings already on disk (by the URL in each `.meta.json`) to apply extractor fixes without changing which filings are in the corpus.
+
 ### Day 4 — Chunking
 - Splits documents on `## Heading` markers first
 - Paragraphs, list items and tables are kept whole and greedily packed into chunks (max ~450 tokens, min ~40)
-- Oversized units fall back to sentence splitting (`was_sub_split=True`)
+- Oversized units fall back to sentence splitting, then a word-boundary hard split for text with no sentences, like flattened tables (`was_sub_split=True`)
 - `chunk_id` is unique per document + index (e.g. `sec_edgar_AAPL-10-K-filed-2025-10-31_45`)
 
 ### Day 5 — Metadata enrichment
@@ -99,11 +101,11 @@ Embeds non-duplicate chunks with `BAAI/bge-small-en-v1.5` (384-dim) into a persi
 | Tier | Queries | Top-1 distance |
 |------|---------|----------------|
 | 1 | 6 | 0.06–0.35 |
-| 2 | 4 | 0.23–0.28 |
+| 2 | 4 | 0.22–0.36 |
 | 3 | 5 | 0.13–0.22 |
 
 ### Day 8 — RAG query loop
-Retrieves top-k chunks, builds a grounded prompt with numbered sources, and streams an answer from local Ollama, followed by the source list. The prompt's `[N]` labels and the printed source list are built from the same final (deduped, ranked) citation list, so `[N]` in an answer always points to source `[N]`.
+Retrieves top-k chunks, builds a grounded prompt with numbered sources, and streams an answer from local Ollama, followed by the source list. It over-fetches 3×k candidates and greedily skips near-copies (5-word-shingle Jaccard ≥ 0.8 to an already-chosen passage, e.g. a 10-Q restating a 10-K risk factor), so each answer gets k distinct passages. The prompt's `[N]` labels and the printed source list are built from the same final (deduped, ranked) citation list, so `[N]` in the prompt always matches source `[N]`.
 
 ```bash
 python scripts/rag_loop.py --query "What is latency arbitrage?" --tier 3
@@ -132,7 +134,7 @@ python scripts/portfolio_store.py                           # list holdings
 python finrag/tests/test_citations.py
 ```
 
-Covers the two fixed Day 8 citation bugs: distinct chunks from the same filing section aren't merged, and every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results.
+Covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled.
 
 ---
 
@@ -145,12 +147,13 @@ Covers the two fixed Day 8 citation bugs: distinct chunks from the same filing s
 - ~~Prompt/label misalignment~~ — prompt and source list now come from one list.
 - ~~Stray `scripts/"citations.py   "` draft~~ — deleted.
 - ~~`ollama` missing from requirements~~ — added.
+- ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
 **Open:**
 1. **EMI retrieval is weak** — "EMI" is an Indian-market term Investopedia doesn't use; the query hits the right tier, but the top chunk is about P/E ratios (dist 0.35). Needs an EMI-specific source (RBI/SEBI or a hand-written explainer).
-2. **Near-duplicate SEC chunks** — EDGAR extraction sometimes repeats a paragraph (plus page footers like `Apple Inc. | 2025 Form 10-K | 6`); exact-MD5 dedup misses these, and they can take 2 of the top-k slots.
-3. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 122 tokens; 86 chunks under 40).
-4. **Tier 1 text includes trailing references/category tags** from each article.
+2. **LLM citation drift** — llama3.2 (3B) sometimes renumbers sources, e.g. skipping an irrelevant passage [1] and citing [2]'s content as "[1]". The prompt mapping is verified correct; this needs citation marker validation (see roadmap) or a larger model.
+3. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
+4. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
 5. **Portfolio detection is simple** — uppercase whole-word ticker match only; no live prices, so no P&L questions.
 6. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `finrag/scripts/validate_manifest.py` is a stub. Old Chroma dirs (`finrag/data/chroma_db`, `finrag/data/vectorstore`) are unused.
 
@@ -184,7 +187,8 @@ python scripts/rag_loop.py --interactive
 - [x] Fix Tier 1 scraping and rebuild the vector store
 - [x] Fix citation dedup + prompt alignment
 - [x] Portfolio-aware queries (local holdings + ticker-filtered retrieval)
-- [ ] Add an EMI source; near-duplicate (fuzzy) dedup for SEC chunks
+- [x] Fix near-duplicate SEC chunks (extractor + retrieval-time suppression)
+- [ ] Add an EMI source
 - [ ] Citation marker validation (map `[N]` → source, flag invalid/uncited markers)
 - [ ] Streamlit / Gradio chat UI
 - [ ] Metadata-filtered retrieval (tier-aware, table-aware) beyond tickers
