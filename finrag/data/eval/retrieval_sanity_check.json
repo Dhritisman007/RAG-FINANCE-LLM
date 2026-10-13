@@ -5,39 +5,39 @@
     "notes": null,
     "top_k_results": [
       {
-        "text": "The P/E ratio formula and calculation are as follows:\nP/E\u00a0Ratio = Market\u00a0value\u00a0per\u00a0share Earnings\u00a0per\u00a0share \\text{P/E Ratio} = \\frac{\\text{Market value per share}}{\\text{Earnings per share}} P/E\u00a0Ratio = Earnings\u00a0per\u00a0share Market\u00a0value\u00a0per\u00a0share \u200b\nDivide the stock price by the\u00a0EPS to determine the P/E value.\nThe stock price (P) can be found by searching a stock\u2019s ticker on a reputable financial website. This concrete value reflects what investors currently pay for the stock, but the EPS\u00a0is related to earnings reported at different times.\nEPS is generally given in two ways. Trailing 12 months (TTM) represents the company's performance over the past 12 months. Another is found\u00a0in earnings releases, which often provide EPS\u00a0guidance. This is the company's advice on what it expects in future earnings. These different versions of EPS form the basis of trailing and forward P/E, respectively.",
+        "text": "There are two ways to calculate EMI: the flat-rate method and the reducing-balance (or reduce-balance) method. Both take into account the loan principal, the loan interest rate, and the term of the loan in their calculations.",
         "tier": 1,
         "source": "investopedia",
-        "section_heading": "P/E Ratio Formula and Calculation",
-        "distance": 0.34780067205429077
+        "section_heading": "How Is EMI calculated?",
+        "distance": 0.20624297857284546
       },
       {
-        "text": "Volatility is a statistical measure of the dispersion of data around its mean over a certain period. It is calculated as the standard deviation multiplied by the square root of the number of time periods, T. In finance, it represents this dispersion of market prices on an annualized basis.",
+        "text": "The EMI flat-rate formula is calculated by adding together the principal loan amount and the interest on the principal and dividing the result by the number of periods multiplied by the number of months.\nThe EMI reducing-balance method is calculated using this formula:\nEMI = P * [( r * (1 + r)^n)) / ((1 + r)^n - 1)]\nwhere:\nP = Principal amount borrowed\nr = Periodic monthly interest rate\nn = Total number of monthly payments",
         "tier": 1,
         "source": "investopedia",
-        "section_heading": "What Is Volatility, Mathematically?",
-        "distance": 0.3484680652618408
+        "section_heading": "Calculating EMIs: Methods and Formulas",
+        "distance": 0.21029376983642578
       },
       {
-        "text": "The return on investment (ROI) formula is as follows:\nROI = Current\u00a0Value\u00a0of\u00a0Investment \u2212 Cost\u00a0of\u00a0Investment Cost\u00a0of\u00a0Investment \\begin{aligned} &\\text{ROI} = \\dfrac{\\text{Current Value of Investment}-\\text{Cost of Investment}}{\\text{Cost of Investment}}\\\\ \\end{aligned} \u200b ROI = Cost\u00a0of\u00a0Investment Current\u00a0Value\u00a0of\u00a0Investment \u2212 Cost\u00a0of\u00a0Investment \u200b \u200b\nThe \"Current Value of Investment\" is the value of an investment at a given moment. For stocks or other similar investments, it is the current market value, plus any fees or other expenses incurred at the time of purchase.\nFor a project, it includes factors like the discounted cash flow over the investment's lifetime and any maintenance costs incurred. \"Cost of Investment\" is how much an investment was purchased for, including fees and expenses. Project costs at the time the project was financed are included.\nBecause ROI is measured as a percentage, it can be easily compared with returns from other investments, allowing one to measure a variety of investment types against one another.",
+        "text": "An Equated Monthly Installment (EMI) involves making fixed payments each month to pay off a loan over a set period, covering both principal and interest, common in mortgages, auto loans, and student loans.\nEMIs simplify budgeting for borrowers, offering a predictable payment schedule, while lenders benefit from a consistent income stream from loan interest.\nThere are two main methods to calculate EMI: the flat-rate method, which uses the original principal for interest calculation, and the reducing-balance method, which recalculates based on the remaining principal, often saving borrowers money over time.\nUsing the reducing-balance method can be more cost-effective, as the interest is recalculated on the remaining loan balance rather than the original loan amount, unlike the flat-rate calculation.\nEMI plans on credit cards work similarly to loans, reducing your available credit limit by the purchase cost and deducting the EMI each month until the debt is cleared.",
         "tier": 1,
         "source": "investopedia",
-        "section_heading": "How to Calculate Return on Investment (ROI)",
-        "distance": 0.35276633501052856
+        "section_heading": "Key Takeaways",
+        "distance": 0.23605585098266602
       },
       {
-        "text": "The formula for calculating APR is straightforward. It consists of multiplying the periodic interest rate by the number of periods in a year in which the rate is applied. The exact formula is as follows:\nAPR = ( ( Fees + Interest Principal n ) \u00d7 365 ) \u00d7 100 where: Interest = Total\u00a0interest\u00a0paid\u00a0over\u00a0life\u00a0of\u00a0the\u00a0loan Principal = Loan\u00a0amount n = Number\u00a0of\u00a0days\u00a0in\u00a0loan\u00a0term \\begin{aligned} &\\text{APR} = \\left ( \\left ( \\frac{ \\frac{ \\text{Fees} + \\text{Interest} }{ \\text {Principal} } }{ n } \\right ) \\times 365 \\right ) \\times 100 \\\\ &\\textbf{where:} \\\\ &\\text{Interest} = \\text{Total interest paid over life of the loan} \\\\ &\\text{Principal} = \\text{Loan amount} \\\\ &n = \\text{Number of days in loan term} \\\\ \\end{aligned} \u200b APR = ( ( n Principal Fees + Interest \u200b \u200b ) \u00d7 3 6 5 ) \u00d7 1 0 0 where: Interest = Total\u00a0interest\u00a0paid\u00a0over\u00a0life\u00a0of\u00a0the\u00a0loan Principal = Loan\u00a0amount n = Number\u00a0of\u00a0days\u00a0in\u00a0loan\u00a0term \u200b",
+        "text": "To demonstrate how EMI works, let\u2019s walk through a calculation of it, using both methods. Assume an individual takes out a mortgage to buy a new home. The principal amount is $500,000, and the loan terms include an interest rate of 3.5% for 10 years.\nUsing the flat-rate method to calculate the EMI, the homeowner\u2019s monthly payments come out to $5,625, or ($500,000 + ($500,000 x 10 x 0.035)) / (10 x 12).\nUsing the EMI reducing-balance method, monthly payments would be approximately $4,944.29, or $500,000 * [(0.0029 * (1 + 0.0029)^120) / ((1 + 0.0029)^120 - 1)].\nNote that in the EMI flat-rate calculation, the principal loan amount remains constant throughout the 10-year mortgage period. This suggests that the EMI reducing-balance method may be a better option because the dwindling loan principal also shrinks the amount of interest due. In the flat-rate method, each interest charge is calculated based on the original loan amount, even though the loan balance outstanding is gradually being paid down.",
         "tier": 1,
         "source": "investopedia",
-        "section_heading": "How Do You Calculate APR?",
-        "distance": 0.3540988564491272
+        "section_heading": "Real-World EMI Calculation Examples",
+        "distance": 0.23862993717193604
       },
       {
-        "text": "Calculating present value allows an investor to compare the potential performance of various investments by determining the current worth of the number of dollars that each investment will return by a future date.\nPresent value (PV) is based on the concept that a sum of money in hand today is probably worth more than the same sum in the future because it can be invested and earn a return in the meantime.\nPresent value (PV) is calculated by discounting the future value by the estimated rate of return that the money could earn if invested.\nKatie Kerpel / Investopedia",
+        "text": "In finance, EMI stands for equated monthly installment, meaning regular payments that settle a loan over time with fixed amounts.",
         "tier": 1,
         "source": "investopedia",
-        "section_heading": "What Is Present Value?",
-        "distance": 0.3548741936683655
+        "section_heading": "What Does EMI Stand For?",
+        "distance": 0.24979877471923828
       }
     ],
     "flags": []
