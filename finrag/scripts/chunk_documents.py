@@ -156,8 +156,12 @@ def chunk_document(text: str, metadata: dict) -> list[dict]:
         raw_chunks = merge_tiny_chunks(raw_chunks, MIN_CHUNK_TOKENS)
 
         for c in raw_chunks:
-            chunk_id = f"{metadata['source']}_{metadata.get('arxiv_id') or metadata.get('company_ticker') or metadata['title']}_{chunk_index}"
-            chunk_id = re.sub(r"[^a-zA-Z0-9_]+", "-", chunk_id)[:100]
+            # Key on something unique per *document* (not company_ticker — a
+            # ticker has a 10-K and several 10-Qs, which would collide), and
+            # truncate before appending the index so it can never be cut off.
+            doc_key = f"{metadata['source']}_{metadata.get('arxiv_id') or metadata['title']}"
+            doc_key = re.sub(r"[^a-zA-Z0-9_]+", "-", doc_key)[:90]
+            chunk_id = f"{doc_key}_{chunk_index}"
 
             all_chunks.append({
                 "chunk_id": chunk_id,

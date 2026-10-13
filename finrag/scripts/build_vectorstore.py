@@ -13,8 +13,8 @@ Usage:
 """
 import argparse
 import json
+from collections import Counter
 from pathlib import Path
-
 import chromadb
 
 ROOT = Path(__file__).parent.parent
@@ -91,6 +91,13 @@ def build_collection(embedder=None) -> chromadb.Collection:
     before = len(chunks)
     chunks = [c for c in chunks if not c.get("is_duplicate", False)]
     print(f"Dropped {before - len(chunks)} duplicate chunks, embedding {len(chunks)}")
+
+    # Chroma silently skips ids that already exist, so a collision here would
+    # quietly drop chunks from the store. Fail loudly instead.
+    ids = [c["chunk_id"] for c in chunks]
+    if len(ids) != len(set(ids)):
+        dupes = [i for i, n in Counter(ids).items() if n > 1]
+        raise ValueError(f"{len(dupes)} chunk_ids are not unique (e.g. {dupes[:3]}) — fix chunk_documents.py")
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     # fresh collection each run — re-running this script should fully rebuild,
