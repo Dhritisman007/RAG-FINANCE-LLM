@@ -2,15 +2,16 @@
  "model": null,
  "options": {
   "temperature": 0,
-  "seed": 0
+  "seed": 0,
+  "num_predict": 1024
  },
  "summary": {
   "concept": {
-   "n": 15,
+   "n": 16,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9523809523809524,
-   "precision": 0.9285714285714286
+   "mrr": 0.9555555555555556,
+   "precision": 0.8833333333333333
   },
   "technical": {
    "n": 16,
@@ -27,11 +28,11 @@
    "precision": 0.8666666666666667
   },
   "ALL": {
-   "n": 42,
+   "n": 43,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9301801801801801,
-   "precision": 0.8144144144144144
+   "mrr": 0.9320175438596491,
+   "precision": 0.7995614035087719
   }
  },
  "results": [
@@ -734,12 +735,28 @@
    "query": "What is quantitative easing?",
    "route": "concept",
    "got_route": "concept",
-   "answerable": false,
+   "answerable": true,
    "retrieved": [
     "[1] t1 inflation (0.324)",
-    "[2] t3 Arbitrage theory without a num\u00e9raire (0.357)",
-    "[3] t1 volatility (0.357)",
-    "[4] t1 bonds and yield (0.358)"
+    "[2] t2 JPM 10-K filed 2026-02-13 (0.340)",
+    "[3] t3 Arbitrage theory without a num\u00e9raire (0.357)",
+    "[4] t1 volatility (0.357)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.25
+  },
+  {
+   "id": "q43",
+   "query": "What is a Roth IRA?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": false,
+   "retrieved": [
+    "[1] t1 mutual funds basics (0.341)",
+    "[2] t1 mutual funds basics (0.345)",
+    "[3] t1 dollar-cost averaging (0.348)",
+    "[4] t1 index funds (0.359)"
    ],
    "hit": null,
    "rr": null,

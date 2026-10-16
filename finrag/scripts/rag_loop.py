@@ -68,7 +68,11 @@ CHROMA_DIR = Path.home() / ".finrag_chroma_db"
 COLLECTION_NAME = "finrag_chunks"
 EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
-DEFAULT_MODEL = "llama3.2"
+# Chosen by the Day 12 evaluation (43 questions, identical retrieval for both):
+# qwen2.5:7b cites correctly 92% vs 78%, mis-cites 0.11 vs 1.00 claims/answer,
+# refuses 5/5 unanswerable questions vs 3/5 (llama3.2 invented an Exxon Q3
+# figure and a Roth IRA answer), at ~2x the latency. Use --model llama3.2 for speed.
+DEFAULT_MODEL = "qwen2.5:7b"
 DEFAULT_K = 5
 # Pinned to localhost on purpose — prompts may contain private portfolio data.
 OLLAMA_HOST = "http://127.0.0.1:11434"
