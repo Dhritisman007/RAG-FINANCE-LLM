@@ -427,8 +427,9 @@ def check_citations(
             question, the user's position lines).
     """
     by_rank = {c.rank: c for c in citations}
+    labels = [f"{c.doc_title} {c.arxiv_id} {c.section_heading} {c.date_published}" for c in citations]
     ungrounded = find_ungrounded_numbers(answer, [c.text or c.text_preview for c in citations]
-                                         + (extra_sources or []))
+                                         + labels + (extra_sources or []))
     claims = split_cited_claims(answer)
     if not claims:
         # no inline markers (a trailing "[1] Title" reference list doesn't count)

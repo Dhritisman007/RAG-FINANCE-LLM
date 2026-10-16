@@ -74,6 +74,8 @@ OLLAMA_HOST = "http://127.0.0.1:11434"
 # Ollama "cloud" models (e.g. "gemma4:31b-cloud") are served through the same
 # localhost address but run on Ollama's servers — the prompt (and any portfolio
 # data in it) leaves the machine. They are refused.
+# Upper bound on generated tokens: llama3.2 once looped to 27,000 characters.
+MAX_ANSWER_TOKENS = 1024
 CLOUD_MODEL_RE = re.compile(r"(?:^|[:\-])cloud$", re.I)
 
 
@@ -213,7 +215,8 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
     full_response = []
     print()  # blank line before answer
     try:
-        for chunk in client.generate(model=model, prompt=prompt, stream=True):
+        for chunk in client.generate(model=model, prompt=prompt, stream=True,
+                                     options={"num_predict": MAX_ANSWER_TOKENS}):
             token = chunk.get("response", "")
             print(token, end="", flush=True)
             full_response.append(token)
@@ -231,7 +234,7 @@ def generate(prompt: str, model: str = DEFAULT_MODEL, options: dict | None = Non
     import ollama
     ensure_local_model(model)
     response = ollama.Client(host=OLLAMA_HOST).generate(model=model, prompt=prompt, stream=False,
-                                                          options=options or {})
+                                                          options={"num_predict": MAX_ANSWER_TOKENS, **(options or {})})
     return response.get("response", "")
 
 
