@@ -52,7 +52,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import prompts  # noqa: E402
 import rag_loop as r  # noqa: E402
-from citations import check_citations  # noqa: E402
+from citations import ABSTAIN_RE, check_citations, is_refusal  # noqa: E402,F401  (re-exported for tests)
 from portfolio_store import format_position  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
@@ -60,27 +60,6 @@ GOLDEN_PATH = ROOT / "data" / "eval" / "golden_qa.jsonl"
 RESULTS_DIR = ROOT / "data" / "eval"
 ROUTES = ("concept", "technical", "portfolio")
 
-# Phrases that mean "the sources don't answer this"
-ABSTAIN_RE = re.compile(
-    r"(?:don'?t|do not|does not|doesn'?t) (?:cover|contain|provide|include|mention|have|specify)"
-    r"|not (?:covered|provided|mentioned|available|included|specified|found)"
-    r"|no (?:information|data|mention|details?) (?:on|about|regarding|is|are|was)"
-    r"|(?:cannot|can'?t|unable to) (?:answer|determine|find|provide)"
-    r"|nothing to answer",
-    re.I,
-)
-
-
-def is_refusal(answer: str) -> bool:
-    """
-    The answer LEADS with "the sources don't cover this" (its first sentence).
-    Citations don't matter: "The sources don't cover Apple's future price
-    [1][3]" is a refusal, and so is a refusal that then offers the closest
-    clearly-labelled figure. A cited answer that mentions a gap later on is a
-    partial answer, not a refusal.
-    """
-    first = re.split(r"(?<=[.!?])\s+|\n", answer.strip(), maxsplit=1)[0]
-    return bool(ABSTAIN_RE.search(first))
 
 
 def load_golden(only: set[str] | None = None) -> list[dict]:

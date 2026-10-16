@@ -487,3 +487,30 @@ def format_citation_report(report: CitationReport) -> str:
             lines.append(f"  ? {cited} weakly supports this (support {c.support:.2f}) — "
                          f"may not be in the sources: \"{short(c.text)}\"")
     return "\n".join(lines) + numbers
+
+
+# ---------------------------------------------------------------------------
+# 5. Refusals -- answers that say the sources don't cover the question
+# ---------------------------------------------------------------------------
+
+# Phrases that mean "the sources don't answer this"
+ABSTAIN_RE = re.compile(
+    r"(?:don'?t|do not|does not|doesn'?t) (?:cover|contain|provide|include|mention|have|specify)"
+    r"|not (?:covered|provided|mentioned|available|included|specified|found)"
+    r"|no (?:information|data|mention|details?) (?:on|about|regarding|is|are|was)"
+    r"|(?:cannot|can'?t|unable to) (?:answer|determine|find|provide)"
+    r"|nothing to answer",
+    re.I,
+)
+
+
+def is_refusal(answer: str) -> bool:
+    """
+    The answer LEADS with "the sources don't cover this" (its first sentence).
+    Citations don't matter: "The sources don't cover Apple's future price
+    [1][3]" is a refusal, and so is a refusal that then offers the closest
+    clearly-labelled figure. A cited answer that mentions a gap later on is a
+    partial answer, not a refusal.
+    """
+    first = re.split(r"(?<=[.!?])\s+|\n", answer.strip(), maxsplit=1)[0]
+    return bool(ABSTAIN_RE.search(first))
