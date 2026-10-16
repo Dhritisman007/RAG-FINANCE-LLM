@@ -1,0 +1,749 @@
+{
+ "model": null,
+ "options": {
+  "temperature": 0,
+  "seed": 0
+ },
+ "summary": {
+  "concept": {
+   "n": 15,
+   "route_acc": 1.0,
+   "hit": 1.0,
+   "mrr": 0.9523809523809524,
+   "precision": 0.9285714285714286
+  },
+  "technical": {
+   "n": 16,
+   "route_acc": 1.0,
+   "hit": 1.0,
+   "mrr": 0.8988095238095238,
+   "precision": 0.6666666666666667
+  },
+  "portfolio": {
+   "n": 11,
+   "route_acc": 1.0,
+   "hit": 1.0,
+   "mrr": 0.9444444444444444,
+   "precision": 0.8666666666666667
+  },
+  "ALL": {
+   "n": 42,
+   "route_acc": 1.0,
+   "hit": 1.0,
+   "mrr": 0.9301801801801801,
+   "precision": 0.8144144144144144
+  }
+ },
+ "results": [
+  {
+   "id": "q01",
+   "query": "What is compound interest?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 compound interest (0.093)",
+    "[2] t1 compound interest (0.112)",
+    "[3] t1 compound interest (0.116)",
+    "[4] t1 compound interest (0.131)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q02",
+   "query": "What does bond duration mean?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 bond duration (0.119)",
+    "[2] t1 bond duration (0.129)",
+    "[3] t1 bond duration (0.132)",
+    "[4] t1 bond duration (0.133)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q03",
+   "query": "What is an EMI and how is it calculated?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 equated monthly installment (EMI) (0.206)",
+    "[2] t1 equated monthly installment (EMI) (0.210)",
+    "[3] t1 equated monthly installment (EMI) (0.236)",
+    "[4] t1 equated monthly installment (EMI) (0.239)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q04",
+   "query": "What is a systematic investment plan?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 SIP (systematic investment plan) (0.123)",
+    "[2] t1 SIP (systematic investment plan) (0.140)",
+    "[3] t1 SIP (systematic investment plan) (0.176)",
+    "[4] t1 SIP (systematic investment plan) (0.185)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q05",
+   "query": "What is diversification?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 diversification (0.131)",
+    "[2] t1 diversification (0.132)",
+    "[3] t1 diversification (0.171)",
+    "[4] t1 diversification (0.183)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q06",
+   "query": "How does an index fund work?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 mutual funds basics (0.192)",
+    "[2] t1 exchange-traded funds (ETF) (0.201)",
+    "[3] t1 index funds (0.203)",
+    "[4] t1 index funds (0.204)"
+   ],
+   "hit": true,
+   "rr": 0.3333333333333333,
+   "precision": 0.5
+  },
+  {
+   "id": "q07",
+   "query": "What is net asset value?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 net asset value (NAV) (0.159)",
+    "[2] t1 net asset value (NAV) (0.168)",
+    "[3] t1 net asset value (NAV) (0.179)",
+    "[4] t1 net present value (NPV) (0.231)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.75
+  },
+  {
+   "id": "q08",
+   "query": "What is an expense ratio?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 expense ratio (0.102)",
+    "[2] t1 expense ratio (0.132)",
+    "[3] t1 expense ratio (0.136)",
+    "[4] t1 expense ratio (0.195)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q09",
+   "query": "What is the price-to-earnings ratio?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 price-to-earnings (P/E) ratio (0.145)",
+    "[2] t1 price-to-earnings (P/E) ratio (0.171)",
+    "[3] t1 price-to-earnings (P/E) ratio (0.176)",
+    "[4] t1 price-to-earnings (P/E) ratio (0.176)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q10",
+   "query": "What is yield to maturity?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 yield to maturity (0.166)",
+    "[2] t1 yield to maturity (0.177)",
+    "[3] t1 yield to maturity (0.189)",
+    "[4] t1 bonds and yield (0.211)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.75
+  },
+  {
+   "id": "q11",
+   "query": "How does dollar-cost averaging work?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 dollar-cost averaging (0.196)",
+    "[2] t1 dollar-cost averaging (0.202)",
+    "[3] t1 dollar-cost averaging (0.209)",
+    "[4] t1 dollar-cost averaging (0.221)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q12",
+   "query": "What is a put option?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 put options (0.129)",
+    "[2] t1 put options (0.158)",
+    "[3] t1 put options (0.181)",
+    "[4] t1 options basics (calls/puts) (0.197)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q13",
+   "query": "What is the difference between APR and APY?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 annual percentage yield (APY) (0.163)",
+    "[2] t1 annual percentage yield (APY) (0.182)",
+    "[3] t1 annual percentage rate (APR) (0.194)",
+    "[4] t1 annual percentage yield (APY) (0.215)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q14",
+   "query": "What is a credit spread?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 JPM 10-K filed 2026-02-13 (0.184)",
+    "[2] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.226)",
+    "[3] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.228)",
+    "[4] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.234)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q15",
+   "query": "How does a limit order book work?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 Stochastic Price Dynamics Implied By the Limit Order Book (0.161)",
+    "[2] t3 A mathematical framework for modelling order book dynamics (0.199)",
+    "[3] t3 Conservation Laws in a Limit Order Book (0.206)",
+    "[4] t3 A mathematical framework for modelling order book dynamics (0.209)",
+    "[5] t3 Order-book modelling and market making strategies (0.225)",
+    "[6] t3 Optimal Execution with Passive Market Impact (0.225)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q16",
+   "query": "What is optimal execution under transient market impact?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 Optimal Execution with Dynamic Order Flow Imbalance (0.162)",
+    "[2] t3 An Optimal Execution Problem with S-shaped Market Impact Fun (0.162)",
+    "[3] t3 Calibration of optimal execution of financial transactions i (0.167)",
+    "[4] t3 Optimal execution with nonlinear transient market impact (0.167)",
+    "[5] t3 Calibration of optimal execution of financial transactions i (0.170)",
+    "[6] t3 Optimal execution with nonlinear transient market impact (0.171)"
+   ],
+   "hit": true,
+   "rr": 0.3333333333333333,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q17",
+   "query": "How do market makers manage inventory risk?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 Integrating Tick-level Data and Periodical Signal for High-f (0.206)",
+    "[2] t3 Can maker-taker fees prevent algorithmic cooperation in mark (0.221)",
+    "[3] t2 JPM 10-K filed 2026-02-13 (0.228)",
+    "[4] t3 Market Making in Spot Precious Metals (0.229)",
+    "[5] t3 Reinforcement Learning in High-frequency Market Making (0.234)",
+    "[6] t3 Integrating Tick-level Data and Periodical Signal for High-f (0.239)"
+   ],
+   "hit": true,
+   "rr": 0.25,
+   "precision": 0.3333333333333333
+  },
+  {
+   "id": "q18",
+   "query": "How can a broker detect toxic order flow?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 Unwinding Toxic Flow with Partial Information (0.201)",
+    "[2] t3 Detecting Toxic Flow (0.216)",
+    "[3] t3 A Simple Strategy to Deal with Toxic Flow (0.219)",
+    "[4] t3 Unwinding Toxic Flow with Partial Information (0.221)",
+    "[5] t3 Detecting Toxic Flow (0.222)",
+    "[6] t3 Why is order flow so persistent? (0.244)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.8333333333333334
+  },
+  {
+   "id": "q19",
+   "query": "How is bid-ask spread modeled in market microstructure research?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 The self-exciting nature of the bid-ask spread dynamics (0.127)",
+    "[2] t3 The self-exciting nature of the bid-ask spread dynamics (0.173)",
+    "[3] t3 Liquidity Effects of Trading Frequency (0.201)",
+    "[4] t3 The Anatomy of a Decentralized Prediction Market: Microstruc (0.201)",
+    "[5] t3 Stochastic Price Dynamics Implied By the Limit Order Book (0.203)",
+    "[6] t3 Uncertainty relations in models of market microstructure (0.204)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.3333333333333333
+  },
+  {
+   "id": "q20",
+   "query": "What is the price impact of order flow imbalance?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 The Price Impact of Generalized Order Flow Imbalance (0.177)",
+    "[2] t3 The Price Impact of Generalized Order Flow Imbalance (0.178)",
+    "[3] t3 Optimal Execution with Passive Market Impact (0.193)",
+    "[4] t3 Optimal Execution with Passive Market Impact (0.202)",
+    "[5] t3 Macroscopic Market Making (0.202)",
+    "[6] t3 Optimal Execution with Dynamic Order Flow Imbalance (0.205)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.5
+  },
+  {
+   "id": "q21",
+   "query": "Is VWAP execution an optimal trading strategy?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 VWAP Execution as an Optimal Strategy (0.150)",
+    "[2] t3 VWAP Execution as an Optimal Strategy (0.206)",
+    "[3] t3 Optimal execution with nonlinear transient market impact (0.210)",
+    "[4] t3 Optimal Execution with Dynamic Order Flow Imbalance (0.222)",
+    "[5] t3 Optimal execution with nonlinear transient market impact (0.223)",
+    "[6] t3 Optimal Execution with Dynamic Order Flow Imbalance (0.230)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q22",
+   "query": "How does settlement latency limit arbitrage for blockchain assets?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.113)",
+    "[2] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.120)",
+    "[3] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.120)",
+    "[4] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.126)",
+    "[5] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.130)",
+    "[6] t3 Building Trust Takes Time: Limits to Arbitrage for Blockchai (0.133)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q23",
+   "query": "How is market microstructure noise estimated from high-frequency data?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 High frequency market microstructure noise estimates and liq (0.120)",
+    "[2] t3 High frequency market microstructure noise estimates and liq (0.128)",
+    "[3] t3 Semi Markov model for market microstructure (0.151)",
+    "[4] t3 A simple microstructure return model explaining microstructu (0.169)",
+    "[5] t3 A simple microstructure return model explaining microstructu (0.170)",
+    "[6] t3 Semi Markov model for market microstructure (0.188)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q24",
+   "query": "What is the microstructural origin of rough volatility?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t3 The microstructural foundations of leverage effect and rough (0.199)",
+    "[2] t3 A simple microstructure return model explaining microstructu (0.223)",
+    "[3] t3 The microstructural foundations of leverage effect and rough (0.225)",
+    "[4] t3 High frequency market microstructure noise estimates and liq (0.232)",
+    "[5] t3 Early Detection of Latent Microstructure Regimes in Limit Or (0.251)",
+    "[6] t3 A unified theory of order flow, market impact, and volatilit (0.251)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.5
+  },
+  {
+   "id": "q25",
+   "query": "What risk factors does Tesla disclose in its 10-K?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 TSLA 10-Q filed 2026-04-23 (0.268)",
+    "[2] t2 TSLA 10-K filed 2026-01-29 (0.310)",
+    "[3] t2 TSLA 10-Q filed 2026-07-23 (0.313)",
+    "[4] t2 TSLA 10-Q filed 2026-07-23 (0.315)",
+    "[5] t2 TSLA 10-K filed 2026-01-29 (0.315)",
+    "[6] t2 TSLA 10-K filed 2026-01-29 (0.316)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q26",
+   "query": "What were Tesla's total revenues in 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 TSLA 10-K filed 2026-01-29 (0.206)",
+    "[2] t2 TSLA 10-K filed 2026-01-29 (0.221)",
+    "[3] t2 TSLA 10-Q filed 2026-04-23 (0.225)",
+    "[4] t2 TSLA 10-K filed 2026-01-29 (0.231)",
+    "[5] t2 TSLA 10-Q filed 2026-07-23 (0.250)",
+    "[6] t2 TSLA 10-Q filed 2026-04-23 (0.252)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.5
+  },
+  {
+   "id": "q27",
+   "query": "What was ExxonMobil's sales and other operating revenue in 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 XOM 10-K filed 2026-02-18 (0.236)",
+    "[2] t2 XOM 10-K filed 2026-02-18 (0.244)",
+    "[3] t2 XOM 10-K filed 2026-02-18 (0.248)",
+    "[4] t2 XOM 10-Q filed 2026-05-04 (0.252)",
+    "[5] t2 XOM 10-Q filed 2026-08-03 (0.254)",
+    "[6] t2 XOM 10-K filed 2026-02-18 (0.256)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q28",
+   "query": "What litigation does Tesla face over Autopilot?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 TSLA 10-Q filed 2026-07-23 (0.210)",
+    "[2] t2 TSLA 10-Q filed 2026-04-23 (0.218)",
+    "[3] t2 TSLA 10-K filed 2026-01-29 (0.224)",
+    "[4] t2 TSLA 10-K filed 2026-01-29 (0.230)",
+    "[5] t2 TSLA 10-Q filed 2026-07-23 (0.249)",
+    "[6] t2 TSLA 10-Q filed 2026-07-23 (0.259)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q29",
+   "query": "What risks does my AAPL position face?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 AAPL 10-K filed 2025-10-31 (0.322)",
+    "[2] t2 AAPL 10-K filed 2025-10-31 (0.337)",
+    "[3] t2 AAPL 10-K filed 2025-10-31 (0.350)",
+    "[4] t2 AAPL 10-K filed 2025-10-31 (0.351)",
+    "[5] t2 AAPL 10-K filed 2025-10-31 (0.354)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q30",
+   "query": "What is MSFT's revenue by segment?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 MSFT 10-Q filed 2026-04-29 (0.279)",
+    "[2] t2 MSFT 10-K filed 2026-07-29 (0.291)",
+    "[3] t2 MSFT 10-K filed 2026-07-29 (0.291)",
+    "[4] t2 MSFT 10-K filed 2026-07-29 (0.291)",
+    "[5] t2 MSFT 10-Q filed 2026-01-28 (0.301)"
+   ],
+   "hit": true,
+   "rr": 0.5,
+   "precision": 0.6
+  },
+  {
+   "id": "q31",
+   "query": "What were Apple's iPhone net sales in 2025?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 AAPL 10-K filed 2025-10-31 (0.201)",
+    "[2] t2 AAPL 10-K filed 2025-10-31 (0.209)",
+    "[3] t2 AAPL 10-K filed 2025-10-31 (0.239)",
+    "[4] t2 AAPL 10-K filed 2025-10-31 (0.241)",
+    "[5] t2 AAPL 10-Q filed 2026-07-31 (0.258)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.8
+  },
+  {
+   "id": "q32",
+   "query": "What were Apple's total net sales in fiscal 2025?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 AAPL 10-K filed 2025-10-31 (0.175)",
+    "[2] t2 AAPL 10-K filed 2025-10-31 (0.182)",
+    "[3] t2 AAPL 10-K filed 2025-10-31 (0.214)",
+    "[4] t2 AAPL 10-K filed 2025-10-31 (0.216)",
+    "[5] t2 AAPL 10-Q filed 2026-07-31 (0.233)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.8
+  },
+  {
+   "id": "q33",
+   "query": "What was Microsoft's total revenue in fiscal 2026?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 MSFT 10-K filed 2026-07-29 (0.198)",
+    "[2] t2 MSFT 10-K filed 2026-07-29 (0.203)",
+    "[3] t2 MSFT 10-K filed 2026-07-29 (0.210)",
+    "[4] t2 MSFT 10-Q filed 2026-01-28 (0.224)",
+    "[5] t2 MSFT 10-Q filed 2026-04-29 (0.233)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6
+  },
+  {
+   "id": "q34",
+   "query": "How does JPMorgan manage interest rate risk?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 JPM 10-K filed 2026-02-13 (0.187)",
+    "[2] t2 JPM 10-Q filed 2026-05-01 (0.194)",
+    "[3] t2 JPM 10-Q filed 2025-11-04 (0.205)",
+    "[4] t2 JPM 10-K filed 2026-02-13 (0.225)",
+    "[5] t2 JPM 10-K filed 2026-02-13 (0.232)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q35",
+   "query": "What litigation risks does JPM face?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 JPM 10-K filed 2026-02-13 (0.220)",
+    "[2] t2 JPM 10-K filed 2026-02-13 (0.238)",
+    "[3] t2 JPM 10-K filed 2026-02-13 (0.239)",
+    "[4] t2 JPM 10-K filed 2026-02-13 (0.246)",
+    "[5] t2 JPM 10-K filed 2026-02-13 (0.253)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q36",
+   "query": "Is my portfolio diversified enough?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 diversification (0.196)",
+    "[2] t1 diversification (0.211)",
+    "[3] t1 diversification (0.226)",
+    "[4] t1 diversification (0.226)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q37",
+   "query": "What is a dividend and how do my AAPL shares pay one?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 dividends (0.218)",
+    "[2] t1 dividends (0.232)",
+    "[3] t2 AAPL 10-K filed 2025-10-31 (0.305)",
+    "[4] t2 AAPL 10-K filed 2025-10-31 (0.334)",
+    "[5] t2 AAPL 10-Q filed 2026-07-31 (0.347)",
+    "[6] t2 AAPL 10-Q filed 2026-07-31 (0.352)",
+    "[7] t2 AAPL 10-K filed 2025-10-31 (0.354)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q38",
+   "query": "How is my portfolio doing?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": false,
+   "retrieved": [],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  },
+  {
+   "id": "q39",
+   "query": "What was Nvidia's revenue last year?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": false,
+   "retrieved": [
+    "[1] t2 MSFT 10-Q filed 2026-04-29 (0.265)",
+    "[2] t2 MSFT 10-Q filed 2026-04-29 (0.270)",
+    "[3] t2 MSFT 10-Q filed 2026-01-28 (0.284)",
+    "[4] t2 MSFT 10-K filed 2026-07-29 (0.285)",
+    "[5] t2 MSFT 10-K filed 2026-07-29 (0.286)",
+    "[6] t2 MSFT 10-Q filed 2026-01-28 (0.286)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  },
+  {
+   "id": "q40",
+   "query": "What will Apple's stock price be next year?",
+   "route": "portfolio",
+   "got_route": "portfolio",
+   "answerable": false,
+   "retrieved": [
+    "[1] t2 AAPL 10-K filed 2025-10-31 (0.182)",
+    "[2] t2 AAPL 10-K filed 2025-10-31 (0.249)",
+    "[3] t2 AAPL 10-Q filed 2026-05-01 (0.273)",
+    "[4] t2 AAPL 10-K filed 2025-10-31 (0.273)",
+    "[5] t2 AAPL 10-Q filed 2026-05-01 (0.282)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  },
+  {
+   "id": "q41",
+   "query": "What was ExxonMobil's revenue in the third quarter of 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": false,
+   "retrieved": [
+    "[1] t2 XOM 10-Q filed 2026-05-04 (0.230)",
+    "[2] t2 XOM 10-K filed 2026-02-18 (0.232)",
+    "[3] t2 XOM 10-K filed 2026-02-18 (0.236)",
+    "[4] t2 XOM 10-Q filed 2026-05-04 (0.236)",
+    "[5] t2 XOM 10-K filed 2026-02-18 (0.241)",
+    "[6] t2 XOM 10-Q filed 2026-08-03 (0.242)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  },
+  {
+   "id": "q42",
+   "query": "What is quantitative easing?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": false,
+   "retrieved": [
+    "[1] t1 inflation (0.324)",
+    "[2] t3 Arbitrage theory without a num\u00e9raire (0.357)",
+    "[3] t1 volatility (0.357)",
+    "[4] t1 bonds and yield (0.358)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  }
+ ]
+}
