@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 
 # ---------------------------------------------------------------------------
@@ -247,3 +247,223 @@ def suppress_near_duplicates(
     for i, c in enumerate(kept, start=1):
         c.rank = i
     return kept
+
+
+# ---------------------------------------------------------------------------
+# 4. Citation checking -- do the [N] markers in an answer match their sources?
+# ---------------------------------------------------------------------------
+# Each marker covers the answer text between the previous marker (or the
+# paragraph / list-item start) and itself, so both "claim [2]." and a
+# paragraph ending "(Source: [4])" are handled. Support for a claim = best
+# cosine similarity between the claim and any sentence of a passage.
+#
+# Thresholds were calibrated on llama3.2 answers over this corpus, where they
+# flagged every hand-verified mis-citation (e.g. swapped [4]/[5]) and no
+# near-ties (0.81 vs 0.83 is two passages saying the same thing).
+
+MARKER_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+MISCITE_MARGIN = 0.05     # another passage must beat the cited one by this much...
+MISCITE_MIN_BEST = 0.80   # ...and be a strong match itself
+WEAK_SUPPORT = 0.70       # best cited support below this = claim not clearly in its sources
+
+
+@dataclass
+class ClaimCheck:
+    text: str                 # the claim the marker(s) cover
+    cited: list[int]          # marker numbers, e.g. [2] or [2, 4]
+    status: str               # "ok" | "miscited" | "weak" | "invalid"
+    support: float = 0.0      # best support among the cited passages
+    suggested: int | None = None   # better-matching passage, for "miscited"
+    suggested_support: float = 0.0
+
+
+@dataclass
+class CitationReport:
+    claims: list[ClaimCheck]
+    uncited_answer: bool      # answer has text but no [N] markers at all
+    unused_sources: list[int]
+    ungrounded_numbers: list[str] = field(default_factory=list)  # numbers found in no source
+
+    @property
+    def problems(self) -> list[ClaimCheck]:
+        return [c for c in self.claims if c.status != "ok"]
+
+
+LEAD_IN_RE = re.compile(
+    r"(?:as\s+(?:stated|mentioned|noted|discussed|described|shown|explained|outlined)\s+in"
+    r"|according\s+to|based\s+on|per|see|from)\s*(?:passage|source)?s?\s*$",
+    re.I,
+)
+
+
+def _clean_claim(text: str) -> str:
+    text = MARKER_RE.sub("", text)
+    text = re.sub(r"\(?\s*(?:Sources?|See)\s*:?\s*$", "", text, flags=re.I).strip(" ,;()\n")
+    return text.lstrip(".!?,; ")  # punctuation left over from the previous marker
+
+
+def split_cited_claims(answer: str) -> list[tuple[str, list[int]]]:
+    """
+    -> [(claim_text, [marker numbers]), ...].
+
+    A marker normally covers the text before it ("claim [2]."). A lead-in
+    marker ("As stated in [2], claim..." / "[2] notes that claim...") covers
+    the text after it, to the end of that sentence. Short lines that start
+    with a marker ("[1] JPM 10-K filed ...") are a model-written reference
+    list, not claims. Claims never span lines.
+    """
+    claims: list[tuple[str, list[int]]] = []
+    for unit in answer.split("\n"):
+        if re.match(r"\s*\[\d+\]", unit) and len(MARKER_RE.sub("", unit).strip()) < 60:
+            continue  # reference-list line, e.g. "[1] AAPL 10-K filed 2025-10-31"
+        markers = list(MARKER_RE.finditer(unit))
+        last, unit_start = 0, len(claims)
+        for i, m in enumerate(markers):
+            if m.start() < last:
+                continue  # already consumed as part of a lead-in claim
+            nums = sorted({int(n) for n in m.group(1).split(",")})
+            raw_before = unit[last:m.start()]
+            before = _clean_claim(raw_before)
+            next_start = markers[i + 1].start() if i + 1 < len(markers) else len(unit)
+            sentence_end = re.search(r"[.!?](?=\s|$)", unit[m.end():next_start])
+            after_end = m.end() + sentence_end.end() if sentence_end else next_start
+            after = _clean_claim(unit[m.end():after_end])
+            lead_in = LEAD_IN_RE.search(raw_before) or (len(before) < 15 and len(claims) == unit_start)
+            if lead_in and len(after) >= 15:
+                label = _clean_claim(LEAD_IN_RE.sub("", raw_before))
+                claims.append((f"{label} {after}".strip(), nums))
+                last = after_end
+                continue
+            if len(before) < 15 and len(claims) > unit_start:
+                # "[1], [2]" or "[1][3]" runs belong to the claim before them
+                prev_text, prev_nums = claims[-1]
+                claims[-1] = (prev_text, sorted(set(prev_nums) | set(nums)))
+            elif len(before) >= 15:
+                claims.append((before, nums))
+            last = m.end()
+    return claims
+
+
+# A number in an answer: "$4,944.29", "3.5%", "139,996", "2026", "0.58".
+NUMBER_RE = re.compile(r"(?<![\w.])\$?\d[\d,]*(?:\.\d+)?%?")
+
+
+def _norm_number(token: str) -> str:
+    return token.replace("$", "").replace(",", "").rstrip("%").rstrip(".")
+
+
+def find_ungrounded_numbers(answer: str, sources: list[str]) -> list[str]:
+    """
+    Numbers in `answer` that appear in none of `sources` (passages, the
+    question, the user's positions). Semantic citation scores can't see a
+    made-up "$52.50" inside an otherwise well-supported sentence; this can.
+    Ignored: [N] markers, list numbering ("2."), and bare integers below 10.
+    It can't catch a real number attached to the wrong label (e.g. an expense
+    line quoted as revenue) — that needs the reader to check the source.
+    """
+    text = MARKER_RE.sub(" ", answer)
+    text = re.sub(r"^\s*\d+[.)]\s", " ", text, flags=re.M)  # list numbering
+    known = {_norm_number(m.group(0)) for s in sources for m in NUMBER_RE.finditer(s)}
+    missing = []
+    for m in NUMBER_RE.finditer(text):
+        tok = m.group(0).rstrip(".,")
+        n = _norm_number(tok)
+        if not n or ("." not in n and "%" not in tok and "$" not in tok and int(n) < 10):
+            continue
+        if n not in known and tok not in missing:
+            missing.append(tok)
+    return missing
+
+
+def _words(text: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def _quoted_in(claim: str, c: Citation) -> bool:
+    """Claim (>= 3 words) appears verbatim in the passage. Short claims like
+    "it's interest on interest" embed poorly, so lexical containment backs
+    up the semantic score before calling a claim weak."""
+    words = _words(re.sub(r"^(?:in other words|that is|i\.e\.|so|also),?\s*(?:it'?s|it is)?\s*", "", claim, flags=re.I))
+    return len(words.split()) >= 3 and words in _words(c.text or c.text_preview)
+
+
+def _sentences(text: str) -> list[str]:
+    parts = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n", text)]
+    return [s for s in parts if len(s) > 20] or [text]
+
+
+def check_citations(
+    answer: str,
+    citations: list[Citation],
+    encode: Callable[[list[str]], Any],
+    extra_sources: list[str] | None = None,
+) -> CitationReport:
+    """
+    Check every [N] marker in `answer` against the passages in `citations`.
+
+    encode: texts -> L2-normalized embedding matrix (numpy array), e.g. the
+            local bge model's .encode(..., normalize_embeddings=True). Kept as
+            a parameter so this module has no model dependency.
+    extra_sources: other text numbers may legitimately come from (the
+            question, the user's position lines).
+    """
+    by_rank = {c.rank: c for c in citations}
+    ungrounded = find_ungrounded_numbers(answer, [c.text or c.text_preview for c in citations]
+                                         + (extra_sources or []))
+    claims = split_cited_claims(answer)
+    if not claims:
+        # no inline markers (a trailing "[1] Title" reference list doesn't count)
+        return CitationReport([], uncited_answer=bool(MARKER_RE.sub("", answer).strip()),
+                              unused_sources=sorted(by_rank), ungrounded_numbers=ungrounded)
+
+    passage_vecs = {rank: encode(_sentences(c.text or c.text_preview)) for rank, c in by_rank.items()}
+    claim_vecs = encode([text for text, _ in claims])
+
+    checks, used = [], set()
+    for (text, nums), vec in zip(claims, claim_vecs):
+        invalid = [n for n in nums if n not in by_rank]
+        used.update(n for n in nums if n in by_rank)
+        if invalid:
+            checks.append(ClaimCheck(text, nums, "invalid"))
+            continue
+        support = {rank: float((pv @ vec).max()) for rank, pv in passage_vecs.items()}
+        cited_best = max(support[n] for n in nums)
+        best = max(support, key=support.get)
+        check = ClaimCheck(text, nums, "ok", support=cited_best)
+        if best not in nums and support[best] >= MISCITE_MIN_BEST and support[best] - cited_best >= MISCITE_MARGIN:
+            check.status, check.suggested, check.suggested_support = "miscited", best, support[best]
+        elif cited_best < WEAK_SUPPORT and not any(_quoted_in(text, by_rank[n]) for n in nums):
+            check.status = "weak"
+        checks.append(check)
+
+    return CitationReport(checks, uncited_answer=False,
+                          unused_sources=sorted(set(by_rank) - used), ungrounded_numbers=ungrounded)
+
+
+def format_citation_report(report: CitationReport) -> str:
+    numbers = ""
+    if report.ungrounded_numbers:
+        numbers = ("\n  # numbers not found in any source (possibly invented): "
+                   + ", ".join(report.ungrounded_numbers[:12]))
+    if report.uncited_answer:
+        return "Citation check: ⚠ the answer has no [N] citations — its claims can't be traced to sources." + numbers
+    if not report.claims:
+        return numbers.strip()
+
+    def short(text: str) -> str:
+        text = " ".join(text.split())
+        return text if len(text) <= 70 else text[:67] + "..."
+
+    n_ok = sum(c.status == "ok" for c in report.claims)
+    lines = [f"Citation check: {n_ok}/{len(report.claims)} cited claims match their sources"]
+    for c in report.problems:
+        cited = ", ".join(f"[{n}]" for n in c.cited)
+        if c.status == "invalid":
+            lines.append(f"  ✗ {cited} is not one of the listed sources: \"{short(c.text)}\"")
+        elif c.status == "miscited":
+            lines.append(f"  ⚠ {cited} likely should be [{c.suggested}] "
+                         f"(support {c.support:.2f} vs {c.suggested_support:.2f}): \"{short(c.text)}\"")
+        else:
+            lines.append(f"  ? {cited} weakly supports this (support {c.support:.2f}) — "
+                         f"may not be in the sources: \"{short(c.text)}\"")
+    return "\n".join(lines) + numbers
