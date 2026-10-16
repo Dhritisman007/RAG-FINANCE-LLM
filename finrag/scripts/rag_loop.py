@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import textwrap
 from pathlib import Path
@@ -70,6 +71,28 @@ DEFAULT_MODEL = "llama3.2"
 DEFAULT_K = 5
 # Pinned to localhost on purpose — prompts may contain private portfolio data.
 OLLAMA_HOST = "http://127.0.0.1:11434"
+# Ollama "cloud" models (e.g. "gemma4:31b-cloud") are served through the same
+# localhost address but run on Ollama's servers — the prompt (and any portfolio
+# data in it) leaves the machine. They are refused.
+CLOUD_MODEL_RE = re.compile(r"(?:^|[:\-])cloud$", re.I)
+
+
+class CloudModelError(ValueError):
+    pass
+
+
+def ensure_local_model(model: str) -> None:
+    """Refuse Ollama cloud models: by name tag, and by the server's own metadata."""
+    if CLOUD_MODEL_RE.search(model):
+        raise CloudModelError(f"'{model}' is an Ollama cloud model — prompts would leave this machine. "
+                              "FinRAG only runs local models (e.g. llama3.2, qwen2.5:7b).")
+    try:
+        import requests
+        info = requests.post(f"{OLLAMA_HOST}/api/show", json={"model": model}, timeout=10).json()
+    except Exception:
+        return  # server unreachable: the generate call will report it
+    if info.get("remote_host") or info.get("remote_model"):
+        raise CloudModelError(f"'{model}' is served remotely ({info.get('remote_host')}) — refusing.")
 
 # ── Prompt templates (per route — see prompts.py) ─────────────────────────────
 
@@ -185,6 +208,7 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
 
     import ollama
 
+    ensure_local_model(model)
     client = ollama.Client(host=OLLAMA_HOST)
     full_response = []
     print()  # blank line before answer
@@ -202,6 +226,15 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
     return "".join(full_response)
 
 
+def generate(prompt: str, model: str = DEFAULT_MODEL, options: dict | None = None) -> str:
+    """Silent, non-streaming generation (used by get_answer and evaluate.py)."""
+    import ollama
+    ensure_local_model(model)
+    response = ollama.Client(host=OLLAMA_HOST).generate(model=model, prompt=prompt, stream=False,
+                                                          options=options or {})
+    return response.get("response", "")
+
+
 def get_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
     """Non-streaming version — prints the full answer at once."""
     if not _check_ollama():
@@ -212,8 +245,7 @@ def get_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
     import ollama
 
     try:
-        response = ollama.Client(host=OLLAMA_HOST).generate(model=model, prompt=prompt, stream=False)
-        answer = response.get("response", "")
+        answer = generate(prompt, model=model)
         print(f"\n{answer}")
         return answer
     except Exception as e:
@@ -264,7 +296,7 @@ def retrieve_for_plan(query: str, collection: chromadb.Collection, plan: Retriev
             print(f"↪ Best {label} match {shown} > {plan.distance_threshold} — not covered there; searching {fb}…")
             found = citations_from_chroma_results(
                 retrieve(query, collection, k=fetch, tiers=plan.fallback_tiers), preview_chars=150)
-        citations = suppress_near_duplicates(deduplicate_citations(found), k=plan.k)
+        citations = suppress_near_duplicates(deduplicate_citations(found), k=plan.k, max_per_doc=plan.max_per_doc)
 
     if plan.concept_k:  # portfolio "what is X" questions also get plain-language Tier 1 passages
         concept = citations_from_chroma_results(retrieve(query, collection, k=plan.concept_k * plan.overfetch, tiers=[1]),
@@ -281,6 +313,34 @@ def decide_route(query: str, route: str = "auto", use_portfolio: bool = True) ->
     if route == "auto":
         return route_query(query, allow_portfolio=use_portfolio)
     return forced_route(route, query, allow_portfolio=use_portfolio)
+
+
+def plan_query(
+    query: str,
+    k: int | None = None,
+    tier: int | None = None,
+    use_portfolio: bool = True,
+    route: str = "auto",
+) -> tuple[RouteDecision, RetrievalPlan, list[dict]]:
+    """
+    Route the query and resolve its retrieval plan and portfolio positions.
+    Explicit flags override the route's plan: `k` replaces its k, `tier`
+    searches only that tier (no portfolio filtering).
+    """
+    decision = decide_route(query, route, use_portfolio=use_portfolio and tier is None)
+    plan = decision.plan
+    if k is not None:
+        plan.k = k
+    if tier is not None:
+        plan = RetrievalPlan(tiers=[tier], k=plan.k, overfetch=plan.overfetch)
+
+    positions: list[dict] = []
+    if decision.route == "portfolio":
+        holdings = load_holdings()
+        positions = ([get_holding(t, holdings) for t in decision.held_tickers]
+                     if decision.held_tickers else holdings)
+        positions = [p for p in positions if p]
+    return decision, plan, positions
 
 
 def rag_query(
@@ -306,24 +366,12 @@ def rag_query(
 
     Returns the LLM answer string.
     """
-    decision = decide_route(query, route, use_portfolio=use_portfolio and tier is None)
-    plan = decision.plan
-    if k is not None:
-        plan.k = k
-    if tier is not None:
-        plan = RetrievalPlan(tiers=[tier], k=plan.k, overfetch=plan.overfetch)
+    decision, plan, positions = plan_query(query, k=k, tier=tier, use_portfolio=use_portfolio, route=route)
 
     print(f"\n🧭 Route: {decision.route} (confidence {decision.confidence:.2f})"
           + (f" — also matched: {', '.join(decision.secondary_routes)}" if decision.secondary_routes else ""))
     if verbose:
         print(f"   {decision.describe()}")
-
-    positions: list[dict] = []
-    if decision.route == "portfolio":
-        holdings = load_holdings()
-        positions = ([get_holding(t, holdings) for t in decision.held_tickers]
-                     if decision.held_tickers else holdings)
-        positions = [p for p in positions if p]
 
     citations = retrieve_for_plan(query, collection, plan)
     if not citations and not positions:
@@ -500,6 +548,11 @@ def main() -> None:
         help="Skip checking the answer's [N] markers against their source passages.",
     )
     args = parser.parse_args()
+
+    try:
+        ensure_local_model(args.model)
+    except CloudModelError as e:
+        parser.error(str(e))
 
     if not args.query and not args.interactive:
         parser.error("Provide --query 'your question here' or --interactive to start the REPL.")

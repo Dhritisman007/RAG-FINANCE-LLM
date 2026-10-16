@@ -16,7 +16,7 @@ from citations import (  # noqa: E402
     format_citations_block,
     suppress_near_duplicates,
 )
-from rag_loop import build_prompt  # noqa: E402
+from rag_loop import CLOUD_MODEL_RE, CloudModelError, build_prompt, ensure_local_model  # noqa: E402
 
 ROUTES = ("concept", "technical", "portfolio")
 
@@ -112,10 +112,23 @@ def test_rules_contain_no_copyable_domain_example() -> None:
     print("PASS: grounding rules use a content-free citation example the model can't copy into answers")
 
 
+def test_cloud_models_are_refused() -> None:
+    # Ollama cloud models answer on localhost but run remotely — portfolio data would leave the machine.
+    for model in ("kimi-k2.5:cloud", "gemma4:31b-cloud", "gpt-oss:120b-cloud", "deepseek-v3.1:671b-cloud"):
+        try:
+            ensure_local_model(model)
+        except CloudModelError:
+            continue
+        raise AssertionError(f"{model} was not refused")
+    assert not any(CLOUD_MODEL_RE.search(m) for m in ("llama3.2", "qwen2.5:7b", "mycloudmodel", "phi3"))
+    print("PASS: Ollama cloud models are refused; local model names are allowed")
+
+
 if __name__ == "__main__":
     test_every_template_has_grounding_and_style_rules()
     test_labels_match_printed_source_order()
     test_portfolio_positions_only_in_portfolio_prompt()
     test_empty_context_and_default_route()
     test_rules_contain_no_copyable_domain_example()
+    test_cloud_models_are_refused()
     print("\nAll prompt tests passed.")
