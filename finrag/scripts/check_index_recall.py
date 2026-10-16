@@ -2,6 +2,10 @@
 Index recall check: does Chroma's approximate (HNSW) search return the same
 top-k as exact brute-force search?
 
+Since Day 12 the RAG loop doesn't query the HNSW index at all — it runs exact
+search over the stored vectors (rag_loop.ExactIndex) — so this is a diagnostic
+of Chroma's own index, useful if the corpus ever grows past exact search.
+
 HNSW can silently leave whole topic clusters unreachable (it once hid every
 SIP / YTM / CAGR chunk), so run this after build_vectorstore.py whenever the
 corpus changes. Queries = the Day 7 sanity-check set + every Tier 1 section
@@ -20,7 +24,9 @@ import chromadb
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
-from build_vectorstore import BGE_QUERY_PREFIX, CHROMA_DIR, CHUNKS_PATH, COLLECTION_NAME, EMBED_MODEL_NAME  # noqa: E402
+from build_vectorstore import (  # noqa: E402
+    BGE_QUERY_PREFIX, CHROMA_DIR, CHUNKS_PATH, COLLECTION_NAME, EMBED_DEVICE, EMBED_MODEL_NAME,
+)
 from sanity_check_retrieval import TEST_QUERIES  # noqa: E402
 
 
@@ -44,7 +50,7 @@ def run(k: int = 5) -> float:
     doc_matrix /= np.linalg.norm(doc_matrix, axis=1, keepdims=True)
 
     queries = load_queries()
-    model = SentenceTransformer(EMBED_MODEL_NAME)
+    model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE)
     query_matrix = model.encode([BGE_QUERY_PREFIX + q for q in queries], normalize_embeddings=True)
 
     recalls, total_misses = [], []

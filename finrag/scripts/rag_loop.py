@@ -45,6 +45,7 @@ import textwrap
 from pathlib import Path
 
 import chromadb
+import numpy as np
 
 # Local helper — same scripts/ directory
 ROOT = Path(__file__).parent.parent
@@ -76,6 +77,8 @@ OLLAMA_HOST = "http://127.0.0.1:11434"
 # data in it) leaves the machine. They are refused.
 # Upper bound on generated tokens: llama3.2 once looped to 27,000 characters.
 MAX_ANSWER_TOKENS = 1024
+# A generation that takes longer than this has hung; fail instead of blocking forever.
+OLLAMA_TIMEOUT_SEC = 600
 CLOUD_MODEL_RE = re.compile(r"(?:^|[:\-])cloud$", re.I)
 
 
@@ -133,7 +136,8 @@ def get_embedder():
     global _embedder
     if _embedder is None:
         from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer(EMBED_MODEL_NAME)
+        from build_vectorstore import EMBED_DEVICE
+        model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE)
 
         class _Embedder:
             def embed_query(self, text: str) -> list[float]:
@@ -147,7 +151,72 @@ def get_embedder():
     return _embedder
 
 
-# ── ChromaDB retrieval ───────────────────────────────────────────────────────
+# ── Retrieval: exact search over the vectors stored in Chroma ────────────────
+# Chroma's approximate HNSW index missed true nearest neighbours (every SIP /
+# YTM / CAGR chunk for some queries; recall@12 = 0.92 for "What is quantitative
+# easing?" even with 32 neighbours). At this corpus size (~7k x 384 floats,
+# ~10 MB) exact cosine search takes milliseconds, so queries compute it
+# directly and Chroma is only the store. Revisit around ~100k chunks.
+
+def _matches(meta: dict, where: dict | None) -> bool:
+    """The subset of Chroma `where` syntax FinRAG uses: equality, $in, $and, $or."""
+    if not where:
+        return True
+    if "$and" in where:
+        return all(_matches(meta, w) for w in where["$and"])
+    if "$or" in where:
+        return any(_matches(meta, w) for w in where["$or"])
+    (key, cond), = where.items()
+    if isinstance(cond, dict):
+        if "$in" in cond:
+            return meta.get(key) in cond["$in"]
+        if "$eq" in cond:
+            return meta.get(key) == cond["$eq"]
+        raise ValueError(f"unsupported where operator: {cond}")
+    return meta.get(key) == cond
+
+
+class ExactIndex:
+    """Exact cosine search with Chroma's query() result shape (ids/documents/metadatas/distances)."""
+
+    def __init__(self, collection: chromadb.Collection):
+        stored = collection.get(include=["embeddings", "documents", "metadatas"])
+        self.ids = stored["ids"]
+        self.documents = stored["documents"]
+        self.metadatas = stored["metadatas"]
+        matrix = np.asarray(stored["embeddings"], dtype=np.float32)
+        self.matrix = matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
+        self._masks: dict[str, np.ndarray] = {}
+
+    def _mask(self, where: dict | None) -> np.ndarray:
+        key = json.dumps(where, sort_keys=True)
+        if key not in self._masks:
+            self._masks[key] = np.array([_matches(m, where) for m in self.metadatas], dtype=bool)
+        return self._masks[key]
+
+    def query(self, query_embeddings: list[list[float]], n_results: int, where: dict | None = None) -> dict:
+        q = np.asarray(query_embeddings[0], dtype=np.float32)
+        q = q / np.linalg.norm(q)
+        rows = np.flatnonzero(self._mask(where))
+        sims = self.matrix[rows] @ q
+        order = np.lexsort((rows, -sims))[:n_results]  # by similarity, ties broken by row: deterministic
+        picked = rows[order]
+        return {
+            "ids": [[self.ids[i] for i in picked]],
+            "documents": [[self.documents[i] for i in picked]],
+            "metadatas": [[self.metadatas[i] for i in picked]],
+            "distances": [[float(1.0 - s) for s in sims[order]]],  # Chroma's cosine distance
+        }
+
+
+_indexes: dict[int, ExactIndex] = {}
+
+
+def exact_index(collection: chromadb.Collection) -> ExactIndex:
+    if id(collection) not in _indexes:
+        _indexes[id(collection)] = ExactIndex(collection)
+    return _indexes[id(collection)]
+
 
 def retrieve(
     query: str,
@@ -158,7 +227,7 @@ def retrieve(
     tiers: list[int] | None = None,
 ) -> dict:
     """
-    Embed the query and retrieve the top-k chunks from Chroma.
+    Embed the query and retrieve the exact top-k chunks (see ExactIndex).
 
     Args:
         query:      The user's natural language question.
@@ -179,12 +248,7 @@ def retrieve(
         where = {"tier": tiers[0]} if len(tiers) == 1 else {"tier": {"$in": tiers}}
     else:
         where = None
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=k,
-        where=where,
-    )
-    return results
+    return exact_index(collection).query(query_embeddings=[query_embedding], n_results=k, where=where)
 
 
 # ── Ollama LLM call ──────────────────────────────────────────────────────────
@@ -198,6 +262,16 @@ def _check_ollama() -> bool:
         return False
 
 
+def stream_tokens(prompt: str, model: str = DEFAULT_MODEL):
+    """Yield answer tokens from the local Ollama server (used by stream_answer and app.py)."""
+    import ollama
+    ensure_local_model(model)
+    client = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_SEC)
+    for chunk in client.generate(model=model, prompt=prompt, stream=True,
+                                 options={"num_predict": MAX_ANSWER_TOKENS}):
+        yield chunk.get("response", "")
+
+
 def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
     """
     Stream tokens from Ollama, print them to stdout in real-time, and return
@@ -208,16 +282,11 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
         print("  Run:  pip install ollama")
         return ""
 
-    import ollama
-
     ensure_local_model(model)
-    client = ollama.Client(host=OLLAMA_HOST)
     full_response = []
     print()  # blank line before answer
     try:
-        for chunk in client.generate(model=model, prompt=prompt, stream=True,
-                                     options={"num_predict": MAX_ANSWER_TOKENS}):
-            token = chunk.get("response", "")
+        for token in stream_tokens(prompt, model=model):
             print(token, end="", flush=True)
             full_response.append(token)
     except Exception as e:
@@ -233,7 +302,7 @@ def generate(prompt: str, model: str = DEFAULT_MODEL, options: dict | None = Non
     """Silent, non-streaming generation (used by get_answer and evaluate.py)."""
     import ollama
     ensure_local_model(model)
-    response = ollama.Client(host=OLLAMA_HOST).generate(model=model, prompt=prompt, stream=False,
+    response = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_SEC).generate(model=model, prompt=prompt, stream=False,
                                                           options={"num_predict": MAX_ANSWER_TOKENS, **(options or {})})
     return response.get("response", "")
 
@@ -420,6 +489,17 @@ def rag_query(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
+def local_models() -> list[str]:
+    """Models installed on the local Ollama server, excluding cloud models."""
+    try:
+        import requests
+        tags = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5).json().get("models", [])
+    except Exception:
+        return []
+    names = [m["name"] for m in tags if not m.get("remote_host")]
+    return [n for n in names if not CLOUD_MODEL_RE.search(n)]
+
 
 def open_collection() -> chromadb.Collection | None:
     """Open the persistent Chroma collection, with helpful error messages."""

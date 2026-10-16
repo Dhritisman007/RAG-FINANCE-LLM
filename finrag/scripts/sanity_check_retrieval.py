@@ -19,6 +19,10 @@ import json
 from pathlib import Path
 import chromadb
 
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+from rag_loop import exact_index  # noqa: E402  (same exact search the RAG loop uses)
+
 ROOT = Path(__file__).parent.parent
 # Must match the path used in build_vectorstore.py — stored in home dir to
 # avoid SQLite POSIX file-locking issues on the exFAT external drive.
@@ -58,7 +62,8 @@ TEST_QUERIES = [
 
 def load_embedder():
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+    from build_vectorstore import EMBED_DEVICE
+    model = SentenceTransformer("BAAI/bge-small-en-v1.5", device=EMBED_DEVICE)
 
     class Embedder:
         def embed_query(self, text: str) -> list[float]:
@@ -119,7 +124,7 @@ def run(k: int = 5) -> None:
     for i, spec in enumerate(TEST_QUERIES, 1):
         query = spec["query"]
         query_embedding = embedder.embed_query(query)
-        results = collection.query(query_embeddings=[query_embedding], n_results=k)
+        results = exact_index(collection).query(query_embeddings=[query_embedding], n_results=k)
 
         flags = flag_issues(spec, results)
         total_flags += len(flags)

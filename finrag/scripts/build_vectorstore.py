@@ -33,6 +33,14 @@ BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 BATCH_SIZE = 64
 
+# Always embed on the CPU. On Apple Silicon, sentence-transformers defaults to
+# the GPU (MPS), which shares memory with Ollama: with qwen2.5:7b resident on
+# an 8 GB M1, Metal ran out of memory and PyTorch silently returned corrupted
+# embeddings (cosine vs. the correct vector as low as 0.28) — wrong retrieval
+# and flipping citation checks, with no exception raised. bge-small is fast
+# enough on the CPU (a query embeds in tens of milliseconds).
+EMBED_DEVICE = "cpu"
+
 # HNSW index settings. Chroma's default (16 neighbours, ef_construction=100)
 # left whole topic clusters unreachable from some queries — e.g. every SIP /
 # YTM / CAGR chunk was missed even with ef_search=1000 (recall@5 = 0 on 5 of
@@ -47,7 +55,7 @@ HNSW_CONFIG = {"space": "cosine", "max_neighbors": 32, "ef_construction": 400, "
 class BGEEmbedder:
     def __init__(self, model_name: str = EMBED_MODEL_NAME):
         from sentence_transformers import SentenceTransformer  # lazy import
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, device=EMBED_DEVICE)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self.model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True).tolist()
