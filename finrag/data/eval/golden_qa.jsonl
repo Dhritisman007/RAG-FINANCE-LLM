@@ -39,4 +39,5 @@
 {"id": "q39", "query": "What was Nvidia's revenue last year?", "route": "technical", "relevant_docs": [], "must_include": [], "answerable": false, "note": "company not in corpus"}
 {"id": "q40", "query": "What will Apple's stock price be next year?", "route": "portfolio", "relevant_docs": [], "must_include": [], "answerable": false, "note": "forecast, not in sources"}
 {"id": "q41", "query": "What was ExxonMobil's revenue in the third quarter of 2026?", "route": "technical", "relevant_docs": [], "must_include": [], "answerable": false, "note": "latest XOM filing is the Q2 10-Q (2026-08-03); Q3 not in corpus"}
-{"id": "q42", "query": "What is quantitative easing?", "route": "concept", "relevant_docs": [], "must_include": [], "answerable": false, "note": "not covered by any tier"}
+{"id": "q42", "query": "What is quantitative easing?", "route": "concept", "relevant_docs": ["inflation"], "must_include": [], "answerable": true, "note": "inflation article mentions QE briefly (Fed bond-buying after 2008); answer should stay that short"}
+{"id": "q43", "query": "What is a Roth IRA?", "route": "concept", "relevant_docs": [], "must_include": [], "answerable": false, "note": "no document mentions Roth IRAs"}

@@ -12,11 +12,15 @@ reports, per route and overall:
     precision   share of retrieved passages that come from relevant documents
 
   Answers (--answers, one model per run)
-    cite_ok     share of cited claims the citation check accepts
+    cite_ok     share of cited claims the citation check accepts, averaged per
+                answer (so one runaway answer with 150 claims can't dominate)
     invented#   numbers in the answer found in no source (per answer)
-    facts       required figures (must_include) present in the answer
-    abstain     unanswerable questions answered "not covered" (higher is better)
-    false_abst  answerable questions wrongly answered "not covered"
+    facts       required figures (must_include) present verbatim in the answer
+    abstain     unanswerable questions refused (a "not covered" answer with no
+                citations); higher is better
+    false_abst  answerable questions refused outright. A cited answer that also
+                notes a gap ("the sources don't cover X") is a correct partial
+                answer, not a refusal.
 
 Relevant documents were labelled from the raw text (which documents actually
 contain the answer), not from retrieval output.
@@ -26,6 +30,7 @@ Usage:
     python scripts/evaluate.py --answers             # + answers with llama3.2
     python scripts/evaluate.py --answers --model qwen2.5:7b
     python scripts/evaluate.py --answers --only q26,q27
+    python scripts/evaluate.py --rescore data/eval/eval_answers_llama3.2.json   # re-score saved answers
 """
 from __future__ import annotations
 
@@ -81,7 +86,8 @@ def normalize_number_text(text: str) -> str:
     return text.replace(",", "").replace("$", "")
 
 
-def evaluate_question(q: dict, collection, model: str | None, options: dict) -> dict:
+def evaluate_question(q: dict, collection, model: str | None, options: dict,
+                      saved: dict | None = None) -> dict:
     with contextlib.redirect_stdout(io.StringIO()):  # retrieval progress lines
         decision, plan, positions = r.plan_query(q["query"])
         citations = r.retrieve_for_plan(q["query"], collection, plan)
@@ -98,7 +104,9 @@ def evaluate_question(q: dict, collection, model: str | None, options: dict) -> 
     if model is None:
         return res
 
-    if not citations:  # same as rag_query: never ask the model to answer from nothing
+    if saved is not None:  # --rescore: score a previously generated answer
+        answer, seconds = saved["answer"], saved.get("seconds", 0.0)
+    elif not citations:  # same as rag_query: never ask the model to answer from nothing
         answer, seconds = prompts.NO_CONTEXT_ANSWER, 0.0
     else:
         prompt = r.build_prompt(q["query"], citations, positions=positions, route=decision.route)
@@ -122,7 +130,9 @@ def evaluate_question(q: dict, collection, model: str | None, options: dict) -> 
         "invented_numbers": report.ungrounded_numbers,
         "facts_ok": (all(normalize_number_text(f) in norm for f in q["must_include"])
                      if q["must_include"] else None),
-        "abstained": bool(ABSTAIN_RE.search(answer)),
+        # refusal = "not covered" with nothing cited; "noted_gap" = cited answer that flags a gap
+        "abstained": bool(ABSTAIN_RE.search(answer)) and not statuses,
+        "noted_gap": bool(ABSTAIN_RE.search(answer)) and bool(statuses),
     })
     return res
 
@@ -163,10 +173,9 @@ def summarize(results: list[dict], with_answers: bool) -> dict:
         line = (f"{name:<10} {s['n']:>3} {fmt(s['route_acc']):>9} {fmt(s['hit']):>6} "
                 f"{fmt(s['mrr'], pct=False):>6} {fmt(s['precision']):>9}")
         if with_answers:
-            claims = sum(x["claims"] for x in rs)
             answered = [x for x in rs if x["answerable"]]
             s.update({
-                "cite_ok": sum(x["claims_ok"] for x in rs) / claims if claims else None,
+                "cite_ok": mean([x["claims_ok"] / x["claims"] for x in rs if x["claims"]]),
                 "invented_per_answer": mean([len(x["invented_numbers"]) for x in answered]),
                 "facts": mean([None if x["facts_ok"] is None else float(x["facts_ok"]) for x in rs]),
                 "abstain": mean([float(x["abstained"]) for x in rs if not x["answerable"]]),
@@ -196,12 +205,14 @@ def print_failures(results: list[dict], with_answers: bool) -> None:
                 issues.append(f"numbers not in sources: {', '.join(x['invented_numbers'][:5])}")
             if x["miscited"] or x["weak"] or x["invalid"]:
                 issues.append(f"citations: {x['miscited']} miscited, {x['weak']} weak, {x['invalid']} invalid")
-            if x["uncited"]:
+            if x["uncited"] and not x["abstained"]:
                 issues.append("no citations")
             if not x["answerable"] and not x["abstained"]:
                 issues.append("answered an unanswerable question")
             if x["answerable"] and x["abstained"]:
-                issues.append("said 'not covered' (may be partial)")
+                issues.append("refused an answerable question")
+            if len(x["answer"]) > 6000:
+                issues.append(f"very long answer ({len(x['answer']):,} chars)")
         if issues:
             any_shown = True
             print(f"  {x['id']} {x['query'][:55]!r}: " + "; ".join(issues))
@@ -214,6 +225,8 @@ def main() -> None:
     parser.add_argument("--answers", action="store_true", help="Also generate and score answers (slow).")
     parser.add_argument("--model", default=r.DEFAULT_MODEL, help="Ollama model for --answers.")
     parser.add_argument("--only", default=None, help="Comma-separated question ids, e.g. q26,q27.")
+    parser.add_argument("--rescore", default=None, metavar="RESULTS_JSON",
+                        help="Re-score the answers saved in a previous --answers run (no generation).")
     parser.add_argument("--no-diversity", action="store_true",
                         help="Disable the per-document cap for broad technical questions (A/B comparison).")
     args = parser.parse_args()
@@ -230,17 +243,25 @@ def main() -> None:
     if bad:
         sys.exit("Golden-set labels that match no document:\n  " + "\n  ".join(bad))
 
-    model = args.model if args.answers else None
-    if model:
+    saved: dict[str, dict] = {}
+    if args.rescore:
+        prev = json.loads(Path(args.rescore).read_text(encoding="utf-8"))
+        saved = {x["id"]: x for x in prev["results"] if "answer" in x}
+        model, options = prev["model"], prev["options"]
+        golden = [q for q in golden if q["id"] in saved]
+        print(f"(re-scoring {len(saved)} saved answers from {args.rescore}; questions without one are skipped)")
+    else:
+        model = args.model if args.answers else None
+        options = {"temperature": 0, "seed": 0, "num_predict": r.MAX_ANSWER_TOKENS}  # deterministic, comparable
+    if model and not args.rescore:
         r.ensure_local_model(model)  # never evaluate (send golden prompts) to a cloud model
-    options = {"temperature": 0, "seed": 0}  # deterministic, comparable runs
     print(f"=== FinRAG eval: {len(golden)} questions | "
           f"{'answers with ' + model if model else 'retrieval only'} ===\n")
     results = []
     for i, q in enumerate(golden, 1):
-        if model:
+        if model and not args.rescore:
             print(f"  [{i}/{len(golden)}] {q['id']} {q['query'][:60]}", file=sys.stderr)
-        results.append(evaluate_question(q, collection, model, options))
+        results.append(evaluate_question(q, collection, model, options, saved=saved.get(q["id"])))
 
     summary = summarize(results, with_answers=bool(model))
     print_failures(results, with_answers=bool(model))
@@ -250,6 +271,8 @@ def main() -> None:
         name += "_nodiversity"
     if args.only:
         name += "_subset"
+    if args.rescore:
+        name += "_rescored"
     out = RESULTS_DIR / f"eval_{name}.json"
     out.write_text(json.dumps({"model": model, "options": options, "summary": summary, "results": results},
                               indent=1), encoding="utf-8")
