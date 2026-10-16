@@ -26,7 +26,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 10 | Deterministic query router | `router.py` | ✅ Done — 33/33 labelled queries, 15/15 traps |
 | 11 | Per-route prompt templates | `prompts.py` | ✅ Done — + number-grounding check |
 | 12 | Golden eval set + model choice | `evaluate.py`, `data/eval/golden_qa.jsonl` | ✅ Done — qwen2.5:7b chosen (92% citation accuracy) |
-| 13 | Chat UI (Streamlit) | `app.py` | 🟡 Built, end-to-end testing in progress |
+| 13 | Chat UI (Streamlit) | `app.py` | ✅ Done — tested on every route, localhost-only |
 | 14+ | Local price data, corpus expansion | — | ⬜ Not started |
 
 ---
@@ -203,6 +203,22 @@ python scripts/evaluate.py --rescore data/eval/eval_answers_qwen2.5-7b.json
 
 Answer runs checkpoint after every question: one run stalled for 50 minutes inside ChromaDB (intermittent, under memory pressure) and lost everything before checkpointing existed. Ollama calls also time out after 10 minutes.
 
+### Day 13 — Chat UI
+```bash
+cd finrag && streamlit run app.py      # http://localhost:8501
+```
+
+`app.py` runs the same pipeline as `rag_loop.py` — router → retrieval plan → route prompt → local Ollama → sources → citation & number check — in a chat window:
+
+- **Route first, then answer:** the route (and any "not covered in Tier 1 → searching all tiers" fallback) shows immediately; a spinner covers the model load and reading time (up to a minute for the first answer on an 8 GB M1), then the answer streams.
+- **Your holdings in the sidebar**; on portfolio questions the position lines are printed verbatim from `holdings.csv` and the not-investment-advice note is added by code.
+- **Sources** as expandable passages (with URLs), and the **citation check** inline (✓ / likely-miscited with the better source / weak / numbers found in no source).
+- **Honest refusals:** a "the sources don't cover this" answer shows its sources as *closest passages found — not enough to answer* and skips the citation warning.
+- **One question at a time:** the input is locked while an answer generates — otherwise a new question restarts the script and silently drops the answer in progress.
+- Model picker (local models only), route override, holdings / citation-check / routing-details toggles.
+
+**Local only, enforced** (`.streamlit/config.toml`): bound to `127.0.0.1` (Streamlit's default listens on every interface — LAN-visible holdings), usage statistics off, the "Deploy" button hidden (one click would publish the app to Streamlit Cloud), and the app refuses to start if the address or telemetry settings are changed. The file watcher is off: it imported dozens of `transformers` vision modules on every interaction.
+
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
 
@@ -306,6 +322,6 @@ python scripts/rag_loop.py --interactive
 - [x] Model comparison — qwen2.5:7b chosen (Day 12)
 - [x] Per-document cap for retrieval diversity (soft cap, weak evidence)
 - [x] Exact search + CPU embeddings (Day 12)
-- [ ] Streamlit chat UI (Day 13 — built, testing)
+- [x] Streamlit chat UI (Day 13)
 - [ ] Portfolio: local price data for P&L / exposure questions
 - [ ] Expand the corpus (more companies; Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage)
