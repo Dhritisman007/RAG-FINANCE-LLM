@@ -16,11 +16,10 @@ reports, per route and overall:
                 answer (so one runaway answer with 150 claims can't dominate)
     invented#   numbers in the answer found in no source (per answer)
     facts       required figures (must_include) present verbatim in the answer
-    abstain     unanswerable questions refused (a "not covered" answer with no
-                citations); higher is better
-    false_abst  answerable questions refused outright. A cited answer that also
-                notes a gap ("the sources don't cover X") is a correct partial
-                answer, not a refusal.
+    abstain     unanswerable questions refused: the answer leads with "the
+                sources don't cover this" (higher is better)
+    false_abst  answerable questions refused that way. A cited answer that
+                notes a gap later on is a correct partial answer, not a refusal.
 
 Relevant documents were labelled from the raw text (which documents actually
 contain the answer), not from retrieval output.
@@ -70,6 +69,18 @@ ABSTAIN_RE = re.compile(
     r"|nothing to answer",
     re.I,
 )
+
+
+def is_refusal(answer: str) -> bool:
+    """
+    The answer LEADS with "the sources don't cover this" (its first sentence).
+    Citations don't matter: "The sources don't cover Apple's future price
+    [1][3]" is a refusal, and so is a refusal that then offers the closest
+    clearly-labelled figure. A cited answer that mentions a gap later on is a
+    partial answer, not a refusal.
+    """
+    first = re.split(r"(?<=[.!?])\s+|\n", answer.strip(), maxsplit=1)[0]
+    return bool(ABSTAIN_RE.search(first))
 
 
 def load_golden(only: set[str] | None = None) -> list[dict]:
@@ -136,9 +147,8 @@ def evaluate_question(q: dict, collection, model: str | None, options: dict,
         "invented_numbers": report.ungrounded_numbers,
         "facts_ok": (all(normalize_number_text(f) in norm for f in q["must_include"])
                      if q["must_include"] else None),
-        # refusal = "not covered" with nothing cited; "noted_gap" = cited answer that flags a gap
-        "abstained": bool(ABSTAIN_RE.search(answer)) and not statuses,
-        "noted_gap": bool(ABSTAIN_RE.search(answer)) and bool(statuses),
+        "abstained": is_refusal(answer),
+        "noted_gap": bool(ABSTAIN_RE.search(answer)) and not is_refusal(answer),
     })
     return res
 
