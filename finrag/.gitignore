@@ -1,0 +1,18 @@
+# FinRAG — paths relative to finrag/
+
+# Private portfolio data — never committed
+data/portfolio/holdings.csv
+data/portfolio/*.db
+
+# Secrets
+.env
+
+# Stale local vector stores (the live store is ~/.finrag_chroma_db)
+data/chroma_db/
+data/vectorstore/
+
+# Python
+__pycache__/
+
+# macOS AppleDouble files (exFAT drive)
+._*
