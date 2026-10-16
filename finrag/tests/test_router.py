@@ -57,6 +57,9 @@ LABELLED = [
     ("What is an ETF and do I own any?", "portfolio", ""),
     # Held company by *name* routes like its ticker (JPM -> portfolio, so JPMorgan must too).
     # Tier 1 has nothing on Apple, so "concept" would retrieve unrelated explainers.
+    ("What is the price-to-earnings ratio?", "concept", "trap: earnings (filing word inside a concept name)"),
+    ("What were Exxon's earnings last year?", "technical", "trap: earnings + company"),
+    ("What is the microstructural origin of rough volatility?", "technical", "trap: volatility + microstructural"),
     ("Is Apple a good company?", "portfolio", "trap: held company by name, no 'my'"),
     ("What litigation risks does JPMorgan face?", "portfolio", "trap: held company by name, no 'my'"),
 ]

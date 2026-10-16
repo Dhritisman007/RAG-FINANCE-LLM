@@ -51,11 +51,11 @@ MICROSTRUCTURE_TERMS = [
     r"limit order books?", r"\border books?\b", r"\blatency\b", r"bid[- ]ask spread", r"price impact",
     r"optimal execution", r"market[- ]mak(?:ing|ers?)", r"order flow", r"toxicity", r"high[- ]frequency",
     r"\bhft\b", r"adverse selection", r"\bkyle\b", r"hawkes", r"queue position", r"tick size",
-    r"market microstructure", r"\bvwap\b", r"\btwap\b", r"implementation shortfall", r"dark pools?",
+    r"market microstructure", r"rough volatility", r"\bvwap\b", r"\btwap\b", r"implementation shortfall", r"dark pools?",
 ]
 FILING_TERMS = [
     r"\b10-?k\b", r"\b10-?q\b", r"\bannual report\b", r"risk factors?", r"\brevenues?\b", r"\bnet income\b",
-    r"gross (?:margin|profit)", r"operating (?:income|margin)", r"\bearnings\b", r"\bmd&a\b",
+    r"gross (?:margin|profit)", r"operating (?:income|margin)", r"\bmd&a\b",
     r"management.s discussion", r"\blitigation\b", r"legal proceedings", r"\bsegments?\b", r"\bfiling\b",
     r"\bsec\b", r"\bguidance\b", r"\bbalance sheet\b", r"cash flow statement", r"share repurchases?",
 ]
@@ -64,12 +64,16 @@ MODELLING_WORDS = [
     r"\bmodel(?:s|led|ed|ling|ing)?\b", r"\bstochastic\b", r"\bempirical(?:ly)?\b", r"\bestimat(?:e|ed|ion|ing)\b",
     r"\bcalibrat(?:e|ed|ion|ing)\b", r"\bresearch\b", r"\bpapers?\b", r"\bderiv(?:e|ed|ation|ing)\b",
     r"\bprove\b", r"\bproof\b", r"\bdynamics\b", r"\bsimulat(?:e|ed|ion)\b", r"\bregression\b", r"\bpdes?\b",
-    r"\bclosed[- ]form\b", r"\bequilibrium\b", r"\bmicrostructure\b",
+    r"\bclosed[- ]form\b", r"\bequilibrium\b", r"\bmicrostructur(?:e|al)\b",
 ]
 AMBIGUOUS_TERMS = [
     r"\bduration\b", r"\bspreads?\b", r"\boptions?\b", r"\bformulas?\b", r"\bvolatility\b", r"\bliquidity\b",
     r"\bpricing\b", r"\barbitrage\b", r"\byield curve\b", r"\bconvexity\b",
 ]
+# Filing words that are also part of basic concept names ("price-to-earnings
+# ratio"): technical only when a corpus company is named or another filing
+# term is present ("Apple's earnings", "earnings in the 10-K").
+FILING_AMBIGUOUS = [r"\bearnings\b"]
 # "calculate/compute ... <a number>" — a worked numeric problem.
 NUMERIC_CALC_RE = re.compile(
     r"\b(?:calculate|compute|work out|find)\b.*?(?:\$\s?\d|\d+(?:\.\d+)?\s?%|\b\d{3,}\b)"
@@ -91,6 +95,7 @@ class RetrievalPlan:
     tickers: list[str] = field(default_factory=list)  # restrict Tier 2 to these companies
     concept_k: int = 0               # extra Tier 1 passages (portfolio "what is X" questions),
                                      # kept only if within distance_threshold
+    max_per_doc: int | None = None   # cap passages per document (source diversity)
 
 
 @dataclass
@@ -126,6 +131,10 @@ CONCEPT_DISTANCE_THRESHOLD = 0.23
 # portfolio diversified enough?" 0.196 (keep), "How is my portfolio doing?"
 # -> asset-allocation article 0.324 (drop: it doesn't answer that).
 PORTFOLIO_CONCEPT_THRESHOLD = 0.28
+# Broad technical questions (no company named): at most this many passages per
+# paper, so answers draw on several sources. Over-fetch more to backfill.
+TECHNICAL_MAX_PER_DOC = 2
+TECHNICAL_OVERFETCH = 5
 
 
 def _plan(route: str, held: list[str], companies: list[str], query: str) -> RetrievalPlan:
@@ -135,7 +144,7 @@ def _plan(route: str, held: list[str], companies: list[str], query: str) -> Retr
     if route == "technical":
         if companies:  # a named company -> its filings
             return RetrievalPlan(tiers=[2], k=6, overfetch=3, tickers=companies)
-        return RetrievalPlan(tiers=[2, 3], k=6, overfetch=3)
+        return RetrievalPlan(tiers=[2, 3], k=6, overfetch=TECHNICAL_OVERFETCH, max_per_doc=TECHNICAL_MAX_PER_DOC)
     # portfolio
     concept_k = 2 if DEFINITION_RE.search(query) else 0
     if held:
@@ -186,6 +195,8 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
     tech = _find(MICROSTRUCTURE_TERMS, query) + _find(FILING_TERMS, query)
     non_held = [t for t in companies if t not in held]
     tech += [f"company:{t}" for t in non_held]
+    if tech or companies:
+        tech += _find(FILING_AMBIGUOUS, query)
     ambiguous = _find(AMBIGUOUS_TERMS, query)
     modelling = _find(MODELLING_WORDS, query)
     if ambiguous and modelling:

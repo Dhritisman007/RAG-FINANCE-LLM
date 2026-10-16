@@ -226,6 +226,7 @@ def suppress_near_duplicates(
     citations: list[Citation],
     k: int,
     threshold: float = 0.8,
+    max_per_doc: int | None = None,
 ) -> list[Citation]:
     """
     Greedily keep the closest citations, skipping any whose text is a near-copy
@@ -233,17 +234,35 @@ def suppress_near_duplicates(
     restating a 10-K risk factor. Returns at most k, re-ranked from 1.
 
     Pass more than k candidates (over-fetch) so skipped slots get backfilled.
+    max_per_doc: if set, prefer at most this many passages per document, so a
+    broad question draws on several sources instead of one paper. It's a soft
+    cap: if fewer than k passages pass it (a narrow question only one paper
+    covers), the skipped passages backfill the remaining slots.
     """
     kept: list[Citation] = []
     kept_shingles: list[set[str]] = []
+    per_doc: dict[str, int] = {}
+    over_cap: list[Citation] = []
     for c in sorted(citations, key=lambda x: x.distance):
+        if len(kept) == k:
+            break
         s = _shingles(c.text or c.text_preview)
         if any(len(s & o) / len(s | o) >= threshold for o in kept_shingles):
             continue
+        if max_per_doc is not None and per_doc.get(c.doc_title, 0) >= max_per_doc:
+            over_cap.append(c)
+            continue
         kept.append(c)
         kept_shingles.append(s)
+        per_doc[c.doc_title] = per_doc.get(c.doc_title, 0) + 1
+    for c in over_cap:  # backfill: never return fewer than k because of the cap
         if len(kept) == k:
             break
+        s = _shingles(c.text or c.text_preview)
+        if not any(len(s & o) / len(s | o) >= threshold for o in kept_shingles):
+            kept.append(c)
+            kept_shingles.append(s)
+    kept.sort(key=lambda x: x.distance)
     for i, c in enumerate(kept, start=1):
         c.rank = i
     return kept

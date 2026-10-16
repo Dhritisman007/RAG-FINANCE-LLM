@@ -129,6 +129,21 @@ def test_near_duplicates_suppressed_and_backfilled() -> None:
     print("PASS (c): near-copy 10-Q chunk skipped, next distinct chunk backfills the slot")
 
 
+def test_soft_per_document_cap() -> None:
+    def rows(spec):  # (chunk_id, doc_title, distance) with distinct texts
+        return {"ids": [[s[0] for s in spec]], "documents": [[f"{s[0]} unique passage text number {i} about topic {s[0]}" for i, s in enumerate(spec)]],
+                "metadatas": [[{"chunk_id": s[0], "tier": 3, "source": "arxiv", "doc_title": s[1], "section_heading": ""} for s in spec]],
+                "distances": [[s[2] for s in spec]]}
+    broad = citations_from_chroma_results(rows([("a1", "Paper A", .10), ("a2", "Paper A", .11), ("a3", "Paper A", .12),
+                                                ("b1", "Paper B", .20), ("c1", "Paper C", .30)]))
+    kept = suppress_near_duplicates(broad, k=4, max_per_doc=2)
+    assert [c.chunk_id for c in kept] == ["a1", "a2", "b1", "c1"], [c.chunk_id for c in kept]  # a3 yields to B and C
+    narrow = citations_from_chroma_results(rows([(f"a{i}", "Paper A", .1 + i / 100) for i in range(6)]))
+    kept = suppress_near_duplicates(narrow, k=4, max_per_doc=2)
+    assert len(kept) == 4 and [c.rank for c in kept] == [1, 2, 3, 4]  # only one paper -> backfilled, not cut to 2
+    print("PASS (h): per-document cap prefers other sources but backfills so a narrow question still gets k")
+
+
 def bow_encode(texts: list[str]) -> np.ndarray:
     """Deterministic stand-in for the bge model: hashed bag-of-words, L2-normalized."""
     out = np.zeros((len(texts), 256))
@@ -212,4 +227,5 @@ if __name__ == "__main__":
     test_split_cited_claims_formats()
     test_check_flags_swapped_invalid_and_uncited()
     test_numbers_must_come_from_sources()
+    test_soft_per_document_cap()
     print("\nAll citation tests passed.")
