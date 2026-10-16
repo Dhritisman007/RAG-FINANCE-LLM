@@ -31,6 +31,12 @@ Usage:
     python scripts/evaluate.py --answers --model qwen2.5:7b
     python scripts/evaluate.py --answers --only q26,q27
     python scripts/evaluate.py --rescore data/eval/eval_answers_llama3.2.json   # re-score saved answers
+    python scripts/evaluate.py --answers --model qwen2.5:7b --resume   # continue an interrupted run
+
+Answer runs checkpoint every scored question to data/eval/.partial_<run>.jsonl,
+so an interrupted or hung run (it happened: an intermittent stall inside
+ChromaDB on an 8 GB machine) loses at most one question; --resume skips the
+questions already in the checkpoint.
 """
 from __future__ import annotations
 
@@ -225,6 +231,8 @@ def main() -> None:
     parser.add_argument("--answers", action="store_true", help="Also generate and score answers (slow).")
     parser.add_argument("--model", default=r.DEFAULT_MODEL, help="Ollama model for --answers.")
     parser.add_argument("--only", default=None, help="Comma-separated question ids, e.g. q26,q27.")
+    parser.add_argument("--resume", action="store_true",
+                        help="Continue an interrupted --answers run from its checkpoint.")
     parser.add_argument("--rescore", default=None, metavar="RESULTS_JSON",
                         help="Re-score the answers saved in a previous --answers run (no generation).")
     parser.add_argument("--no-diversity", action="store_true",
@@ -255,17 +263,6 @@ def main() -> None:
         options = {"temperature": 0, "seed": 0, "num_predict": r.MAX_ANSWER_TOKENS}  # deterministic, comparable
     if model and not args.rescore:
         r.ensure_local_model(model)  # never evaluate (send golden prompts) to a cloud model
-    print(f"=== FinRAG eval: {len(golden)} questions | "
-          f"{'answers with ' + model if model else 'retrieval only'} ===\n")
-    results = []
-    for i, q in enumerate(golden, 1):
-        if model and not args.rescore:
-            print(f"  [{i}/{len(golden)}] {q['id']} {q['query'][:60]}", file=sys.stderr)
-        results.append(evaluate_question(q, collection, model, options, saved=saved.get(q["id"])))
-
-    summary = summarize(results, with_answers=bool(model))
-    print_failures(results, with_answers=bool(model))
-
     name = "retrieval" if not model else "answers_" + re.sub(r"[^A-Za-z0-9.]+", "-", model)
     if args.no_diversity:
         name += "_nodiversity"
@@ -273,9 +270,39 @@ def main() -> None:
         name += "_subset"
     if args.rescore:
         name += "_rescored"
+
+    checkpoint = RESULTS_DIR / f".partial_{name}.jsonl"
+    done: dict[str, dict] = {}
+    if model and not args.rescore:
+        if args.resume and checkpoint.exists():
+            done = {x["id"]: x for x in map(json.loads, checkpoint.read_text(encoding="utf-8").splitlines())}
+            print(f"(resuming: {len(done)} questions already answered in {checkpoint.name})")
+        elif checkpoint.exists():
+            checkpoint.unlink()  # a fresh run starts a fresh checkpoint
+
+    print(f"=== FinRAG eval: {len(golden)} questions | "
+          f"{'answers with ' + model if model else 'retrieval only'} ===\n")
+    results = []
+    for i, q in enumerate(golden, 1):
+        if q["id"] in done:
+            results.append(done[q["id"]])
+            continue
+        if model and not args.rescore:
+            print(f"  [{i}/{len(golden)}] {q['id']} {q['query'][:60]}", file=sys.stderr, flush=True)
+        res = evaluate_question(q, collection, model, options, saved=saved.get(q["id"]))
+        results.append(res)
+        if model and not args.rescore:
+            with open(checkpoint, "a", encoding="utf-8") as f:
+                f.write(json.dumps(res) + "\n")
+
+    summary = summarize(results, with_answers=bool(model))
+    print_failures(results, with_answers=bool(model))
+
     out = RESULTS_DIR / f"eval_{name}.json"
     out.write_text(json.dumps({"model": model, "options": options, "summary": summary, "results": results},
                               indent=1), encoding="utf-8")
+    if checkpoint.exists():
+        checkpoint.unlink()  # complete — the full results file supersedes it
     print(f"\nSaved per-question results to {out.relative_to(ROOT)}")
 
 

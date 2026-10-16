@@ -16,3 +16,6 @@ __pycache__/
 
 # macOS AppleDouble files (exFAT drive)
 ._*
+
+# Evaluation checkpoints (in-progress runs)
+data/eval/.partial_*.jsonl
