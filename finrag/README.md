@@ -19,13 +19,15 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 3 | SEC EDGAR + arXiv scraping | `scrape_tier2_edgar.py`, `scrape_tier3_arxiv.py` | ✅ Done |
 | 4 | Structure-aware chunking | `chunk_documents.py` | ✅ Done |
 | 5 | Metadata enrichment | `enrich_metadata.py` | ✅ Done |
-| 6 | ChromaDB vector store | `build_vectorstore.py`, `check_index_recall.py` | ✅ Done — index recall@5 = 1.0 |
+| 6 | Vector store + exact search | `build_vectorstore.py`, `rag_loop.ExactIndex` | ✅ Done — exact cosine search, CPU embeddings |
 | 7 | Retrieval sanity check | `sanity_check_retrieval.py` | ✅ Done — 15/15 queries pass |
 | 8 | RAG query loop (Ollama) | `rag_loop.py`, `citations.py` | ✅ Done — with automatic citation checking |
 | — | Portfolio-aware queries | `portfolio_store.py`, `rag_loop.py` | ✅ Done |
 | 10 | Deterministic query router | `router.py` | ✅ Done — 33/33 labelled queries, 15/15 traps |
 | 11 | Per-route prompt templates | `prompts.py` | ✅ Done — + number-grounding check |
-| 12+ | Eval set, UI, model comparison | — | ⬜ Not started |
+| 12 | Golden eval set + model choice | `evaluate.py`, `data/eval/golden_qa.jsonl` | ✅ Done — qwen2.5:7b chosen (92% citation accuracy) |
+| 13 | Chat UI (Streamlit) | `app.py` | 🟡 Built, end-to-end testing in progress |
+| 14+ | Local price data, corpus expansion | — | ⬜ Not started |
 
 ---
 
@@ -51,7 +53,7 @@ corpus_manifest.yaml
         │
         ▼
  Day 8–11 rag_loop.py ─► route (router.py) → retrieve per route plan → route prompt (prompts.py)
-                │          → Ollama (llama3.2) → answer + sources → citation & number check
+                │          → Ollama (qwen2.5:7b) → answer + sources → citation & number check
                 ▲
                 └── portfolio_store.py ◄── data/portfolio/holdings.csv  (structured lookup, not embedded)
 ```
@@ -98,11 +100,9 @@ Adds `contains_table`, `contains_formula`, `normalized_date`, `topic_tags` (keyw
 ### Day 6 — Vector store
 Embeds non-duplicate chunks with `BAAI/bge-small-en-v1.5` (384-dim) into a persistent ChromaDB collection `finrag_chunks`. Metadata (`tier`, `company_ticker`, `topic_tags`, …) is flattened for `where`-filtered retrieval. Re-running fully rebuilds the collection, and the build fails loudly if any `chunk_id` is not unique.
 
-The HNSW index uses `max_neighbors=32, ef_construction=400, ef_search=200` (Chroma's default 16 neighbours left whole topic clusters unreachable). Verify after any rebuild:
+**Queries use exact search, not Chroma's index.** Chroma's approximate HNSW index missed true nearest neighbours — every SIP / YTM / CAGR chunk for some queries with default settings, and still recall@12 = 0.92 for "What is quantitative easing?" with 32 neighbours. At ~7k chunks × 384 dims (~10 MB) exact cosine search takes ~5 ms, so `rag_loop.ExactIndex` loads the stored vectors once and searches them directly (same result shape and distances as Chroma; deterministic tie-breaking). Chroma remains the store. Revisit around ~100k chunks; `scripts/check_index_recall.py` still measures Chroma's own index.
 
-```bash
-python scripts/check_index_recall.py   # recall@5 of the index vs exact search, ~200 queries
-```
+**Embeddings always run on the CPU** (`EMBED_DEVICE` in `build_vectorstore.py`). On an 8 GB M1 the GPU (MPS) shares memory with Ollama; with qwen2.5:7b loaded, Metal ran out of memory and PyTorch *silently* returned corrupted embeddings (cosine vs. the correct vector as low as 0.28) — unrelated retrieval and flipping citation checks, no exception raised. All 6,952 stored vectors were verified against a CPU recompute (cosine 1.0).
 
 > ChromaDB lives at `~/.finrag_chroma_db` — SQLite needs POSIX file locking, which exFAT external drives don't support.
 
@@ -118,7 +118,7 @@ python scripts/check_index_recall.py   # recall@5 of the index vs exact search, 
 ### Day 8 — RAG query loop
 Retrieves top-k chunks, builds a grounded prompt with numbered sources, and streams an answer from local Ollama, followed by the source list. It over-fetches 3×k candidates and greedily skips near-copies (5-word-shingle Jaccard ≥ 0.8 to an already-chosen passage, e.g. a 10-Q restating a 10-K risk factor), so each answer gets k distinct passages. The prompt's `[N]` labels and the printed source list are built from the same final (deduped, ranked) citation list, so `[N]` in the prompt always matches source `[N]`.
 
-The prompt requires a `[N]` after every sentence that uses the context (before this, llama3.2 left half of its answers with no citations at all).
+The prompt requires a `[N]` after every sentence that uses the context (before this, llama3.2 left half of its answers with no citations at all). The default model is **qwen2.5:7b** (see Day 12); Ollama *cloud* models (e.g. `gemma4:31b-cloud`) are refused — they answer on localhost but run remotely, so prompts with portfolio data would leave the machine.
 
 **Citation check.** After each answer, every `[N]` marker is checked against its passage. A marker covers the text before it (`claim [2].`, `… (Source: [2])`) or, for lead-ins, the text after it (`As stated in [2], claim.`). Each claim is scored against every sentence of every passage with the local bge model, and the report flags:
 
@@ -170,6 +170,39 @@ Portfolio facts are never written by the model: the position lines are printed v
 
 **Number check.** The citation check also lists every number in the answer that appears in none of the passages, the question or the positions — e.g. an invented "$1,000 at 5% → $52.50" example inside an otherwise well-cited answer, which semantic scores can't see.
 
+### Day 12 — Evaluation and model choice
+`data/eval/golden_qa.jsonl`: 43 questions (16 concept, 16 technical, 11 portfolio; 5 unanswerable), each labelled with its relevant documents — chosen from the raw text, not from retrieval output — and, for factual questions, the exact figure the answer must contain (e.g. ExxonMobil 2025 sales 323,905). `scripts/evaluate.py` runs every question through the same code path as `rag_loop.py`.
+
+**Retrieval** (model-independent): route accuracy 100%, hit@k 100%, MRR 0.93.
+
+**Answers** — both models with identical settings (`temperature 0, seed 0`, 1,024-token cap) and identical retrieval on all 43 questions:
+
+| | llama3.2 (3B) | **qwen2.5:7b** |
+|---|---|---|
+| Citation accuracy (per answer) | 78% | **92%** |
+| Mis-cited claims per answer | 1.00 | **0.11** |
+| Numbers in no source, per answer | 0.39 | **0.18** |
+| Required figures present | 67% | **83%** |
+| Unanswerable questions refused | 3/5 | **5/5** |
+| Answerable questions refused | 0 | 0 |
+| Answers without any citation | 4 | **0** |
+| Time per answer (8 GB M1) | ~70 s | ~140 s |
+
+llama3.2's misses on unanswerable questions were the dangerous kind: it invented "Q3 2026 revenue $116,017 million" for ExxonMobil (the corpus ends at Q2) and wrote a Roth IRA explanation with fabricated citations. qwen2.5:7b refused both — for Exxon it said Q3 isn't covered and offered the closest quarter, clearly labelled as Q1. **qwen2.5:7b is the default**; `--model llama3.2` is twice as fast.
+
+How to read the metrics: citation accuracy is averaged per answer; a *refusal* is an answer that leads with "the sources don't cover this" (citations allowed); a cited answer that notes a gap later is a partial answer, not a refusal. Several scoring bugs were found by reading actual answers and fixed before the final comparison (e.g. arXiv ids counted as invented numbers; a runaway 27,000-character answer dominating per-claim scores).
+
+**Per-document cap.** Broad technical questions prefer ≤ 2 passages per paper (soft cap — narrow questions still get k passages). On 10 such questions (llama3.2) citation accuracy was 70% with the cap vs 62% without: weak evidence in favour, so it's kept.
+
+```bash
+python scripts/evaluate.py                                   # retrieval only (fast, no LLM)
+python scripts/evaluate.py --answers --model qwen2.5:7b      # + answers (~1.5 h on an 8 GB M1)
+python scripts/evaluate.py --answers --resume                # continue an interrupted run
+python scripts/evaluate.py --rescore data/eval/eval_answers_qwen2.5-7b.json
+```
+
+Answer runs checkpoint after every question: one run stalled for 50 minutes inside ChromaDB (intermittent, under memory pressure) and lost everything before checkpointing existed. Ollama calls also time out after 10 minutes.
+
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
 
@@ -192,7 +225,9 @@ Plain scripts (no pytest needed):
 ```bash
 python tests/test_citations.py   # citation labels, dedup, checker, number check
 python tests/test_router.py      # 33 labelled queries (accuracy table), mixed queries, plans, flags
-python tests/test_prompts.py     # grounding/style rules per route, [N] label order, no-context answer
+python tests/test_prompts.py     # grounding/style rules per route, [N] label order, no-context answer, cloud-model refusal
+python tests/test_evaluate.py    # refusal detection, label matching, golden-set consistency
+python tests/test_exact_index.py # exact search ranking, distances, filters
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -213,18 +248,21 @@ python tests/test_prompts.py     # grounding/style rules per route, [N] label or
 - ~~Prompt example leaked into answers~~ — the citation rule's example ("An EMI is a fixed monthly loan payment [1].") was copied into a bid-ask-spread answer; it's now a content-free `<sentence> [2]`.
 - ~~Hallucinated source on empty context~~ — with no passages llama3.2 cited a non-existent `[1]`; the model is no longer called when there is no context.
 - ~~Invented example numbers undetected~~ — now flagged by the number check.
+- ~~Silently corrupted embeddings~~ — the embedder ran on the GPU, which ran out of memory with qwen2.5:7b loaded and returned garbage without an error; embeddings now always run on the CPU.
+- ~~Approximate-index misses~~ — queries now use exact search (see Day 6).
+- ~~Mislabelled table numbers~~ (with qwen2.5:7b) — llama3.2 reported Q1 2025 *expenses* and 2024 *annual* revenue as "last quarter's revenue"; qwen2.5:7b labelled periods correctly on every table question in the eval and keeps units ("$139,996 million (fiscal 2026)").
+- ~~Cloud models could leak prompts~~ — Ollama cloud models are refused by name and by server metadata.
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
 **Open:**
-1. **Mislabelled table numbers aren't detected** — a 3B model reading flattened filing tables picks the wrong row or column: asked for Exxon's revenue *last quarter*, it answered "$10.1 billion" (Q1 2025 *production expenses*) and, on a re-run, "339,247 million" (2024 *annual* revenue). The number exists in the source, so the number check passes it. Needs a stronger model or structured table parsing.
-2. **Units dropped from table figures** — MSFT segment revenue was quoted as "$139,996" without the table's "(In millions)", despite the template rule.
-3. **llama3.2 mis-cites ~20% of claims** — now *detected and reported* by the citation check (8 of 39 claims across 8 test answers), but not corrected; the answer text still carries the wrong number. A larger local model (e.g. `--model qwen2.5:7b`) or auto-correcting confident suggestions are the next steps.
-4. **Low source diversity** — top-k can come entirely from one document (e.g. all 5 latency-arbitrage sources are chunks of one arXiv paper). A per-document cap in retrieval would broaden answers.
-5. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
-6. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
-7. **No price data** — the router recognises held tickers and company names, but there are no prices, so performance / P&L questions get the "not covered" answer.
-8. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `scripts/validate_manifest.py` is a stub.
-9. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
+1. **Unit conversion despite the verbatim rule** — qwen2.5:7b turned Tesla's "94,827" (millions) into "$94.83 billion": arithmetically right, but it breaks the copy-verbatim rule and the exact-figure check (both models failed q26). Mislabelled numbers in general are still not *detected* — the number check only verifies a number exists in the sources, not that it's attached to the right row or period.
+2. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
+3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
+4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
+5. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
+6. **No price data** — the router recognises held tickers and company names, but there are no prices, so performance / P&L questions get the "not covered" answer.
+7. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `scripts/validate_manifest.py` is a stub.
+8. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
 
 ---
 
@@ -232,7 +270,8 @@ python tests/test_prompts.py     # grounding/style rules per route, [N] label or
 
 ```bash
 pip install -r requirements.txt
-ollama pull llama3.2
+ollama pull qwen2.5:7b      # default model (~4.7 GB)
+ollama pull llama3.2        # optional: faster, less reliable
 ```
 
 ### Run the pipeline
@@ -263,9 +302,10 @@ python scripts/rag_loop.py --interactive
 - [x] Citation checking (flag mis-cited, weak, invalid and missing `[N]` markers)
 - [x] Deterministic query router (Day 10)
 - [x] Per-route prompt templates + number-grounding check (Day 11)
-- [ ] Per-document cap for retrieval diversity
-- [ ] Compare a larger local model (e.g. `qwen2.5:7b`) on table questions and citation accuracy
-- [ ] Streamlit / Gradio chat UI
-- [ ] Metadata-filtered retrieval (tier-aware, table-aware) beyond tickers
+- [x] Golden QA set + evaluation harness (Day 12)
+- [x] Model comparison — qwen2.5:7b chosen (Day 12)
+- [x] Per-document cap for retrieval diversity (soft cap, weak evidence)
+- [x] Exact search + CPU embeddings (Day 12)
+- [ ] Streamlit chat UI (Day 13 — built, testing)
 - [ ] Portfolio: local price data for P&L / exposure questions
-- [ ] Evaluation — recall@k, MRR against a golden QA set
+- [ ] Expand the corpus (more companies; Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage)
