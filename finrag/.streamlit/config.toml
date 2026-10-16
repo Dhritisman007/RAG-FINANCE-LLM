@@ -1,0 +1,16 @@
+# FinRAG is local-only: the UI shows your holdings, so it must never be
+# reachable from the network, and no usage statistics are sent anywhere.
+[server]
+address = "127.0.0.1"   # Streamlit's default listens on every interface (LAN-visible)
+headless = true
+# The file watcher walks every loaded module; inside `transformers` that imports
+# dozens of vision modules (failing on missing torchvision) on every rerun —
+# a log full of tracebacks and wasted memory on an 8 GB machine. Restart instead.
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[client]
+toolbarMode = "minimal"   # hides "Deploy" (one click would publish the app — and your holdings — to Streamlit Cloud)
