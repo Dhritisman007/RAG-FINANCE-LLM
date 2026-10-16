@@ -54,8 +54,12 @@ from citations import (  # noqa: E402
     format_citations_block,
     deduplicate_citations,
     suppress_near_duplicates,
+    check_citations,
+    format_citation_report,
 )
-from portfolio_store import find_held_tickers, format_position, get_holding, load_holdings  # noqa: E402
+from portfolio_store import format_position, get_holding, load_holdings  # noqa: E402
+from router import RetrievalPlan, RouteDecision, forced_route, route_query  # noqa: E402
+import prompts  # noqa: E402
 
 # ── Paths & constants ────────────────────────────────────────────────────────
 CHROMA_DIR = Path.home() / ".finrag_chroma_db"
@@ -64,25 +68,10 @@ EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 DEFAULT_MODEL = "llama3.2"
 DEFAULT_K = 5
-# Over-fetch so near-duplicate candidates (e.g. a 10-Q restating a 10-K) can be
-# skipped and backfilled while still returning k distinct passages.
-OVERFETCH = 3
 # Pinned to localhost on purpose — prompts may contain private portfolio data.
 OLLAMA_HOST = "http://127.0.0.1:11434"
 
-# ── Prompt template ──────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """\
-You are a helpful finance research assistant with access to curated financial \
-documents, SEC filings, and market microstructure research papers. \
-Answer the user's question accurately and concisely using ONLY the context \
-provided below. If the context does not contain enough information, say so — \
-do not make up facts. Cite the source numbers (e.g. [1], [2]) in your answer \
-where relevant."""
-
-PORTFOLIO_INSTRUCTIONS = """The "My Portfolio" section is the user's own position data from their local \
-records. Refer to it as "your position" where relevant (e.g. size and cost \
-basis), but cite [N] numbers only for facts taken from the numbered context \
-passages. Do not invent current prices or returns — they are not provided."""
+# ── Prompt templates (per route — see prompts.py) ─────────────────────────────
 
 def source_label(c: Citation) -> str:
     """Short per-tier label shown next to each [N] context block in the prompt."""
@@ -94,30 +83,21 @@ def source_label(c: Citation) -> str:
     return f'"{c.doc_title}"{arxiv}'
 
 
-def build_prompt(query: str, citations: list[Citation], positions: list[dict] | None = None) -> str:
+def build_prompt(
+    query: str,
+    citations: list[Citation],
+    positions: list[dict] | None = None,
+    route: str = "concept",
+) -> str:
     """
-    Build the full prompt string to send to the LLM.
+    Build the prompt for `route` (concept / technical / portfolio).
 
     [N] labels, source labels and chunk text all come from the same Citation,
     numbered by c.rank — the same list format_citations_block() prints — so
     an [N] in the answer always points at source [N] in the printed list.
     """
-    ctx_parts = [f"[{c.rank}] {source_label(c)}\n{c.text}" for c in citations]
-
-    context_str = "\n\n".join(ctx_parts)
-
-    portfolio_str = ""
-    if positions:
-        lines = "\n".join(f"- {format_position(h)}" for h in positions)
-        portfolio_str = f"{PORTFOLIO_INSTRUCTIONS}\n\n=== My Portfolio ===\n{lines}\n\n"
-
-    return (
-        f"{SYSTEM_PROMPT}\n\n"
-        f"{portfolio_str}"
-        f"=== Context ===\n{context_str}\n\n"
-        f"=== Question ===\n{query}\n\n"
-        f"=== Answer ===\n"
-    )
+    return prompts.build_prompt(query, citations, source_label, route=route,
+                                positions=positions, format_position=format_position)
 
 
 # ── Embedder (lazy-loaded to keep startup fast) ──────────────────────────────
@@ -134,6 +114,10 @@ def get_embedder():
             def embed_query(self, text: str) -> list[float]:
                 return model.encode([BGE_QUERY_PREFIX + text]).tolist()[0]
 
+            def encode_texts(self, texts: list[str]):
+                """Normalized passage-style embeddings (no query prefix)."""
+                return model.encode(texts, normalize_embeddings=True)
+
         _embedder = _Embedder()
     return _embedder
 
@@ -146,6 +130,7 @@ def retrieve(
     k: int = DEFAULT_K,
     tier: int | None = None,
     ticker: str | None = None,
+    tiers: list[int] | None = None,
 ) -> dict:
     """
     Embed the query and retrieve the top-k chunks from Chroma.
@@ -156,6 +141,7 @@ def retrieve(
         k:          Number of results to retrieve.
         tier:       If set, filter results to only this tier (1, 2, or 3).
         ticker:     If set, restrict to Tier 2 SEC filing chunks for this company.
+        tiers:      If set, restrict to these tiers (e.g. [2, 3]).
     """
     embedder = get_embedder()
     query_embedding = embedder.embed_query(query)
@@ -164,6 +150,8 @@ def retrieve(
         where = {"$and": [{"tier": 2}, {"company_ticker": ticker}]}
     elif tier is not None:
         where = {"tier": tier}
+    elif tiers:
+        where = {"tier": tiers[0]} if len(tiers) == 1 else {"tier": {"$in": tiers}}
     else:
         where = None
     results = collection.query(
@@ -235,68 +223,148 @@ def get_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
 
 # ── Core RAG step ────────────────────────────────────────────────────────────
 
+def _rerank(citations: list[Citation]) -> list[Citation]:
+    citations = sorted(citations, key=lambda c: c.distance)
+    for i, c in enumerate(citations, start=1):
+        c.rank = i
+    return citations
+
+
+def retrieve_for_plan(query: str, collection: chromadb.Collection, plan: RetrievalPlan) -> list[Citation]:
+    """
+    Execute a router RetrievalPlan and return the final, deduped, ranked
+    citations (the single list both the prompt and the printed sources use).
+    """
+    fetch = plan.k * plan.overfetch
+
+    if plan.tickers:  # Tier 2 filings of specific companies, k distinct passages each
+        print(f"🔍 Retrieving top-{plan.k} SEC filing chunks per company: {', '.join(plan.tickers)}…")
+        found: list[Citation] = []
+        for t in plan.tickers:
+            found += citations_from_chroma_results(retrieve(query, collection, k=fetch, ticker=t), preview_chars=150)
+        citations = suppress_near_duplicates(deduplicate_citations(found), k=plan.k * len(plan.tickers))
+        if not citations:
+            print("[WARN] No filing chunks for those companies — falling back to all tiers.")
+    else:
+        citations = []
+
+    if not citations:
+        tiers = plan.tiers if not plan.tickers else None
+        label = "all tiers" if tiers is None else "tier " + "+".join(map(str, tiers))
+        print(f"🔍 Retrieving top-{plan.k} chunks ({label})…")
+        found = citations_from_chroma_results(retrieve(query, collection, k=fetch, tiers=tiers), preview_chars=150)
+        best = min((c.distance for c in found), default=None)
+        if plan.distance_threshold is not None and not plan.fallback:
+            found = [c for c in found if c.distance <= plan.distance_threshold]
+            if not found:
+                print(f"↪ No {label} passage within {plan.distance_threshold} — the corpus doesn't cover this.")
+        elif plan.distance_threshold is not None and (best is None or best > plan.distance_threshold):
+            fb = "all tiers" if plan.fallback_tiers is None else "tier " + "+".join(map(str, plan.fallback_tiers))
+            shown = "none" if best is None else f"{best:.3f}"
+            print(f"↪ Best {label} match {shown} > {plan.distance_threshold} — not covered there; searching {fb}…")
+            found = citations_from_chroma_results(
+                retrieve(query, collection, k=fetch, tiers=plan.fallback_tiers), preview_chars=150)
+        citations = suppress_near_duplicates(deduplicate_citations(found), k=plan.k)
+
+    if plan.concept_k:  # portfolio "what is X" questions also get plain-language Tier 1 passages
+        concept = citations_from_chroma_results(retrieve(query, collection, k=plan.concept_k * plan.overfetch, tiers=[1]),
+                                                preview_chars=150)
+        if plan.distance_threshold is not None:  # only if Tier 1 really covers it
+            concept = [c for c in concept if c.distance <= plan.distance_threshold]
+        concept = suppress_near_duplicates(deduplicate_citations(concept), k=plan.concept_k)
+        seen = {c.chunk_id for c in citations}
+        citations = _rerank(citations + [c for c in concept if c.chunk_id not in seen])
+    return citations
+
+
+def decide_route(query: str, route: str = "auto", use_portfolio: bool = True) -> RouteDecision:
+    if route == "auto":
+        return route_query(query, allow_portfolio=use_portfolio)
+    return forced_route(route, query, allow_portfolio=use_portfolio)
+
+
 def rag_query(
     query: str,
     collection: chromadb.Collection,
     model: str = DEFAULT_MODEL,
-    k: int = DEFAULT_K,
+    k: int | None = None,
     tier: int | None = None,
     stream: bool = True,
     verbose_citations: bool = False,
     use_portfolio: bool = True,
+    check: bool = True,
+    route: str = "auto",
+    verbose: bool = False,
 ) -> str:
     """
-    Run one full RAG cycle: retrieve → build prompt → call LLM → print citations.
+    Run one full RAG cycle: route → retrieve → build prompt → call LLM →
+    print citations → check citations.
 
-    If the query mentions a held ticker (and no --tier was forced), retrieval
-    is restricted to that company's SEC filing chunks and the position is
-    added to the prompt.
+    The deterministic router (router.py) picks portfolio / technical / concept
+    and its retrieval plan. Explicit flags override the plan: `k` replaces the
+    route's k, and `tier` searches only that tier (no portfolio filtering).
 
     Returns the LLM answer string.
     """
-    holdings = load_holdings() if use_portfolio and tier is None else []
-    held = find_held_tickers(query, holdings)
-    positions = [get_holding(t, holdings) for t in held]
+    decision = decide_route(query, route, use_portfolio=use_portfolio and tier is None)
+    plan = decision.plan
+    if k is not None:
+        plan.k = k
+    if tier is not None:
+        plan = RetrievalPlan(tiers=[tier], k=plan.k, overfetch=plan.overfetch)
 
-    citations: list[Citation] = []
-    limit = k * len(held) if held else k  # k distinct passages per held ticker
-    if held:
-        print(f"\n📁 Portfolio-aware query — position(s) from local holdings:")
-        for h in positions:
-            print(f"   {format_position(h)}")
-        for t in held:
-            print(f"🔍 Retrieving top-{k} {t} SEC filing chunks (tier=2, company_ticker={t})…")
-            results = retrieve(query, collection, k=k * OVERFETCH, ticker=t)
-            citations += citations_from_chroma_results(results, preview_chars=150)
-        if not citations:
-            print("[WARN] No filing chunks for those tickers — falling back to unfiltered retrieval.")
+    print(f"\n🧭 Route: {decision.route} (confidence {decision.confidence:.2f})"
+          + (f" — also matched: {', '.join(decision.secondary_routes)}" if decision.secondary_routes else ""))
+    if verbose:
+        print(f"   {decision.describe()}")
 
-    if not citations:
-        print(f"\n🔍 Retrieving top-{k} chunks…")
-        results = retrieve(query, collection, k=k * OVERFETCH, tier=tier)
-        citations = citations_from_chroma_results(results, preview_chars=150)
-        limit = k
+    positions: list[dict] = []
+    if decision.route == "portfolio":
+        holdings = load_holdings()
+        positions = ([get_holding(t, holdings) for t in decision.held_tickers]
+                     if decision.held_tickers else holdings)
+        positions = [p for p in positions if p]
 
-    citations = deduplicate_citations(citations)
-    citations = suppress_near_duplicates(citations, k=limit)
-
-    if not citations:
-        print("[WARN] No results returned — is the vector store populated?")
+    citations = retrieve_for_plan(query, collection, plan)
+    if not citations and not positions:
+        print("[WARN] No relevant passages found — the corpus doesn't cover this question.")
         return ""
 
     # `citations` is now final (deduped, sorted, ranked). The prompt and the
     # printed source list below are both built from it — never from the raw
     # Chroma `results`, whose order differs after dedup.
-    prompt = build_prompt(query, citations, positions=positions)
+    prompt = build_prompt(query, citations, positions=positions, route=decision.route)
+
+    if not citations:  # portfolio question the corpus doesn't cover — don't let the model guess
+        if positions:
+            print("\nYour position(s), from local holdings:")
+            for h in positions:
+                print(f"  • {format_position(h)}")
+        print(f"\n{prompts.NO_CONTEXT_ANSWER}")
+        return prompts.NO_CONTEXT_ANSWER
 
     print(f"💬 Querying {model}…")
+    if positions:
+        # Position facts are printed verbatim from holdings.csv — never written
+        # (or recomputed) by the model.
+        print("\nYour position(s), from local holdings:")
+        for h in positions:
+            print(f"  • {format_position(h)}")
     if stream:
         answer = stream_answer(prompt, model=model)
     else:
         answer = get_answer(prompt, model=model)
 
+    if decision.route == "portfolio" and answer:
+        print(f"\n{prompts.PORTFOLIO_DISCLAIMER}")
+
     print()
     print(format_citations_block(citations, verbose=verbose_citations))
+    if check and answer:
+        report = check_citations(answer, citations, get_embedder().encode_texts,
+                                 extra_sources=[query] + [format_position(h) for h in positions])
+        print()
+        print(format_citation_report(report))
     return answer
 
 
@@ -332,15 +400,18 @@ def open_collection() -> chromadb.Collection | None:
 def interactive_repl(
     collection: chromadb.Collection,
     model: str,
-    k: int,
+    k: int | None,
     tier: int | None,
     stream: bool,
     use_portfolio: bool = True,
+    check: bool = True,
+    route: str = "auto",
+    verbose: bool = False,
 ) -> None:
     """Run an interactive question-answering REPL until the user exits."""
     print("\n" + "=" * 60)
     print("  finrag Interactive RAG Loop")
-    print(f"  Model: {model}  |  k={k}  |  tier={tier or 'all'}")
+    print(f"  Model: {model}  |  k={k or 'per route'}  |  tier={tier or 'per route'}  |  route={route}")
     print("  Type 'exit' or Ctrl-C to quit, 'help' for commands.")
     print("=" * 60)
 
@@ -366,7 +437,7 @@ def interactive_repl(
             continue
 
         rag_query(query, collection, model=model, k=k, tier=tier, stream=stream,
-                  use_portfolio=use_portfolio)
+                  use_portfolio=use_portfolio, check=check, route=route, verbose=verbose)
 
 
 def main() -> None:
@@ -385,8 +456,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--k",
-        type=int, default=DEFAULT_K,
-        help=f"Number of chunks to retrieve (default: {DEFAULT_K}).",
+        type=int, default=None,
+        help="Number of chunks to retrieve (default: per route — concept 4, technical 6, portfolio 5).",
     )
     parser.add_argument(
         "--tier",
@@ -413,6 +484,21 @@ def main() -> None:
         action="store_true",
         help="Ignore data/portfolio/holdings.csv (no portfolio-aware retrieval).",
     )
+    parser.add_argument(
+        "--route",
+        choices=["auto", "concept", "technical", "portfolio"], default="auto",
+        help="Query route (default: auto — deterministic rules in router.py).",
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Print the routing decision: matched signals and retrieval plan.",
+    )
+    parser.add_argument(
+        "--no-citation-check",
+        action="store_true",
+        help="Skip checking the answer's [N] markers against their source passages.",
+    )
     args = parser.parse_args()
 
     if not args.query and not args.interactive:
@@ -426,7 +512,8 @@ def main() -> None:
 
     if args.interactive:
         interactive_repl(collection, model=args.model, k=args.k, tier=args.tier, stream=stream,
-                         use_portfolio=not args.no_portfolio)
+                         use_portfolio=not args.no_portfolio, check=not args.no_citation_check,
+                         route=args.route, verbose=args.verbose)
     else:
         rag_query(
             args.query,
@@ -437,6 +524,9 @@ def main() -> None:
             stream=stream,
             verbose_citations=args.verbose_citations,
             use_portfolio=not args.no_portfolio,
+            check=not args.no_citation_check,
+            route=args.route,
+            verbose=args.verbose,
         )
 
 
