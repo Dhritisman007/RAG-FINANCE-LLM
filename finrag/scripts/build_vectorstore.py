@@ -4,7 +4,7 @@ Day 6: Build the ChromaDB vector store.
 
 Reads data/processed/chunks_enriched.jsonl (from Day 5), embeds every chunk
 with BAAI/bge-small-en-v1.5, and loads them into a persistent Chroma
-collection at data/chroma_db/, with cleaned/flattened metadata attached
+collection at ~/.finrag_chroma_db (see CHROMA_DIR), with cleaned/flattened metadata attached
 for later filtering (tier, contains_table, topic_tags, etc.).
 
 Usage:

@@ -328,6 +328,7 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 - ~~Silently corrupted embeddings~~ — the embedder ran on the GPU, which ran out of memory with qwen2.5:7b loaded and returned garbage without an error; embeddings now always run on the CPU.
 - ~~Approximate-index misses~~ — queries now use exact search (see Day 6).
 - ~~Mislabelled table numbers~~ (with qwen2.5:7b) — llama3.2 reported Q1 2025 *expenses* and 2024 *annual* revenue as "last quarter's revenue"; qwen2.5:7b labelled periods correctly on every table question in the eval and keeps units ("$139,996 million (fiscal 2026)").
+- ~~Repo duplicates and stale stores~~ — root-level copies of `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` (only old, already-fixed content), the unused `data/chroma_db/` (the pre-fix 6,133-chunk build) and `data/vectorstore/`, and 10 orphaned index folders (~118 MB) in `~/.finrag_chroma_db` were removed (moved to the Trash). Ollama's models now live only on the external drive.
 - ~~No price data~~ — local whole-market prices (Day 14); performance questions get a code-computed valuation.
 - ~~Cloud models could leak prompts~~ — Ollama cloud models are refused by name and by server metadata.
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
@@ -338,8 +339,6 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
 5. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
-6. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions. (The real validator had never been committed — `scripts/validate_manifest.py` was a one-line stub; it now holds the working version.)
-7. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
 
 ---
 
