@@ -75,7 +75,7 @@ PORTFOLIO_PHRASES = [
 
 # Unambiguous technical terms — each one routes technical on its own.
 MICROSTRUCTURE_TERMS = [
-    r"limit order books?", r"\border books?\b", r"\blatency\b", r"bid[- ]ask spread", r"price impact",
+    r"limit order books?", r"\border books?\b", r"\blatency\b", r"price impact",
     r"optimal execution", r"market[- ]mak(?:ing|ers?)", r"order flow", r"toxicity", r"high[- ]frequency",
     r"\bhft\b", r"adverse selection", r"\bkyle\b", r"hawkes", r"queue position", r"tick size",
     r"market microstructure", r"rough volatility", r"\bvwap\b", r"\btwap\b", r"implementation shortfall", r"dark pools?",
@@ -94,7 +94,7 @@ MODELLING_WORDS = [
     r"\bclosed[- ]form\b", r"\bequilibrium\b", r"\bmicrostructur(?:e|al)\b",
 ]
 AMBIGUOUS_TERMS = [
-    r"\bduration\b", r"\bspreads?\b", r"\boptions?\b", r"\bformulas?\b", r"\bvolatility\b", r"\bliquidity\b",
+    r"\bduration\b", r"bid[- ]ask spreads?", r"\bspreads?\b", r"\boptions?\b", r"\bformulas?\b", r"\bvolatility\b", r"\bliquidity\b",
     r"\bpricing\b", r"\barbitrage\b", r"\byield curve\b", r"\bconvexity\b",
 ]
 # Filing words that are also part of basic concept names ("price-to-earnings

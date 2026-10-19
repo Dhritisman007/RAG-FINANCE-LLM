@@ -25,6 +25,7 @@ LABELLED = [
     ("What is compound interest?", "concept", ""),
     ("What does bond duration mean?", "concept", "trap: duration"),
     ("What is a credit spread?", "concept", "trap: spread"),
+    ("What is a bid-ask spread?", "concept", "trap: bid-ask spread without a modelling word (Tier 1 article)"),
     ("How do call and put options work?", "concept", "trap: options"),
     ("What is the formula for compound interest?", "concept", "trap: formula"),
     ("Explain volatility in simple terms", "concept", "trap: volatility"),

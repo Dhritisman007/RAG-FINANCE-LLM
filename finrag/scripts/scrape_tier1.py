@@ -81,6 +81,16 @@ INVESTOPEDIA_SLUG_MAP = {
     "return on investment (ROI)": "returnoninvestment",
     "volatility": "volatility",
     "compound annual growth rate (CAGR)": "cagr",
+    # Day 16: gaps the evaluation exposed
+    "credit spread": "creditspread",
+    "liquidity": "liquidity",
+    "arbitrage": "arbitrage",
+    "Roth IRA": "rothira",
+    "individual retirement account (IRA)": "ira",
+    "401(k) plan": "1/401kplan.asp",
+    "market order": "marketorder",
+    "limit order": "limitorder",
+    "bid-ask spread": "bid-askspread",
 }
 
 
