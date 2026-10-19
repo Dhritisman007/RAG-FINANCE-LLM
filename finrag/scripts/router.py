@@ -81,6 +81,14 @@ NUMERIC_CALC_RE = re.compile(
     re.I,
 )
 # "what is X" about an instrument — portfolio queries also get Tier 1 concept chunks.
+# Performance / valuation questions about your own holdings — answered with
+# prices.py numbers computed by code, never by the model.
+PERFORMANCE_RE = re.compile(
+    r"\bhow (?:is|are|has|have) my\b.*\b(?:doing|performing|performed|done)\b"
+    r"|\b(?:performance|p&l|p/l|profit|loss(?:es)?|gains?|returns?|worth|market value|valuation)\b"
+    r"|\bup or down\b|\bhow much (?:is|are|have)\b",
+    re.I,
+)
 DEFINITION_RE = re.compile(r"\b(?:what (?:is|are|does)|explain|define|meaning of|how does .* work)\b", re.I)
 
 
@@ -107,10 +115,13 @@ class RouteDecision:
     plan: RetrievalPlan
     held_tickers: list[str] = field(default_factory=list)
     company_tickers: list[str] = field(default_factory=list)  # corpus companies mentioned (held or not)
+    wants_valuation: bool = False  # portfolio performance question -> show prices.py valuation
 
     def describe(self) -> str:
         signals = "; ".join(f"{r}: {', '.join(s)}" for r, s in self.matched_signals.items() if s) or "none"
         extra = f" (also: {', '.join(self.secondary_routes)})" if self.secondary_routes else ""
+        if self.wants_valuation:
+            extra += " [valuation]"
         p = self.plan
         tiers = "all" if p.tiers is None else "+".join(map(str, p.tiers))
         where = f", tickers={'+'.join(p.tickers)}" if p.tickers else ""
@@ -230,6 +241,7 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
         plan=_plan(route, held, non_held if route == "technical" else companies, query),
         held_tickers=held,
         company_tickers=companies,
+        wants_valuation=route == "portfolio" and bool(PERFORMANCE_RE.search(query)),
     )
 
 
@@ -246,6 +258,7 @@ def forced_route(route: str, query: str, holdings: list[dict] | None = None,
         secondary_routes=[r for r in ROUTES if r != route and auto.matched_signals[r]],
         plan=_plan(route, held, companies if route == "technical" else auto.company_tickers, query),
         held_tickers=held, company_tickers=auto.company_tickers,
+        wants_valuation=route == "portfolio" and bool(PERFORMANCE_RE.search(query)),
     )
 
 

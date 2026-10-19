@@ -61,6 +61,7 @@ from citations import (  # noqa: E402
 )
 from portfolio_store import format_position, get_holding, load_holdings  # noqa: E402
 from router import RetrievalPlan, RouteDecision, forced_route, route_query  # noqa: E402
+import prices  # noqa: E402
 import prompts  # noqa: E402
 
 # ── Paths & constants ────────────────────────────────────────────────────────
@@ -419,6 +420,13 @@ def plan_query(
     return decision, plan, positions
 
 
+def valuation_for(decision: RouteDecision, positions: list[dict]) -> list[dict] | None:
+    """Portfolio performance questions: value the positions with local prices (computed by code)."""
+    if decision.route != "portfolio" or not decision.wants_valuation or not positions:
+        return None
+    return prices.value_positions(positions, prices.load_prices())
+
+
 def rag_query(
     query: str,
     collection: chromadb.Collection,
@@ -449,6 +457,7 @@ def rag_query(
     if verbose:
         print(f"   {decision.describe()}")
 
+    valued = valuation_for(decision, positions)
     citations = retrieve_for_plan(query, collection, plan)
     if not citations and not positions:
         print("[WARN] No relevant passages found — the corpus doesn't cover this question.")
@@ -459,21 +468,27 @@ def rag_query(
     # Chroma `results`, whose order differs after dedup.
     prompt = build_prompt(query, citations, positions=positions, route=decision.route)
 
+    def print_positions() -> None:
+        print("\nYour position(s), from local holdings:")
+        for h in positions:
+            print(f"  • {format_position(h)}")
+        if valued:  # market value and gain — computed by prices.py, never by the model
+            print("\nValuation (local prices, computed by code):")
+            for line in prices.format_valuation(valued):
+                print(f"  • {line}")
+
     if not citations:  # portfolio question the corpus doesn't cover — don't let the model guess
         if positions:
-            print("\nYour position(s), from local holdings:")
-            for h in positions:
-                print(f"  • {format_position(h)}")
-        print(f"\n{prompts.NO_CONTEXT_ANSWER}")
-        return prompts.NO_CONTEXT_ANSWER
+            print_positions()
+        answer = prices.summary_sentence(valued) if valued else prompts.NO_CONTEXT_ANSWER
+        print(f"\n{answer}")
+        return answer
 
     print(f"💬 Querying {model}…")
     if positions:
         # Position facts are printed verbatim from holdings.csv — never written
         # (or recomputed) by the model.
-        print("\nYour position(s), from local holdings:")
-        for h in positions:
-            print(f"  • {format_position(h)}")
+        print_positions()
     if stream:
         answer = stream_answer(prompt, model=model)
     else:

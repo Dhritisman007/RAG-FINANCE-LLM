@@ -124,11 +124,23 @@ def test_no_portfolio_and_forced_route() -> None:
     print("PASS: --no-portfolio never routes to portfolio; --route forces a route")
 
 
+def test_valuation_flag_only_for_own_performance() -> None:
+    yes = ["How is my portfolio doing?", "How has my AAPL position performed?", "What is my portfolio worth?",
+           "What's my P&L on MSFT?"]
+    no = ["What risks does my AAPL position face?", "What are capital gains?", "How do index funds perform?",
+          "Is my portfolio diversified enough?"]
+    assert all(route_query(q, HOLDINGS).wants_valuation for q in yes), [q for q in yes if not route_query(q, HOLDINGS).wants_valuation]
+    assert not any(route_query(q, HOLDINGS).wants_valuation for q in no), [q for q in no if route_query(q, HOLDINGS).wants_valuation]
+    assert not route_query("How is my portfolio doing?", HOLDINGS, allow_portfolio=False).wants_valuation
+    print("PASS: valuation only for performance questions about your own holdings")
+
+
 if __name__ == "__main__":
     ok = test_labelled_accuracy()
     test_mixed_queries_report_secondary_signals()
     test_retrieval_plans()
     test_no_portfolio_and_forced_route()
+    test_valuation_flag_only_for_own_performance()
     if not ok:
         sys.exit("\nRouter accuracy test FAILED")
     print("\nAll router tests passed.")

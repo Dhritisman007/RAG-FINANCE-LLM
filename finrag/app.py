@@ -21,6 +21,7 @@ from pathlib import Path
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent / "scripts"))
+import prices  # noqa: E402
 import prompts  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
@@ -83,6 +84,14 @@ def render_positions(positions: list[dict]) -> None:
         st.markdown("\n".join(f"- {md(format_position(h))}" for h in positions))
 
 
+def render_valuation(valued: list[dict] | None) -> None:
+    """Market value and gain per position — computed by prices.py, never by the model."""
+    if not valued:
+        return
+    st.markdown("**Valuation** — local prices, computed by code:")
+    st.markdown("\n".join(f"- {md(line)}" for line in prices.format_valuation(valued)))
+
+
 def source_title(c: Citation) -> str:
     return f"[{c.rank}] {r.source_label(c)} · tier {c.tier} · distance {c.distance:.3f}"
 
@@ -132,6 +141,7 @@ def render_assistant(res: dict, show_details: bool) -> None:
     render_route(res, show_details)
     render_retrieval_notes(res)
     render_positions(res["positions"])
+    render_valuation(res.get("valuation"))
     st.markdown(md(res["answer"]))
     if res["disclaimer"]:
         st.caption(res["disclaimer"])
@@ -161,6 +171,23 @@ with st.sidebar:
         if holdings:
             st.markdown("\n".join(f"- **{h['ticker']}** · {h['quantity']:g} sh @ {md(f'${h['avg_cost']:,.2f}')}"
                                    f" · since {h['purchase_date']}" for h in holdings))
+            summary = prices.summarize(prices.value_positions(holdings, prices.load_prices()))
+            if summary["priced"]:
+                st.caption(md(f"Worth ${summary['market_value']:,.2f} · {summary['gain_pct']:+.1f}% "
+                              f"on cost · prices as of {summary['as_of']}"
+                              + (" ⚠ stale" if summary["stale"] else "")))
+            if st.button("Update prices", help="One request downloads ~7,000 US stock prices from Nasdaq's "
+                                               "screener. It contains no tickers, so it reveals nothing "
+                                               "about your holdings."):
+                with st.spinner("Downloading whole-market prices…"):
+                    try:
+                        n = prices.fetch_market_prices()
+                        st.session_state.price_note = f"Updated {n:,} prices"
+                        st.rerun()  # redraw the sidebar summary with the new prices
+                    except Exception as e:
+                        st.error(f"Price update failed: {e}")
+            if st.session_state.get("price_note"):
+                st.success(st.session_state.pop("price_note"))
         else:
             st.caption(f"No holdings file at {HOLDINGS_PATH.relative_to(Path(__file__).parent)}")
     st.caption("🔒 Local only: Ollama on 127.0.0.1, cloud models refused, no telemetry. "
@@ -208,6 +235,7 @@ if pending:
                 "route": decision.route, "confidence": decision.confidence, "secondary": decision.secondary_routes,
                 "describe": decision.describe(), "positions": positions, "citations": [],
                 "retrieval_notes": [], "answer": "", "disclaimer": "", "report": None,
+                "valuation": r.valuation_for(decision, positions),
             }
             render_route(res, show_details)  # the route is known before searching — show it right away
             log = io.StringIO()
@@ -217,9 +245,11 @@ if pending:
             res["retrieval_notes"] = [line.strip() for line in log.getvalue().splitlines() if line.startswith("↪")]
             render_retrieval_notes(res)
             render_positions(positions)
+            render_valuation(res["valuation"])
 
             if not citations:  # never ask the model to answer from nothing
-                res["answer"] = prompts.NO_CONTEXT_ANSWER
+                res["answer"] = (prices.summary_sentence(res["valuation"]) if res["valuation"]
+                                 else prompts.NO_CONTEXT_ANSWER)
                 st.markdown(md(res["answer"]))
             else:
                 prompt = r.build_prompt(query, citations, positions=positions, route=decision.route)
