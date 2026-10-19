@@ -7,11 +7,11 @@
  },
  "summary": {
   "concept": {
-   "n": 16,
+   "n": 22,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9555555555555556,
-   "precision": 0.8833333333333333
+   "mrr": 0.9682539682539681,
+   "precision": 0.9166666666666666
   },
   "technical": {
    "n": 26,
@@ -28,11 +28,11 @@
    "precision": 0.8666666666666667
   },
   "ALL": {
-   "n": 53,
+   "n": 59,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9361702127659575,
-   "precision": 0.7918439716312057
+   "mrr": 0.9433962264150944,
+   "precision": 0.8154088050314465
   }
  },
  "results": [
@@ -251,10 +251,10 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t2 JPM 10-K filed 2026-02-13 (0.184)",
-    "[2] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.226)",
-    "[3] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.228)",
-    "[4] t3 Credit Spreads' Term Structure: Stochastic Modeling with CIR (0.234)"
+    "[1] t1 credit spread (0.105)",
+    "[2] t1 credit spread (0.126)",
+    "[3] t1 credit spread (0.145)",
+    "[4] t1 credit spread (0.151)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -608,7 +608,7 @@
     "[2] t2 JPM 10-Q filed 2026-05-01 (0.194)",
     "[3] t2 JPM 10-Q filed 2025-11-04 (0.205)",
     "[4] t2 JPM 10-K filed 2026-02-13 (0.225)",
-    "[5] t2 JPM 10-K filed 2026-02-13 (0.232)"
+    "[5] t2 JPM 10-Q filed 2026-08-06 (0.232)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -748,15 +748,15 @@
   },
   {
    "id": "q43",
-   "query": "What is a Roth IRA?",
+   "query": "What is a 529 plan?",
    "route": "concept",
    "got_route": "concept",
    "answerable": false,
    "retrieved": [
-    "[1] t1 mutual funds basics (0.341)",
-    "[2] t1 mutual funds basics (0.345)",
-    "[3] t1 dollar-cost averaging (0.348)",
-    "[4] t1 index funds (0.359)"
+    "[1] t2 JPM 10-K filed 2026-02-13 (0.342)",
+    "[2] t2 V 10-K filed 2025-11-06 (0.367)",
+    "[3] t1 401(k) plan (0.373)",
+    "[4] t2 JPM 10-Q filed 2025-11-04 (0.382)"
    ],
    "hit": null,
    "rr": null,
@@ -941,6 +941,102 @@
    "hit": null,
    "rr": null,
    "precision": null
+  },
+  {
+   "id": "q54",
+   "query": "What is a Roth IRA?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 Roth IRA (0.137)",
+    "[2] t1 Roth IRA (0.145)",
+    "[3] t1 Roth IRA (0.153)",
+    "[4] t1 individual retirement account (IRA) (0.199)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q55",
+   "query": "What is liquidity?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 liquidity (0.126)",
+    "[2] t1 liquidity (0.129)",
+    "[3] t1 liquidity (0.130)",
+    "[4] t1 liquidity (0.162)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q56",
+   "query": "What is arbitrage?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 arbitrage (0.101)",
+    "[2] t1 arbitrage (0.103)",
+    "[3] t1 arbitrage (0.173)",
+    "[4] t1 arbitrage (0.207)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q57",
+   "query": "What is the difference between a market order and a limit order?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 market order (0.104)",
+    "[2] t1 limit order (0.126)",
+    "[3] t1 limit order (0.137)",
+    "[4] t1 limit order (0.148)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q58",
+   "query": "How does a 401(k) plan work?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 401(k) plan (0.172)",
+    "[2] t1 401(k) plan (0.175)",
+    "[3] t1 401(k) plan (0.204)",
+    "[4] t1 401(k) plan (0.208)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q59",
+   "query": "What is a bid-ask spread?",
+   "route": "concept",
+   "got_route": "concept",
+   "answerable": true,
+   "retrieved": [
+    "[1] t1 bid-ask spread (0.087)",
+    "[2] t1 bid-ask spread (0.110)",
+    "[3] t1 bid-ask spread (0.115)",
+    "[4] t1 bid-ask spread (0.135)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
   }
  ]
 }

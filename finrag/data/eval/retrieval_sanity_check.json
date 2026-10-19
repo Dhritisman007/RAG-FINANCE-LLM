@@ -442,6 +442,13 @@
         "distance": 0.16080224514007568
       },
       {
+        "text": "A limit order is an instruction to a broker to buy or sell an asset at a specific price or better. It allows traders to execute trades at a desired price without having to constantly monitor markets. It is also a way to hedge risk and ensure losses are minimized by capturing sale prices at certain levels.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is a Limit Order?",
+        "distance": 0.19061636924743652
+      },
+      {
         "text": "which will later represent the ask (resp. the bid) prices. Here we use the convention\na(0) =\u221e, b (0) = 0. (2.3)\n3\nThe set of limit order book con\ufb01gurations is de\ufb01ned as:\nL :={X = (X+,X\u2212)\u2208E, a (X)>b (X)}. (2.4)\nX+ (resp. X\u2212) then represent the buy (resp. sell) orders in the limit order book and the condition (2.4) is\ninterpreted as requiring that any outstanding buy order has a lower price than any outstanding sell order.\nThe setL will be referred to as the set of \u201cadmissible\u201d LOB con\ufb01gurations by opposition to the set E which\ncorresponds to \ufb01ctional order book con\ufb01gurations in which the constraint a(X) > b(X) is not enforced.\nThena(X) (resp. b(X) ) is the ask (resp. bid) price associated with the order book con\ufb01guration X. Figure\n3 shows an admissible con\ufb01guration of an order book.\n1 2 3 4 5 6 7 8 9\n1\n2\n3\n4\n5 buy orderssell orders\nFigure 3: An admissible con\ufb01guration of a limit order book, where the blue bars denote buy orders and the red bars denote\nsell orders. In this case, X+ = [1, 3, 2, 1, 0, 0, 0, 0, 0], and X\u2212 = [0, 0, 0, 0, 0, 1, 0, 3, 2]. Its ask price is 6 and bid price is 4.\n2.2 Order \ufb02ow\nThe state of the order book is modi\ufb01ed through order arrivals, executions or cancellations.\nWe distinguish four types of \u2019elementary\u2019 events: limit buy and sell orders and cancellation of buy and\nsell orders. A limit buy/sell order is an order to buy/sell a speci\ufb01ed amount of shares at a speci\ufb01ed price\nand a cancellation of buy/sell order is an order to cancel a certain amount of standing buy/sell shares in an\norder book. Each event is speci\ufb01ed by a price i\u2208{ 1,...,d } and a size z\u2208 N\\{0}. Let\nei := (0, 0,..., 1, 0,..., 0)\u2208 Nd,\nwhere \u201c1\u201d is in the i\u2212th position. Then an order book event of size z at price i maps a con\ufb01guration X\u2208E\nto a new con\ufb01guration X + \u2206X\u2208E. This way X\u2192X + \u2206X is described as below:\n\uf8f1\n\uf8f4\uf8f4\uf8f4\uf8f2\n\uf8f4\uf8f4\uf8f4\uf8f3",
         "tier": 3,
         "source": "arxiv",
@@ -449,28 +456,23 @@
         "distance": 0.19919085502624512
       },
       {
-        "text": "The result is a model which is su\ufb03ciently simple to allow analytical insight, and su\ufb03-\nciently realistic to provide a number of features of real life order books.\nWe are speci\ufb01cally interested in processes governing order book formation and recovery,\nand we look at some simple solutions to the resulting transport equation which are relevant\nin that context.\n2 Basic dynamics of the Limit Order Book\nSimple schematics of the limit order book is shown in Figure 1. We denote by S the price\nlevel, and by h(S,t ) the total quantity of limit orders available at level S at time t. We use\nsubscript to denote partial di\ufb00erentiation, so ht =\u2202h/\u2202t and hS =\u2202h/\u2202S .\n2.1 Conservation laws\nThe quantity between two price levels S1 and S2 is given by\nV (S1,S 2,t ) =\n\u222b S2\nS1\nh(S,t ) dS (1)\n\u2217JR is a Fund Manager at Pine Tree and a Visiting Senior Research Fellow at King\u2019s College London,\njan.rosenzweig@kcl.ac.uk\n1\narXiv:1910.09202v2  [q-fin.TR]  8 Dec 2020\nand the quantity \ufb02ux is de\ufb01ned as\nQ(S1,S 2,t ) = d\ndtV (S1,S 2,t ), (2)\nthe instantaneous rate of \ufb02ow of quantity through the given part of the order book. Then,\ndi\ufb00erentiating (1) with respect to time and using integration by parts, we get the law of\nconservation of quantity in the form\nht(S,t )\u2212QS(S,t ) =P (S,t ) (3)\nwhereQ(S,t ) is taken to mean Q(\u2212\u221e,S,t ) for the bid side, and Q(S,\u221e,t ) for the ask side.\nNote that it is unusual to make the underlying dynamics lognormal in orderbook models,\nsince the e\ufb00ects of lognormality are tiny on relevant price and time scales. Hence we formally\nallow bids lower than zero, but this has no meaningful e\ufb00ects on the analysis.\nEquation (3) is analogous to the standard physical conservation of mass. The left hand\nside contains the conserved terms, or \ufb02ow of quantity through the orderbook, and the right",
-        "tier": 3,
-        "source": "arxiv",
-        "section_heading": "Conservation Laws in a Limit Order Book",
-        "distance": 0.20631790161132812
+        "text": "A limit order lets you choose your own price before buying or selling an investment. If the market reaches that price\u2014or a better one\u2014the order may execute automatically. If it never reaches your price, the order won\u2019t be filled.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Explain Like I\u2019m Five",
+        "distance": 0.20326495170593262
       },
       {
-        "text": "Figure 1: MU(Micron) limit order book on 1st July 2019, with limit buy orders in blue and limit sell orders in red.\n18, 19, 20]. Queueing models [7, 10, 16, 18] represent the limit order book as a system of interacting queues,\ndriven by an order \ufb02ow described as a spatial point process. Another class of models represents the state of\nthe order book as a (pair of) densities, solution of a (stochastic) partial di\ufb00erential equation (SPDE) [8, 13].\nThese two classes of models are connected by scaling limits such as \ufb02uid limits [12, 14, 15] and di\ufb00usion\nlimits [6, 7, 17] of discrete order book models under suitable assumptions.\nThe sheer variety of stochastic models for limit order book dynamics makes it di\ufb03cult to perform a\ncomparative analysis, especially since these models use di\ufb00erent representations and assumptions as starting\npoints. In the present work we propose an approach which these models into a unifying overall framework,\nwhich can be useful for model comparison, model construction and also for investigating asymptotic behaviour\nunder various scaling assumptions. Speci\ufb01cally, we propose to decompose the dynamics of the limit order\nbook process into two separate ingredients:\n\u2022 the incoming order \ufb02ow, represented as a spatial point process, and\n\u2022 the market clearing procedure, represented as an operator acting of a pair of distributions of buy and\nsell orders.\nCurrent\nstate:\nXt\u2208L\nIntermediate\nstate:\nXt+ \u2206X\u2208E\nState at time\nt + \u2206t:\nXt+\u2206t\u2208L\nOrder \ufb02ow\nStochastic\nClearing operator\nDeterministic\nExisting models\nFigure 2: Decomposition of the order book dynamics.\nThe dynamics of the order book is decomposed as shown in Figure 2: at time t, the current state of the\norder book is Xt belonging to an appropriate state space L. An order \ufb02ow \u2206 X arrives in the order book",
-        "tier": 3,
-        "source": "arxiv",
-        "section_heading": "A mathematical framework for modelling order book dynamics",
-        "distance": 0.2085932493209839
-      },
-      {
-        "text": "\ufb02ow and the clearing operator. Our model provides a \ufb02exible framework for modelling and simulating\norder book dynamics and studying various scaling limits of discrete order book models. We show that\nour framework includes previous models as special cases and yields insights into the interplay between\norder \ufb02ow and price dynamics.\nKey words: Limit order book, stochastic model, quantitative \ufb01nance, market microstructure, measure-\nvalued process\nAMS Subject classi\ufb01cation: 91-10, 91Gxx\nAcknowledgements: PD holds a visiting professor association with the Department of Mathematics,\nImperial College London, UK.\n1 Introduction\nIn the last few decades major \ufb01nancial markets have transitioned to electronic platforms where market\nparticipants may post buy and sell orders through a centralized limit order book (LOB) [5]. These orders\nare then matched and executed according to time and price priority rules. The state of the limit order\nbook, which represents outstanding buy and sell orders, constantly evolves through the arrival, execution\nand cancellation of buy and sell orders. Figure 1 shows a typical shape of the order book.\nA quantitative understanding of the dynamics of limit order books is therefore important both from a\ntheoretical standpoint for understanding the dynamics of supply and demand in order-driven markets, and\nfrom the standpoint of applications to intraday market modeling and optimal trade execution.\nThe empirical study of limit order book dynamics has revealed various empirical regularities [2, 3] across\na range of di\ufb00erent time scales [5]. Faced with the challenge of accommodating these empirical features,\nmany stochastic models for limit order book dynamics have been developed in the literature [6, 7, 9, 10, 16,\n1\narXiv:2302.01169v1  [q-fin.MF]  2 Feb 2023",
-        "tier": 3,
-        "source": "arxiv",
-        "section_heading": "A mathematical framework for modelling order book dynamics",
-        "distance": 0.21356844902038574
+        "text": "A limit order is an order requesting the purchase or sale of securities should a specific price be met. A stop-limit order builds one additional layer that requires a specific price be met that is different than the sale price. For example, a limit order to sell your security for $15 will likely execute when the market price reaches $15. Alternatively, a stop-limit order can be placed to sell your security for $15 only if the share price has dropped from $20 to $16.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is the Difference Between a Limit Order and a Stop-Limit Order?",
+        "distance": 0.2058858871459961
       }
     ],
-    "flags": []
+    "flags": [
+      "Only 2/5 results from expected tier 3"
+    ]
   },
   {
     "query": "What is latency arbitrage in high-frequency trading?",
@@ -528,6 +530,13 @@
         "distance": 0.12690460681915283
       },
       {
+        "text": "A bid-ask spread is the difference between the highest price a buyer offers and the lowest price a seller accepts for an asset.\nThe bid-ask spread is a transaction cost that affects a market's liquidity; narrower spreads indicate higher liquidity.\nMarket makers earn profit by setting bid and ask prices, with tighter spreads competing to attract trades.\nBid-ask spreads can widen due to factors such as market volatility, low trading volume, and asset type variance.",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "Key Takeaways",
+        "distance": 0.16886460781097412
+      },
+      {
         "text": "In this paper we propose an approach which is inspired by these two papers but that will focus more on fitting\nempirical features and matching observed properties from market data. More specifically, we propose a new\n\u201cState Dependent Spread Hawkes\u201d (SDSH) model in order to account for the bid-ask spread fluctuations.\nOur model can be seen as a generalization of the two previously introduced models in the sense that it\nis a 2 K-variate (K possibly greater than 1) Hawkes process that is able to account for the different jump\nsizes (up to size K). It includes enough kernels to encode the influence of the various past jumps on the\nvarious future jumps. Each component includes a non-linearity component, as in the previous models, in\norder to ensure strictly positive values for the spread. In order to allow more complex dynamics, each kernel\nis written as a sum of several exponential functions (and not only one, as in the previous models). Our\nambition is to capture all the aspects of the dynamics of the bid-ask spread that were not captured by the\nprevious models.\nThe paper is organized as follows. The next section (Section 2) is devoted to a detailed definition of our new\nmodel for the bid-ask spread. The Markov and ergodicity properties of this model is studied in a particular\ncase. Section 3 illustrates this model with some numerical simulations and presents the estimation procedure\non these simulations. Section 4, the core of our paper, is devoted to empirical results. This sections is divided\nin 4 subsections. The first two ones correspond to a quick presentation and basic statistical properties of the\nreal financial time-series that will be used all along the section. The third one is devoted to estimation of\nour model on these data. Parameters estimation (including the kernels and the constraint parameters) are",
         "tier": 3,
         "source": "arxiv",
@@ -535,25 +544,18 @@
         "distance": 0.1728496551513672
       },
       {
+        "text": "A bid-ask spread is the difference between the highest price a buyer will pay and the lowest price a seller will accept for an asset. It reflects the balance between buyer demand and seller supply. The size of the bid-ask spread indicates market liquidity and trading costs, where narrower spreads often mean an asset is easier and cheaper to trade. Bid-ask spreads can change during the day based on market conditions, trading activity, and an asset's popularity. Keep reading to learn how bid-ask spreads work and why they matter.\nInvestopedia / Zoe Hansen",
+        "tier": 1,
+        "source": "investopedia",
+        "section_heading": "What Is a Bid-Ask Spread?",
+        "distance": 0.17835617065429688
+      },
+      {
         "text": "Abstract: The bid-ask spread, which is defined by the difference between the best selling price and the best buying price in a Limit Order Book at a given time, is a crucial factor in the analysis of financial securities. In this study, we propose a \"State-dependent Spread Hawkes model\" (SDSH) that accounts for various spread jump sizes and incorporates the impact of the current spread state on its intensity functions. We apply this model to the high-frequency data from the Cac40 Euronext market and capture several statistical properties, such as the spread distributions, inter-event time distributions, and spread autocorrelation functions. We illustrate the ability of the SDSH model to forecast spread values at short-term horizons.\nThe self-exciting nature of the bid-ask spread dynamics\nRuihua RUAN\u22171, Emmanuel BACRY1 and Jean-Fran\u00b8 cois MUZY2\n1CEREMADE, CNRS-UMR 7534, Universit\u00b4 e Paris-Dauphine PSL\nPlace du Mar\u00b4 echal de Lattre de Tassigny, 75016 Paris, France\n2SPE CNRS-UMR 6134, Universit\u00b4 e de Corse BP 52, 20250 Corte, France\nJune 7, 2023\nAbstract\nThe bid-ask spread, which is defined by the difference between the best selling price and\nthe best buying price in a Limit Order Book at a given time, is a crucial factor in the analysis\nof financial securities. In this study, we propose a \u201dState-dependent Spread Hawkes model\u201d\n(SDSH) that accounts for various spread jump sizes and incorporates the impact of the current\nspread state on its intensity functions. We apply this model to the high-frequency data from\nthe Cac40 Euronext market and capture several statistical properties, such as the spread dis-\ntributions, inter-event time distributions, and spread autocorrelation functions. We illustrate\nthe ability of the SDSH model to forecast spread values at short-term horizons.",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "The self-exciting nature of the bid-ask spread dynamics",
         "distance": 0.17959904670715332
-      },
-      {
-        "text": "The goal of the present paper is two-fold. First, we develop a new framework for modeling market microstruc-\nture, in which the shape of the LOB, and its dynamics, ariseendogenously from the interactions between the agents.\nAmong the many advantages of such an approach is the possibility of modeling the market reaction to changes in\nthe rules of the exchange: e.g., limited trading frequency, transaction tax, etc. The second, and most important,\ngoal of the present work is to investigate the liquidity effects of trading frequency, using the proposed modeling\nframework. In particular, the main results of this paper (cf. the discussion in Section 3, as well as Theorems 4.1, 4.2\nand Corollary 4.1, in Section 4) describe the dual effect of high trading frequency. On the one hand, if the agents\nchoose to provide liquidity in equilibrium, higher trading frequency decreases the bid-ask spread and makes the\nexpected pro\ufb01ts of all market participants converge to the same (fundamental) value, thus, improving the market\n\u2217This version: February 13, 2017. First version August 28, 2015.\n\u2020Partial support from the NSF grant DMS-1411824 is acknowledged by both authors.\n\u2021We thank the anonymous referees and the Associate Editor for constructive comments that helped us improve the paper signi\ufb01cantly.\n\u00a7Address the correspondence to Sergey Nadtochiy, Mathematics Department, University of Michigan, 530 Church Street, Ann Arbor, MI\n48109, USA; e-mail: sergeyn@umich.edu.\n1\narXiv:1508.07914v4  [q-fin.TR]  9 May 2017\nef\ufb01ciency. On the other hand, higher trading frequency also makes the LOB more sensitive to the deviations of the\nagents\u2019 attitudes from market-neutrality. It is, of course, clear that a strong bullish or bearish signal induces market",
-        "tier": 3,
-        "source": "arxiv",
-        "section_heading": "Liquidity Effects of Trading Frequency",
-        "distance": 0.20076888799667358
-      },
-      {
-        "text": "paper but ask different questions. Rahman\net al. [2025] survey decentralised prediction-\nmarket microstructure as a methodological\ndomain, framing the open questions across\nvenues without bringing matching tick-level\ndata. Tsang and Yang [2026] run a single-\nevent time-series microstructure study on the\n2024 US presidential election market, docu-\nmenting episode-level patterns around Biden\u2019s\nwithdrawal, the September debate, and the\nOctober whale trades, and reporting a roughly\norder-of-magnitude decline in Kyle\u2019s\u03bbas the\nmarket matured; the unit of analysis is one\nmarket over many time slices, with\u03bbestimated\non aggregated rather than tick-level data. The\npresent paper is the cross-sectional, tick-level\ncomplement: 600 markets observed simultane-\nously over a single 28-day scrape window, with\nmicrostructure measures computed on the full\nevent tape and a direct on-chain trade record.\nTo our knowledge, neither authoritative on-\nchain trade direction nor a continuous off-\nchain order-book archive at tick resolution has\nbeen brought to bear at the cross-sectional\nscale we use here. The classical microstructure\nreferences behind our measurement choices\nare O\u2019Hara [1995] and Hasbrouck [2007] for\norder-book theory, Foucault et al. [2013] for\nthe liquidity-provider angle, and Huang and\nStoll [1997], Madhavan et al. [1997] for spread\ndecomposition.\nPolymarket changed this. Since 2021 the\nvenue has run a limit-order-book exchange on\nPolygon, settling in USDC against an on-chain\nconditional-token contract. Our data covers\n52 calendar days of the public order-book feed\n(2026-02-21 to 2026-04-15) at tick resolution:\n30,287,264,368 events across 385,198 distinct\nmarkets. A 28-day overlap window (2026-02-\n28 to 2026-03-27) is mirrored on chain, where\nthe CTF Exchange V1 contract logs 255 million\nOrderFilledevents whose payloads identify\nboth counterparties and the aggressor side. We",
-        "tier": 3,
-        "source": "arxiv",
-        "section_heading": "The Anatomy of a Decentralized Prediction Market: Microstructure Evidence from the Polymarket Order Book",
-        "distance": 0.20146822929382324
       }
     ],
     "flags": []

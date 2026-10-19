@@ -29,7 +29,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 13 | Chat UI (Streamlit) | `app.py` | ✅ Done — tested on every route, localhost-only |
 | 14 | Local price data + valuation | `prices.py` | ✅ Done — whole-market download, no tickers ever sent |
 | 15 | Corpus expansion: 25 companies | `corpus_manifest.yaml`, `router.py` | ✅ Done — 75 SEC filings, 16,946 passages |
-| 16+ | Tier 1 gaps, automatic filing refresh | — | ⬜ Not started |
+| 16 | Tier 1 gaps + filing refresh | `scrape_tier1.py`, `refresh_filings.py` | ✅ Done — 47 explainers; refresh found a missed JPM 10-Q |
 
 ---
 
@@ -66,13 +66,13 @@ corpus_manifest.yaml
 
 | Tier | Source | Content | Docs | Chunks |
 |------|--------|---------|------|--------|
-| 1 | Investopedia | Finance explainers (EMI, amortization, compound interest, SIP, bonds, options, ETFs, NPV, …) | 38 | 758 |
-| 2 | SEC EDGAR | Latest 10-K + 2 10-Qs for 25 companies (see Day 15) | 75 | 14,886 (12,921 after dedup) |
+| 1 | Investopedia | Finance explainers (EMI, amortization, compound interest, SIP, bonds, options, ETFs, NPV, IRAs, 401(k), order types, …) | 47 | 936 |
+| 2 | SEC EDGAR | 25 companies: latest 10-K + 2 10-Qs, plus newer filings via refresh (Day 16) | 76 | 15,309 |
 | 3 | arXiv (q-fin) | Market microstructure, HFT, optimal execution | 79 | 3,267 |
 
 **Pipeline stats:**
-- 192 documents → 18,911 chunks
-- 1,965 exact duplicates flagged and dropped (mostly boilerplate repeated across a company's 10-K and 10-Qs) → **16,946 chunks embedded**
+- 202 documents → 19,512 chunks
+- 2,037 exact duplicates flagged and dropped (mostly boilerplate repeated across a company's 10-K and 10-Qs) → **17,475 chunks embedded**
 - 2,089 chunks contain tables (11.0%) · 3,292 contain formulas (17.4%)
 
 ---
@@ -264,6 +264,20 @@ Added 20 large caps chosen for sector coverage, each with its latest 10-K and tw
 - **Retrieval:** 53/53 route, 53/53 hit@k, MRR 0.94; sanity check 15/15. One question (q17, market makers' inventory risk) briefly lost its labelled papers to Goldman Sachs and Bank of America 10-Ks — which, on reading, describe their own market-making positions and risk limits, so they were added to its label.
 - **qwen2.5:7b on the 10 new questions:** citation accuracy 98%, no invented numbers, 6/6 exact figures, the unanswerable one refused (it named the latest quarter available instead).
 
+### Day 16 — Tier 1 gaps and filing refresh
+**Nine explainers** for topics the evaluation found uncovered: credit spread, liquidity, arbitrage, Roth IRA, IRA, 401(k), market order, limit order, bid-ask spread. "What is a bid-ask spread?" now routes to concept (the phrase only counts as technical next to a modelling word, like "spread" or "duration"). Six concept questions were added to the golden set, the credit-spread question gained its Tier 1 article, and the unanswerable concept question is now "What is a 529 plan?" (no document mentions one).
+
+**Filing refresh** — companies keep filing; without this the corpus silently goes stale:
+
+```bash
+python scripts/refresh_filings.py                    # dry run: which filings are new?
+python scripts/refresh_filings.py --apply --rebuild  # download them, then chunk → enrich → embed
+```
+
+It asks the SEC for each company's current latest 10-K + two 10-Qs and downloads only what isn't on disk, with the same extractor as the scraper. **Older filings are kept** — the golden set cites specific filings, so answers stay reproducible; each passage's label carries its filing date. Its first run found a JPM 10-Q filed 2026-08-06 that the original download (Aug 5) had missed.
+
+Retrieval after both: **59/59 route, 59/59 hit@k, MRR 0.94**. The raw Day 7 sanity check (which bypasses the router) now flags "How does a limit order book work?": the new limit-order articles rank 2nd, 4th and 5th among order-book papers. Through the router this question is technical and searches only filings and papers (q15 still hits), so the flag is expected.
+
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
 
@@ -290,6 +304,7 @@ python tests/test_prompts.py     # grounding/style rules per route, [N] label or
 python tests/test_evaluate.py    # refusal detection, label matching, golden-set consistency
 python tests/test_exact_index.py # exact search ranking, distances, filters
 python tests/test_prices.py      # no tickers in the price request, parsing, manual overrides, valuation math
+python tests/test_refresh.py     # only filings missing from disk are fetched; nothing is deleted
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -323,7 +338,7 @@ python tests/test_prices.py      # no tickers in the price request, parsing, man
 3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
 5. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
-6. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `scripts/validate_manifest.py` is a stub.
+6. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions. (The real validator had never been committed — `scripts/validate_manifest.py` was a one-line stub; it now holds the working version.)
 7. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
 
 ---
@@ -372,5 +387,6 @@ python scripts/rag_loop.py --interactive
 - [x] Streamlit chat UI (Day 13)
 - [x] Portfolio: local price data and valuation (Day 14)
 - [x] Expand the SEC corpus to 25 companies (Day 15)
-- [ ] Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage, IRAs
-- [ ] Automatic refresh when companies file new 10-Qs
+- [x] Tier 1 gaps the eval exposed (Day 16)
+- [x] Filing refresh (Day 16)
+- [ ] Full 59-question answer evaluation with qwen2.5:7b on the expanded corpus
