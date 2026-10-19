@@ -2,7 +2,7 @@
 # This is the single source of truth for what gets ingested.
 # Day 2/3 scrapers read this file; they do not hardcode source lists themselves.
 
-target_total_docs: 100  # soft target, range 90-110
+target_total_docs: 145  # soft target (tier1 35 + tier2 75 + tier3 35)
 
 tier1_fundamentals:
   description: >
@@ -67,7 +67,7 @@ tier2_filings:
   description: >
     Real structured SEC filings. Tests section/table-aware chunking and
     long-document, entity-grounded retrieval.
-  target_count: 25
+  target_count: 75  # 25 companies x (10-K + 2 10-Q)
   doc_type: "sec_filing"
   source:
     name: sec_edgar
@@ -89,6 +89,67 @@ tier2_filings:
       filings: ["10-K", "10-Q"]
     - ticker: XOM
       cik: "0000034088"
+      filings: ["10-K", "10-Q"]
+    # Day 15 expansion: 20 large caps across sectors
+    - ticker: NVDA
+      cik: "0001045810"
+      filings: ["10-K", "10-Q"]
+    - ticker: GOOGL
+      cik: "0001652044"
+      filings: ["10-K", "10-Q"]
+    - ticker: AMZN
+      cik: "0001018724"
+      filings: ["10-K", "10-Q"]
+    - ticker: META
+      cik: "0001326801"
+      filings: ["10-K", "10-Q"]
+    - ticker: AVGO
+      cik: "0001730168"
+      filings: ["10-K", "10-Q"]
+    - ticker: LLY
+      cik: "0000059478"
+      filings: ["10-K", "10-Q"]
+    - ticker: JNJ
+      cik: "0000200406"
+      filings: ["10-K", "10-Q"]
+    - ticker: UNH
+      cik: "0000731766"
+      filings: ["10-K", "10-Q"]
+    - ticker: V
+      cik: "0001403161"
+      filings: ["10-K", "10-Q"]
+    - ticker: BAC
+      cik: "0000070858"
+      filings: ["10-K", "10-Q"]
+    - ticker: GS
+      cik: "0000886982"
+      filings: ["10-K", "10-Q"]
+    - ticker: WMT
+      cik: "0000104169"
+      filings: ["10-K", "10-Q"]
+    - ticker: COST
+      cik: "0000909832"
+      filings: ["10-K", "10-Q"]
+    - ticker: KO
+      cik: "0000021344"
+      filings: ["10-K", "10-Q"]
+    - ticker: PG
+      cik: "0000080424"
+      filings: ["10-K", "10-Q"]
+    - ticker: CVX
+      cik: "0000093410"
+      filings: ["10-K", "10-Q"]
+    - ticker: CAT
+      cik: "0000018230"
+      filings: ["10-K", "10-Q"]
+    - ticker: BA
+      cik: "0000012927"
+      filings: ["10-K", "10-Q"]
+    - ticker: NFLX
+      cik: "0001065280"
+      filings: ["10-K", "10-Q"]
+    - ticker: NEE
+      cik: "0000753308"
       filings: ["10-K", "10-Q"]
   filings_per_company: "latest 10-K + latest 2 10-Q"
   user_agent_required: true

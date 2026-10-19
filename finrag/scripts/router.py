@@ -38,7 +38,34 @@ CORPUS_COMPANIES = {
     "JPM": ["jpmorgan", "jp morgan", "jpmorgan chase"],
     "TSLA": ["tesla"],
     "XOM": ["exxon", "exxonmobil", "exxon mobil"],
+    # Day 15 expansion
+    "NVDA": ["nvidia"],
+    "GOOGL": ["alphabet", "google"],
+    "AMZN": ["amazon.com", "amazon web services", "aws"],
+    "META": ["meta platforms", "facebook", "instagram"],
+    "AVGO": ["broadcom"],
+    "LLY": ["eli lilly", "lilly"],
+    "JNJ": ["johnson & johnson", "johnson and johnson", "j&j"],
+    "UNH": ["unitedhealth", "united health", "unitedhealthcare"],
+    "V": ["visa inc"],
+    "BAC": ["bank of america", "bofa"],
+    "GS": ["goldman sachs", "goldman"],
+    "WMT": ["walmart", "wal-mart"],
+    "COST": ["costco"],
+    "KO": ["coca-cola", "coca cola", "coke"],
+    "PG": ["procter & gamble", "procter and gamble", "p&g"],
+    "CVX": ["chevron"],
+    "CAT": ["caterpillar"],
+    "BA": ["boeing"],
+    "NFLX": ["netflix"],
+    "NEE": ["nextera", "next era energy", "florida power & light"],
 }
+# Names that are also ordinary words ("a travel visa", "meta-analysis", "the
+# Amazon river") count only when capitalised.
+CASE_SENSITIVE_NAMES = {"V": ["Visa"], "META": ["Meta"], "AMZN": ["Amazon"]}
+# Tickers of 1-2 letters (V, BA, GS, KO, PG) also appear inside ordinary text
+# ("V-shaped recovery", "PG-13"): they must stand alone as a word.
+SHORT_TICKER_RE = r"(?:(?<=^)|(?<=[\s$(]))({t})(?=$|[\s'’?.,!:;)])"
 
 PORTFOLIO_PHRASES = [
     r"\bmy (?:portfolio|holdings?|positions?|stocks?|shares|funds?|investments?|bonds?|bond fund|etfs?)\b",
@@ -189,8 +216,11 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
     # Corpus companies mentioned by ticker (uppercase) or by name
     companies = []
     for ticker, names in CORPUS_COMPANIES.items():
-        if re.search(rf"(?<![A-Za-z]){ticker}(?![A-Za-z])", query) or \
-           any(re.search(rf"\b{re.escape(n)}\b", query, re.I) for n in names):
+        ticker_re = (SHORT_TICKER_RE.format(t=ticker) if len(ticker) <= 2
+                     else rf"(?<![A-Za-z]){ticker}(?![A-Za-z])")
+        if re.search(ticker_re, query) or \
+           any(re.search(rf"(?<![\w&]){re.escape(n)}(?![\w&])", query, re.I) for n in names) or \
+           any(re.search(rf"\b{re.escape(n)}\b", query) for n in CASE_SENSITIVE_NAMES.get(ticker, [])):
             companies.append(ticker)
 
     held = find_held_tickers(query, holdings) if allow_portfolio else []

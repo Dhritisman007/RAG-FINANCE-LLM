@@ -135,12 +135,30 @@ def test_valuation_flag_only_for_own_performance() -> None:
     print("PASS: valuation only for performance questions about your own holdings")
 
 
+def test_expanded_company_detection() -> None:
+    cases = {
+        "What risks does Netflix disclose?": ["NFLX"], "What was Coca-Cola net income?": ["KO"],
+        "What is Visa revenue?": ["V"], "What did J&J say about litigation?": ["JNJ"],
+        "What does P&G report as segments?": ["PG"], "What risks does Meta disclose?": ["META"],
+        "Compare BA and CAT backlog": ["CAT", "BA"],
+        # ordinary words that must NOT match a company
+        "Do I need a visa to travel?": [], "Is a V-shaped recovery likely?": [],
+        "What does a meta-analysis show about momentum?": [], "What is PG-13?": [],
+    }
+    for q, want in cases.items():
+        got = route_query(q, HOLDINGS).company_tickers
+        assert got == want, (q, got, want)
+    # known limitation: a capitalised "Amazon" always means the company
+    print("PASS: 25-company detection by ticker and name; visa / V-shaped / meta-analysis / PG-13 don't match")
+
+
 if __name__ == "__main__":
     ok = test_labelled_accuracy()
     test_mixed_queries_report_secondary_signals()
     test_retrieval_plans()
     test_no_portfolio_and_forced_route()
     test_valuation_flag_only_for_own_performance()
+    test_expanded_company_detection()
     if not ok:
         sys.exit("\nRouter accuracy test FAILED")
     print("\nAll router tests passed.")
