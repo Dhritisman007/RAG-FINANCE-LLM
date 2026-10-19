@@ -27,7 +27,8 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 11 | Per-route prompt templates | `prompts.py` | ✅ Done — + number-grounding check |
 | 12 | Golden eval set + model choice | `evaluate.py`, `data/eval/golden_qa.jsonl` | ✅ Done — qwen2.5:7b chosen (92% citation accuracy) |
 | 13 | Chat UI (Streamlit) | `app.py` | ✅ Done — tested on every route, localhost-only |
-| 14+ | Local price data, corpus expansion | — | ⬜ Not started |
+| 14 | Local price data + valuation | `prices.py` | ✅ Done — whole-market download, no tickers ever sent |
+| 15+ | Corpus expansion | — | ⬜ Not started |
 
 ---
 
@@ -219,6 +220,28 @@ cd finrag && streamlit run app.py      # http://localhost:8501
 
 **Local only, enforced** (`.streamlit/config.toml`): bound to `127.0.0.1` (Streamlit's default listens on every interface — LAN-visible holdings), usage statistics off, the "Deploy" button hidden (one click would publish the app to Streamlit Cloud), and the app refuses to start if the address or telemetry settings are changed. The file watcher is off: it imported dozens of `transformers` vision modules on every interaction.
 
+### Day 14 — Local price data and valuation
+"How is my portfolio doing?" now gets a real answer — **computed by code, not the model**:
+
+```
+AAPL: 25 × $343.46 = $8,586.50 (cost $4,562.50, +$4,024.00, +88.2%) — price as of 2026-10-19T17:04
+...
+Your priced holdings are worth $18,972.80 against a cost basis of $11,590.50: +$7,382.30 (+63.7%) ...
+```
+
+**Privacy (deliberate):** prices come from one download of Nasdaq's public stock screener covering the whole US market (~7,000 stocks). The request URL is fixed and contains **no tickers**, so it reveals nothing about what you hold (a test asserts no holding ever appears in the request). It only runs when you ask:
+
+```bash
+python scripts/prices.py --update     # download whole-market prices (or the UI's "Update prices" button)
+python scripts/prices.py              # value your holdings
+```
+
+- The router flags portfolio *performance* questions ("how is my portfolio doing", "what is my portfolio worth", "P&L on MSFT"); those show a valuation table built by `prices.py`. If the corpus has nothing else relevant, the answer is a code-generated summary — no LLM call. Otherwise the model answers from filings as usual and never restates or computes position numbers.
+- Every price carries its date; prices older than 3 days are flagged ⚠ stale.
+- **Not in the screener** (ETFs, mutual funds, bond funds, non-US listings): add them to `data/portfolio/manual_prices.csv` (`ticker,price,date`) — never sent anywhere; a manual price wins when its date is the same or newer. Holdings without any price are listed as not included.
+- The screener is Nasdaq's public website endpoint, not an official API; if it changes, `--update` fails loudly (it refuses to save a suspiciously small download) and manual prices keep working.
+- Both price files are git-ignored. (Stooq, the first choice, now sits behind a JavaScript bot challenge; it is not used.)
+
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
 
@@ -244,6 +267,7 @@ python tests/test_router.py      # 33 labelled queries (accuracy table), mixed q
 python tests/test_prompts.py     # grounding/style rules per route, [N] label order, no-context answer, cloud-model refusal
 python tests/test_evaluate.py    # refusal detection, label matching, golden-set consistency
 python tests/test_exact_index.py # exact search ranking, distances, filters
+python tests/test_prices.py      # no tickers in the price request, parsing, manual overrides, valuation math
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -267,6 +291,7 @@ python tests/test_exact_index.py # exact search ranking, distances, filters
 - ~~Silently corrupted embeddings~~ — the embedder ran on the GPU, which ran out of memory with qwen2.5:7b loaded and returned garbage without an error; embeddings now always run on the CPU.
 - ~~Approximate-index misses~~ — queries now use exact search (see Day 6).
 - ~~Mislabelled table numbers~~ (with qwen2.5:7b) — llama3.2 reported Q1 2025 *expenses* and 2024 *annual* revenue as "last quarter's revenue"; qwen2.5:7b labelled periods correctly on every table question in the eval and keeps units ("$139,996 million (fiscal 2026)").
+- ~~No price data~~ — local whole-market prices (Day 14); performance questions get a code-computed valuation.
 - ~~Cloud models could leak prompts~~ — Ollama cloud models are refused by name and by server metadata.
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
@@ -276,9 +301,8 @@ python tests/test_exact_index.py # exact search ranking, distances, filters
 3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
 5. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
-6. **No price data** — the router recognises held tickers and company names, but there are no prices, so performance / P&L questions get the "not covered" answer.
-7. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `scripts/validate_manifest.py` is a stub.
-8. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
+6. **Repo duplicates** — root-level `scrape_tier1.py`, `validate_manifest.py` and `corpus_manifest.yaml` are stale copies of the `finrag/` versions; `scripts/validate_manifest.py` is a stub.
+7. **Stale vector stores (not deleted, git-ignored)** — `data/chroma_db/` (114 MB, Aug 13: the pre-fix build with only 6,133 chunks) and `data/vectorstore/` (empty). Nothing references either. `~/.finrag_chroma_db` also keeps orphaned index folders from earlier rebuilds.
 
 ---
 
@@ -288,6 +312,7 @@ python tests/test_exact_index.py # exact search ranking, distances, filters
 pip install -r requirements.txt
 ollama pull qwen2.5:7b      # default model (~4.7 GB)
 ollama pull llama3.2        # optional: faster, less reliable
+python scripts/prices.py --update   # optional: prices for "how is my portfolio doing?"
 ```
 
 ### Run the pipeline
@@ -323,5 +348,5 @@ python scripts/rag_loop.py --interactive
 - [x] Per-document cap for retrieval diversity (soft cap, weak evidence)
 - [x] Exact search + CPU embeddings (Day 12)
 - [x] Streamlit chat UI (Day 13)
-- [ ] Portfolio: local price data for P&L / exposure questions
+- [x] Portfolio: local price data and valuation (Day 14)
 - [ ] Expand the corpus (more companies; Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage)
