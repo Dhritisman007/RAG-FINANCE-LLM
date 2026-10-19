@@ -15,7 +15,8 @@ reports, per route and overall:
     cite_ok     share of cited claims the citation check accepts, averaged per
                 answer (so one runaway answer with 150 claims can't dominate)
     invented#   numbers in the answer found in no source (per answer)
-    facts       required figures (must_include) present verbatim in the answer
+    facts       required figures (must_include) present verbatim in the answer; a
+                fact may list several forms, each of which appears in the filing
     abstain     unanswerable questions refused: the answer leads with "the
                 sources don't cover this" (higher is better)
     false_abst  answerable questions refused that way. A cited answer that
@@ -124,7 +125,10 @@ def evaluate_question(q: dict, collection, model: str | None, options: dict,
         "invalid": statuses.count("invalid"),
         "uncited": report.uncited_answer,
         "invented_numbers": report.ungrounded_numbers,
-        "facts_ok": (all(normalize_number_text(f) in norm for f in q["must_include"])
+        # each required fact is a string or a list of forms that ALL appear verbatim in the
+        # filing (e.g. ["215.9", "215,938"] = billions in the narrative, millions in the table)
+        "facts_ok": (all(any(normalize_number_text(alt) in norm for alt in ([f] if isinstance(f, str) else f))
+                         for f in q["must_include"])
                      if q["must_include"] else None),
         "abstained": is_refusal(answer),
         "noted_gap": bool(ABSTAIN_RE.search(answer)) and not is_refusal(answer),

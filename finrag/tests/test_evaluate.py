@@ -50,6 +50,20 @@ def test_relevance_and_numbers() -> None:
     print("PASS: relevant-doc prefix matching and number normalization")
 
 
+def test_golden_fact_forms_appear_in_their_filings() -> None:
+    """Every accepted form of a required figure must appear verbatim in a relevant filing."""
+    raw = Path(__file__).parent.parent / "data" / "raw" / "tier2"
+    texts = {p.name: p.read_text(encoding="utf-8") for p in raw.glob("tier2_secedgar_*.txt") if not p.name.startswith("._")}
+    for q in (json.loads(line) for line in open(GOLDEN_PATH, encoding="utf-8")):
+        for fact in q["must_include"]:
+            for form in ([fact] if isinstance(fact, str) else fact):
+                hits = [n for n, t in texts.items() if form in t
+                        and any(n.startswith("tier2_secedgar_" + d.split()[0] + "-" + d.split()[1].replace("-", ""))
+                                for d in q["relevant_docs"])]
+                assert hits, f"{q['id']}: {form!r} is not in any of its relevant filings"
+    print("PASS: every accepted form of every required figure appears verbatim in its filing")
+
+
 def test_golden_set_is_well_formed() -> None:
     rows = [json.loads(line) for line in open(GOLDEN_PATH, encoding="utf-8")]
     ids = [q["id"] for q in rows]
@@ -64,5 +78,6 @@ if __name__ == "__main__":
     test_abstain_detection()
     test_refusal_means_leading_with_not_covered()
     test_relevance_and_numbers()
+    test_golden_fact_forms_appear_in_their_filings()
     test_golden_set_is_well_formed()
     print("\nAll evaluate tests passed.")
