@@ -28,7 +28,8 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 12 | Golden eval set + model choice | `evaluate.py`, `data/eval/golden_qa.jsonl` | ✅ Done — qwen2.5:7b chosen (92% citation accuracy) |
 | 13 | Chat UI (Streamlit) | `app.py` | ✅ Done — tested on every route, localhost-only |
 | 14 | Local price data + valuation | `prices.py` | ✅ Done — whole-market download, no tickers ever sent |
-| 15+ | Corpus expansion | — | ⬜ Not started |
+| 15 | Corpus expansion: 25 companies | `corpus_manifest.yaml`, `router.py` | ✅ Done — 75 SEC filings, 16,946 passages |
+| 16+ | Tier 1 gaps, automatic filing refresh | — | ⬜ Not started |
 
 ---
 
@@ -66,13 +67,13 @@ corpus_manifest.yaml
 | Tier | Source | Content | Docs | Chunks |
 |------|--------|---------|------|--------|
 | 1 | Investopedia | Finance explainers (EMI, amortization, compound interest, SIP, bonds, options, ETFs, NPV, …) | 38 | 758 |
-| 2 | SEC EDGAR | 10-K / 10-Q — AAPL, MSFT, JPM, TSLA, XOM | 15 | 3,205 (2,927 after dedup) |
+| 2 | SEC EDGAR | Latest 10-K + 2 10-Qs for 25 companies (see Day 15) | 75 | 14,886 (12,921 after dedup) |
 | 3 | arXiv (q-fin) | Market microstructure, HFT, optimal execution | 79 | 3,267 |
 
 **Pipeline stats:**
-- 132 documents → 7,230 chunks
-- 278 exact duplicates flagged and dropped → **6,952 chunks embedded**
-- 821 chunks contain tables (11.4%) · 2,509 contain formulas (34.8%)
+- 192 documents → 18,911 chunks
+- 1,965 exact duplicates flagged and dropped (mostly boilerplate repeated across a company's 10-K and 10-Qs) → **16,946 chunks embedded**
+- 2,089 chunks contain tables (11.0%) · 3,292 contain formulas (17.4%)
 
 ---
 
@@ -183,11 +184,13 @@ Portfolio facts are never written by the model: the position lines are printed v
 | Citation accuracy (per answer) | 78% | **92%** |
 | Mis-cited claims per answer | 1.00 | **0.11** |
 | Numbers in no source, per answer | 0.39 | **0.18** |
-| Required figures present | 67% | **83%** |
+| Required figures present ¹ | 5/6 | **6/6** |
 | Unanswerable questions refused | 3/5 | **5/5** |
 | Answerable questions refused | 0 | 0 |
 | Answers without any citation | 4 | **0** |
 | Time per answer (8 GB M1) | ~70 s | ~140 s |
+
+¹ Corrected on Day 15: a required figure may be given in any form that appears verbatim in the filing (NVIDIA's 10-K states both "$215.9 billion" and "$ 215,938" million; Tesla's both "94,827" and "$94.83 billion"). The original key accepted only one form and marked verbatim quotes as wrong; a test now checks every accepted form appears in its filing.
 
 llama3.2's misses on unanswerable questions were the dangerous kind: it invented "Q3 2026 revenue $116,017 million" for ExxonMobil (the corpus ends at Q2) and wrote a Roth IRA explanation with fabricated citations. qwen2.5:7b refused both — for Exxon it said Q3 isn't covered and offered the closest quarter, clearly labelled as Q1. **qwen2.5:7b is the default**; `--model llama3.2` is twice as fast.
 
@@ -241,6 +244,25 @@ python scripts/prices.py              # value your holdings
 - **Not in the screener** (ETFs, mutual funds, bond funds, non-US listings): add them to `data/portfolio/manual_prices.csv` (`ticker,price,date`) — never sent anywhere; a manual price wins when its date is the same or newer. Holdings without any price are listed as not included.
 - The screener is Nasdaq's public website endpoint, not an official API; if it changes, `--update` fails loudly (it refuses to save a suspiciously small download) and manual prices keep working.
 - Both price files are git-ignored. (Stooq, the first choice, now sits behind a JavaScript bot challenge; it is not used.)
+
+### Day 15 — Corpus expansion: 25 companies
+Added 20 large caps chosen for sector coverage, each with its latest 10-K and two latest 10-Qs (60 filings; only the new companies were fetched, so the original five companies' filings — and the evaluation's ground truth — didn't change):
+
+| Sector | Companies |
+|--------|-----------|
+| Tech | AAPL, MSFT, NVDA, GOOGL, AMZN, META, AVGO, TSLA |
+| Healthcare | LLY, JNJ, UNH |
+| Financials | JPM, V, BAC, GS |
+| Consumer | WMT, COST, KO, PG |
+| Energy | XOM, CVX |
+| Industrials | CAT, BA |
+| Media / Utilities | NFLX, NEE |
+
+- The new filings passed the extraction checks (0 duplicated lines, no repeated page furniture). The store grew 2.4× to 16,946 passages; exact search still takes ~6 ms (26 MB of vectors). A full CPU rebuild now takes ~22 minutes.
+- The router recognises the new companies by ticker and name. Names that are also ordinary words only count when capitalised ("Visa" vs "a travel visa", "Meta" vs "meta-analysis"), and 1–2-letter tickers must stand alone ("V-shaped recovery" and "PG-13" don't match). Known limit: a capitalised "Amazon" always means the company.
+- 10 new golden questions (53 total): exact figures checked against the raw filings — including Boeing's *Commercial Airplanes* backlog (a segment row; the phrase "total backlog" in the filing refers to that segment, not the company) — plus retrieval questions and one unanswerable (Netflix Q4 2026; the corpus ends at Q2).
+- **Retrieval:** 53/53 route, 53/53 hit@k, MRR 0.94; sanity check 15/15. One question (q17, market makers' inventory risk) briefly lost its labelled papers to Goldman Sachs and Bank of America 10-Ks — which, on reading, describe their own market-making positions and risk limits, so they were added to its label.
+- **qwen2.5:7b on the 10 new questions:** citation accuracy 98%, no invented numbers, 6/6 exact figures, the unanswerable one refused (it named the latest quarter available instead).
 
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
@@ -296,7 +318,7 @@ python tests/test_prices.py      # no tickers in the price request, parsing, man
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
 **Open:**
-1. **Unit conversion despite the verbatim rule** — qwen2.5:7b turned Tesla's "94,827" (millions) into "$94.83 billion": arithmetically right, but it breaks the copy-verbatim rule and the exact-figure check (both models failed q26). Mislabelled numbers in general are still not *detected* — the number check only verifies a number exists in the sources, not that it's attached to the right row or period.
+1. **Mislabelled numbers aren't *detected*** — the number check only verifies a number exists in the sources, not that it's attached to the right row or period. (qwen2.5:7b labelled every table figure correctly in the evaluation; this is a safety-net gap, not an observed failure. An earlier entry here claimed qwen converted Tesla's revenue to "$94.83 billion" against the verbatim rule — wrong: the 10-K itself says "$94.83 billion".)
 2. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
 3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
@@ -349,4 +371,6 @@ python scripts/rag_loop.py --interactive
 - [x] Exact search + CPU embeddings (Day 12)
 - [x] Streamlit chat UI (Day 13)
 - [x] Portfolio: local price data and valuation (Day 14)
-- [ ] Expand the corpus (more companies; Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage)
+- [x] Expand the SEC corpus to 25 companies (Day 15)
+- [ ] Tier 1 gaps the eval exposed: credit spreads, liquidity, arbitrage, IRAs
+- [ ] Automatic refresh when companies file new 10-Qs
