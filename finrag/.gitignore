@@ -23,3 +23,6 @@ data/eval/.partial_*.jsonl
 # Price data (market prices change daily; manual prices can reveal holdings)
 data/portfolio/market_prices.csv
 data/portfolio/manual_prices.csv
+
+# Local run logs
+data/logs/
