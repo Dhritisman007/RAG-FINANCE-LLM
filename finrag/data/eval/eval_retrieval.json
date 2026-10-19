@@ -14,11 +14,11 @@
    "precision": 0.8833333333333333
   },
   "technical": {
-   "n": 16,
+   "n": 26,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.8988095238095238,
-   "precision": 0.6666666666666667
+   "mrr": 0.9202898550724639,
+   "precision": 0.7028985507246377
   },
   "portfolio": {
    "n": 11,
@@ -28,11 +28,11 @@
    "precision": 0.8666666666666667
   },
   "ALL": {
-   "n": 43,
+   "n": 53,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9320175438596491,
-   "precision": 0.7995614035087719
+   "mrr": 0.9361702127659575,
+   "precision": 0.7918439716312057
   }
  },
  "results": [
@@ -304,15 +304,15 @@
    "answerable": true,
    "retrieved": [
     "[1] t3 Integrating Tick-level Data and Periodical Signal for High-f (0.206)",
-    "[2] t3 Can maker-taker fees prevent algorithmic cooperation in mark (0.221)",
-    "[3] t2 JPM 10-K filed 2026-02-13 (0.228)",
-    "[4] t3 Market Making in Spot Precious Metals (0.229)",
-    "[5] t3 Reinforcement Learning in High-frequency Market Making (0.234)",
-    "[6] t3 Integrating Tick-level Data and Periodical Signal for High-f (0.239)"
+    "[2] t2 GS 10-K filed 2026-02-25 (0.213)",
+    "[3] t2 GS 10-K filed 2026-02-25 (0.220)",
+    "[4] t3 Can maker-taker fees prevent algorithmic cooperation in mark (0.221)",
+    "[5] t2 BAC 10-K filed 2026-02-25 (0.224)",
+    "[6] t2 JPM 10-K filed 2026-02-13 (0.228)"
    ],
    "hit": true,
-   "rr": 0.25,
-   "precision": 0.3333333333333333
+   "rr": 0.5,
+   "precision": 0.6666666666666666
   },
   {
    "id": "q18",
@@ -684,12 +684,12 @@
    "got_route": "technical",
    "answerable": false,
    "retrieved": [
-    "[1] t2 MSFT 10-Q filed 2026-04-29 (0.265)",
-    "[2] t2 MSFT 10-Q filed 2026-04-29 (0.270)",
-    "[3] t2 MSFT 10-Q filed 2026-01-28 (0.284)",
-    "[4] t2 MSFT 10-K filed 2026-07-29 (0.285)",
-    "[5] t2 MSFT 10-K filed 2026-07-29 (0.286)",
-    "[6] t2 MSFT 10-Q filed 2026-01-28 (0.286)"
+    "[1] t2 NVDA 10-Q filed 2026-08-26 (0.212)",
+    "[2] t2 NVDA 10-K filed 2026-02-25 (0.228)",
+    "[3] t2 NVDA 10-Q filed 2026-05-20 (0.240)",
+    "[4] t2 NVDA 10-K filed 2026-02-25 (0.242)",
+    "[5] t2 NVDA 10-Q filed 2026-05-20 (0.246)",
+    "[6] t2 NVDA 10-K filed 2026-02-25 (0.246)"
    ],
    "hit": null,
    "rr": null,
@@ -739,8 +739,8 @@
    "retrieved": [
     "[1] t1 inflation (0.324)",
     "[2] t2 JPM 10-K filed 2026-02-13 (0.340)",
-    "[3] t3 Arbitrage theory without a num\u00e9raire (0.357)",
-    "[4] t1 volatility (0.357)"
+    "[3] t2 BAC 10-Q filed 2026-07-31 (0.353)",
+    "[4] t3 Arbitrage theory without a num\u00e9raire (0.357)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -757,6 +757,186 @@
     "[2] t1 mutual funds basics (0.345)",
     "[3] t1 dollar-cost averaging (0.348)",
     "[4] t1 index funds (0.359)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
+  },
+  {
+   "id": "q44",
+   "query": "What was NVIDIA's revenue for fiscal year 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 NVDA 10-K filed 2026-02-25 (0.218)",
+    "[2] t2 NVDA 10-Q filed 2026-08-26 (0.230)",
+    "[3] t2 NVDA 10-K filed 2026-02-25 (0.247)",
+    "[4] t2 NVDA 10-Q filed 2026-05-20 (0.247)",
+    "[5] t2 NVDA 10-Q filed 2026-08-26 (0.257)",
+    "[6] t2 NVDA 10-Q filed 2026-05-20 (0.262)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.3333333333333333
+  },
+  {
+   "id": "q45",
+   "query": "What were Coca-Cola's net operating revenues in 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 KO 10-K filed 2026-02-20 (0.230)",
+    "[2] t2 KO 10-K filed 2026-02-20 (0.247)",
+    "[3] t2 KO 10-K filed 2026-02-20 (0.272)",
+    "[4] t2 KO 10-K filed 2026-02-20 (0.273)",
+    "[5] t2 KO 10-K filed 2026-02-20 (0.280)",
+    "[6] t2 KO 10-K filed 2026-02-20 (0.287)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q46",
+   "query": "What were Costco's net sales in fiscal 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 COST 10-K filed 2026-10-07 (0.285)",
+    "[2] t2 COST 10-K filed 2026-10-07 (0.291)",
+    "[3] t2 COST 10-K filed 2026-10-07 (0.296)",
+    "[4] t2 COST 10-K filed 2026-10-07 (0.303)",
+    "[5] t2 COST 10-K filed 2026-10-07 (0.308)",
+    "[6] t2 COST 10-Q filed 2026-06-03 (0.333)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.8333333333333334
+  },
+  {
+   "id": "q47",
+   "query": "What was NextEra Energy's net income attributable to NEE in 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 NEE 10-K filed 2026-02-13 (0.213)",
+    "[2] t2 NEE 10-Q filed 2026-07-24 (0.240)",
+    "[3] t2 NEE 10-K filed 2026-02-13 (0.246)",
+    "[4] t2 NEE 10-Q filed 2026-04-23 (0.248)",
+    "[5] t2 NEE 10-K filed 2026-02-13 (0.248)",
+    "[6] t2 NEE 10-K filed 2026-02-13 (0.249)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.6666666666666666
+  },
+  {
+   "id": "q48",
+   "query": "What were Caterpillar's total sales and revenues for 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 CAT 10-Q filed 2026-05-06 (0.224)",
+    "[2] t2 CAT 10-Q filed 2026-05-06 (0.229)",
+    "[3] t2 CAT 10-K filed 2026-02-13 (0.236)",
+    "[4] t2 CAT 10-Q filed 2026-08-05 (0.237)",
+    "[5] t2 CAT 10-Q filed 2026-08-05 (0.243)",
+    "[6] t2 CAT 10-Q filed 2026-05-06 (0.246)"
+   ],
+   "hit": true,
+   "rr": 0.3333333333333333,
+   "precision": 0.16666666666666666
+  },
+  {
+   "id": "q49",
+   "query": "What was Boeing Commercial Airplanes' backlog at the end of 2025?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 BA 10-K filed 2026-01-30 (0.243)",
+    "[2] t2 BA 10-Q filed 2026-07-28 (0.253)",
+    "[3] t2 BA 10-Q filed 2026-04-22 (0.261)",
+    "[4] t2 BA 10-Q filed 2026-07-28 (0.268)",
+    "[5] t2 BA 10-K filed 2026-01-30 (0.289)",
+    "[6] t2 BA 10-K filed 2026-01-30 (0.295)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 0.5
+  },
+  {
+   "id": "q50",
+   "query": "What competition risks does Netflix disclose?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 NFLX 10-K filed 2026-01-23 (0.300)",
+    "[2] t2 NFLX 10-K filed 2026-01-23 (0.301)",
+    "[3] t2 NFLX 10-K filed 2026-01-23 (0.301)",
+    "[4] t2 NFLX 10-K filed 2026-01-23 (0.308)",
+    "[5] t2 NFLX 10-K filed 2026-01-23 (0.308)",
+    "[6] t2 NFLX 10-K filed 2026-01-23 (0.310)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q51",
+   "query": "How does Visa describe its litigation exposure?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 V 10-K filed 2025-11-06 (0.203)",
+    "[2] t2 V 10-Q filed 2026-04-29 (0.204)",
+    "[3] t2 V 10-Q filed 2026-07-29 (0.205)",
+    "[4] t2 V 10-Q filed 2026-07-29 (0.251)",
+    "[5] t2 V 10-K filed 2025-11-06 (0.252)",
+    "[6] t2 V 10-K filed 2025-11-06 (0.256)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q52",
+   "query": "What market risks does Goldman Sachs describe?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 GS 10-K filed 2026-02-25 (0.269)",
+    "[2] t2 GS 10-K filed 2026-02-25 (0.286)",
+    "[3] t2 GS 10-K filed 2026-02-25 (0.298)",
+    "[4] t2 GS 10-K filed 2026-02-25 (0.301)",
+    "[5] t2 GS 10-K filed 2026-02-25 (0.302)",
+    "[6] t2 GS 10-K filed 2026-02-25 (0.303)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q53",
+   "query": "What was Netflix's revenue in the fourth quarter of 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": false,
+   "retrieved": [
+    "[1] t2 NFLX 10-K filed 2026-01-23 (0.269)",
+    "[2] t2 NFLX 10-Q filed 2026-07-17 (0.312)",
+    "[3] t2 NFLX 10-K filed 2026-01-23 (0.315)",
+    "[4] t2 NFLX 10-Q filed 2026-07-17 (0.326)",
+    "[5] t2 NFLX 10-Q filed 2026-04-17 (0.329)",
+    "[6] t2 NFLX 10-K filed 2026-01-23 (0.335)"
    ],
    "hit": null,
    "rr": null,

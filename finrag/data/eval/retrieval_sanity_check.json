@@ -9,21 +9,21 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "How Is EMI calculated?",
-        "distance": 0.20624279975891113
+        "distance": 0.2062428593635559
       },
       {
         "text": "The EMI flat-rate formula is calculated by adding together the principal loan amount and the interest on the principal and dividing the result by the number of periods multiplied by the number of months.\nThe EMI reducing-balance method is calculated using this formula:\nEMI = P * [( r * (1 + r)^n)) / ((1 + r)^n - 1)]\nwhere:\nP = Principal amount borrowed\nr = Periodic monthly interest rate\nn = Total number of monthly payments",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Calculating EMIs: Methods and Formulas",
-        "distance": 0.21029388904571533
+        "distance": 0.2102939486503601
       },
       {
         "text": "An Equated Monthly Installment (EMI) involves making fixed payments each month to pay off a loan over a set period, covering both principal and interest, common in mortgages, auto loans, and student loans.\nEMIs simplify budgeting for borrowers, offering a predictable payment schedule, while lenders benefit from a consistent income stream from loan interest.\nThere are two main methods to calculate EMI: the flat-rate method, which uses the original principal for interest calculation, and the reducing-balance method, which recalculates based on the remaining principal, often saving borrowers money over time.\nUsing the reducing-balance method can be more cost-effective, as the interest is recalculated on the remaining loan balance rather than the original loan amount, unlike the flat-rate calculation.\nEMI plans on credit cards work similarly to loans, reducing your available credit limit by the purchase cost and deducting the EMI each month until the debt is cleared.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Key Takeaways",
-        "distance": 0.23605573177337646
+        "distance": 0.2360556721687317
       },
       {
         "text": "To demonstrate how EMI works, let\u2019s walk through a calculation of it, using both methods. Assume an individual takes out a mortgage to buy a new home. The principal amount is $500,000, and the loan terms include an interest rate of 3.5% for 10 years.\nUsing the flat-rate method to calculate the EMI, the homeowner\u2019s monthly payments come out to $5,625, or ($500,000 + ($500,000 x 10 x 0.035)) / (10 x 12).\nUsing the EMI reducing-balance method, monthly payments would be approximately $4,944.29, or $500,000 * [(0.0029 * (1 + 0.0029)^120) / ((1 + 0.0029)^120 - 1)].\nNote that in the EMI flat-rate calculation, the principal loan amount remains constant throughout the 10-year mortgage period. This suggests that the EMI reducing-balance method may be a better option because the dwindling loan principal also shrinks the amount of interest due. In the flat-rate method, each interest charge is calculated based on the original loan amount, even though the loan balance outstanding is gradually being paid down.",
@@ -52,35 +52,35 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Key Takeaways",
-        "distance": 0.14379221200942993
+        "distance": 0.1437922716140747
       },
       {
         "text": "The second way to calculate compound interest is to use a fixed formula.\nThe compound interest formula is [ ( P ( 1 + i ) n ) - P ], where P is the principal, i is the annual interest rate, and n is the number of periods.\nUsing the same financial information as in Approach One, enter \u201cPrincipal value\u201d into cell A1 and \u201c1000\u201d into cell B1.\nNext, enter \u201cInterest rate\u201d into cell A2 and \u201c.05\u201d into cell B2.\nEnter \u201cCompound periods\u201d into cell A3 and \u201c5\u201d into cell B3.\nNow you can calculate the compound interest in cell B4 by entering \u201c=(B1*(1+B2)^B3)-B1\u201d, which gives you $276.28.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Approach Two: Fixed Formula",
-        "distance": 0.1497420072555542
+        "distance": 0.14974194765090942
       },
       {
         "text": "Compound interest refers to earning interest on both a principle balance and any previously accumulated interest; you're earning interest on interest.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "compound interest",
-        "distance": 0.15653634071350098
+        "distance": 0.15653640031814575
       },
       {
         "text": "Compound interest is interest that is added to the initial principal of a deposit, investment , or loan, thereby increasing the balance and, in turn, increasing the amount of interest earned or paid in the next period.\nThe power of compounding helps a sum of money grow faster than if just simple interest were calculated on the principal alone. The greater the number of compounding periods, the greater the compound interest growth will be. For savings and investments, compound interest is your friend, as it multiplies your money at an accelerated rate. But if you have debt, compounding interest can make it increasingly difficult to pay off.\nInvestopedia / Julie Bang",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "What Is Compound Interest?",
-        "distance": 0.1597203016281128
+        "distance": 0.15972048044204712
       },
       {
         "text": "Compound interest simply means you're earning interest on both your original saved money plus any interest you earn on that original amount. Although the term \"compound interest\" includes the word interest, the concept applies beyond interest-bearing bank accounts and loans, including investments such as mutual funds.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "What Is a Simple Definition of Compound Interest?",
-        "distance": 0.16022449731826782
+        "distance": 0.16022443771362305
       }
     ],
     "flags": []
@@ -102,21 +102,21 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "mutual funds basics",
-        "distance": 0.1797504425048828
+        "distance": 0.17975056171417236
       },
       {
         "text": "Mutual funds are investment portfolios funded by everyone who buys the fund\u2019s shares. When someone buys a mutual fund share, they gain part-ownership of all of the fund\u2019s underlying assets. The fund\u2019s performance depends on its assets, so if it\u2019s full of stocks going up, it will go up. If they\u2019re going down, so will the fund.\nA mutual fund decides how to divide money across sectors, industries, and companies based on its strategy. Many funds are index or passive funds , so they don\u2019t need a lot of hands-on management. They mirror assets of indexes like the S&P 500 or the Dow.\nThe biggest fund managers are Vanguard and Fidelity .",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "How Mutual Funds Work",
-        "distance": 0.18599510192871094
+        "distance": 0.1859952211380005
       },
       {
         "text": "An index fund usually refers to a mutual fund that tracks an index. An index ETF is constructed in much the same way and will hold the stocks of an index. However, the difference between an index fund and an ETF is that an ETF tends to be more cost-effective and liquid than an index mutual fund. You can also buy an ETF throughout the trading day, while a mutual fund trades via a broker after the close of each trading day.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "How Is an ETF Different From an Index Fund?",
-        "distance": 0.1875895857810974
+        "distance": 0.18758952617645264
       },
       {
         "text": "Researching and comparing funds can be more difficult than for other securities. Unlike stocks, mutual funds do not offer investors the opportunity to juxtapose the P/E ratio, sales growth, earnings per share , or other important data.\nA mutual fund\u2019s NAV can offer some basis for comparison, but given the diversity of portfolios, comparing the proverbial apples to apples can be difficult, even among funds with similar names or stated objectives. Only index funds tracking the same markets tend to be genuinely\u00a0comparable.",
@@ -138,35 +138,35 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "How Duration Influences Investment Decisions",
-        "distance": 0.11946266889572144
+        "distance": 0.11946272850036621
       },
       {
         "text": "A bond\u2019s duration is its sensitivity to interest rate changes. When you buy a bond, you\u2019re lending money and getting paid back with interest over time till it matures; however, bonds can be bought or sold before maturity, and the price you get for selling depends on the current interest rates.\nDuration will tell you how much a bond\u2019s price will change if interest rates change, so you can determine if your bond is worth more or less. It helps you understand the risk of losing money if you sell before the bond matures.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Simplifying Duration for Beginners",
-        "distance": 0.12905842065811157
+        "distance": 0.12905848026275635
       },
       {
         "text": "The price sensitivity of a bond is called duration because it calculates a length of time. Duration measures a bond price\u2019s sensitivity to changes in interest rates by calculating the weighted average length of time that it will take for an investor to receive all the principal and interest payments.\nThis amount of time changes based on changes in interest rates. A bond with a longer time to maturity will have a price that is more likely to be affected by interest rate changes and thus will have a longer duration than a short-term bond. Economists use a hazard rate calculation to determine the likelihood of the bond\u2019s performance at a given future time.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Why Is Bond Price Sensitivity Called Duration?",
-        "distance": 0.1321042776107788
+        "distance": 0.13210439682006836
       },
       {
         "text": "The duration of a bond can refer to two things:\nThe Macaulay duration is the weighted average time until all the bond\u2019s cash flows are paid. By accounting for the present value of future bond payments, the Macaulay duration helps an investor evaluate and compare bonds independent of their term or time to maturity.\nModified duration is not measured in years. It measures the expected change in a bond\u2019s price given a 1% change in interest rates.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Different Types of Bond Duration",
-        "distance": 0.13321208953857422
+        "distance": 0.133212149143219
       },
       {
         "text": "Duration indicates how much a bond\u2019s value is expected to change with interest rate fluctuations.\nHigher duration implies greater price sensitivity to rising interest rates.\nMacaulay and modified durations are key types, measuring time and price change, respectively.\nDuration measures how long it takes for an investor to be repaid a bond\u2019s price through its total cash flows, and it indicates how much a bond\u2019s price might change with a shift in interest rates. Understanding duration helps investors assess interest rate risk and make informed decisions about bond investments. Duration provides investors with an insight into the price sensitivity of bonds as the interest rate environment fluctuates.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Key Takeaways",
-        "distance": 0.1365114450454712
+        "distance": 0.13651150465011597
       }
     ],
     "flags": []
@@ -188,21 +188,21 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "The Bottom Line",
-        "distance": 0.18900847434997559
+        "distance": 0.18900859355926514
       },
       {
         "text": "Call options are financial contracts that give\u00a0the buyer the right, but not the obligation, to buy a stock, bond, commodity, or other asset or instrument at a specified price within a specific period. A call seller must sell the asset if the buyer exercises the call.\nA call buyer profits when the underlying asset increases in price. Share prices can increase for several reasons, including positive company news and during acquisitions . The seller profits from the premium if the price drops below the strike price at expiration because the buyer typically won't exercise the option.\nA call option may be contrasted with a put option , which gives the holder the right to sell (force the buyer to purchase) the asset at a specified price on or before expiration.\nInvestopedia / Joules Garcia",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "What Is a Call Option?",
-        "distance": 0.1902877688407898
+        "distance": 0.19028782844543457
       },
       {
         "text": "Options are versatile financial products. These contracts involve a buyer and seller, where the buyer pays a premium for the rights granted by the contract. Call options allow the holder to buy the asset at a stated price within a specific time frame. Put options , on the other hand, allow the holder to sell the asset at a stated price within a specific time frame. Each call option has a bullish buyer and a bearish seller, while put options have a bearish buyer and a bullish seller.\nTraders and investors buy and sell options for several reasons. Options allow traders to leverage a position in an asset for less cost than buying the shares directly. Investors use options to hedge or reduce the risk exposure of their portfolios.\nIn some cases, the option holder can\u00a0generate income when they buy call options or become an options writer. Options are also one of the most direct ways to invest in oil. For options traders, an option\u2019s daily trading\u00a0volume\u00a0and\u00a0open interest\u00a0are the two key numbers to watch to make the most well-informed investment decisions.\nAmerican options can be exercised any time before expiration, whereas European options can only be exercised at expiration. Exercising means using your right to buy or sell the underlying security.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Understanding How Options Function",
-        "distance": 0.19589465856552124
+        "distance": 0.19589459896087646
       },
       {
         "text": "Some investors use call options to generate income through a covered call strategy. This strategy involves owning an underlying stock while at the same time writing a call option, or giving someone else the right to buy your stock.\nThe investor collects the option premium and hopes the option expires worthless (below the strike price). This strategy generates additional income for the investor but can also limit profit potential if the underlying stock price rises sharply.\nCovered calls work because if the stock rises above the strike price, the buyer can use their option to purchase it from you at that lower price. This means the option writer doesn't profit from the stock's movement above the strike price. The writer's maximum profit on the option is the premium received.",
@@ -224,7 +224,7 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "Key Takeaways",
-        "distance": 0.05810832977294922
+        "distance": 0.05810821056365967
       },
       {
         "text": "Systematic investment plans are a disciplined investment approach that allows individuals to invest a fixed amount at regular intervals in selected investment instruments.\nSIPs offer benefits such as regular investing, flexibility, the potential for dollar cost averaging, and the opportunity to begin with small amounts. They provide individuals with a systematic and gradual way to invest, reducing the impact of market volatility and potentially generating long-term wealth accumulation.\nThe comments, opinions, and analyses expressed on Investopedia are for informational purposes only. Read our warranty and liability disclaimer for more info.",
@@ -238,21 +238,21 @@
         "tier": 1,
         "source": "investopedia",
         "section_heading": "What Is a Systematic Investment Plan (SIP)?",
-        "distance": 0.11378598213195801
+        "distance": 0.11378604173660278
       },
       {
         "text": "Systematic investment plans (SIPs) are a disciplined investment technique that involves investing at regular intervals in equal amounts.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "SIP (systematic investment plan)",
-        "distance": 0.11769020557403564
+        "distance": 0.11769014596939087
       },
       {
         "text": "Mutual funds and other investment companies offer investors a variety of investment options including systematic investment plans. SIPs give investors a chance to invest small sums of money over a longer period rather than having to make large lump sums all at once. Most SIPs require payments into the plans consistently, either weekly, monthly, or quarterly.\nSystematic investing works on regular and periodic purchases of shares or units of securities of a fund or other investment. Dollar-cost averaging involves buying the same fixed-dollar amount of a security regardless of its price at each periodic interval.",
         "tier": 1,
         "source": "investopedia",
         "section_heading": "How Do Systematic Investment Plans (SIPs) Work?",
-        "distance": 0.15604645013809204
+        "distance": 0.15604639053344727
       }
     ],
     "flags": []
@@ -263,39 +263,39 @@
     "notes": null,
     "top_k_results": [
       {
+        "text": "The following risk factors should be considered in addition to the other information in this Annual Report on Form 10-K. The following risks could harm our business, financial condition, results of operations or reputation, which could cause our stock price to decline. Additional risks, trends and uncertainties not presently known to us or that we currently believe are immaterial may also harm our business, financial condition, results of operations or reputation.\nRisk Factors Summary\nRisks Related to Our Industry and Markets\n\u2022 Failure to meet the evolving needs of our industry and markets may adversely impact our financial results.\n\u2022 Competition could adversely impact our market share and financial results.\nRisks Related to Demand, Supply, and Manufacturing\n\u2022 Long manufacturing lead times and uncertain supply and capacity availability, combined with a failure to estimate customer demand accurately has led and could lead to mismatches between supply and demand.\n\u2022 Dependency on third-party suppliers and their technology to manufacture, assemble, test, or package our products reduces our control over product quantity and quality, manufacturing yields, and product delivery schedules and could harm our business.\n\u2022 Defects in our products have caused and could cause us to incur significant expenses to remediate and could damage our business.\nRisks Related to Our Global Operating Business\n\u2022 Adverse economic conditions may harm our business.\n\u2022 International sales and operations are a significant part of our business, which exposes us to risks that could harm our business.\n\u2022 Product, system security and data protection incidents or breaches, as well as cyber-attacks could disrupt our operations and adversely affect our financial condition, stock price and reputation.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "NVDA 10-K filed 2026-02-25",
+        "distance": 0.17881613969802856
+      },
+      {
+        "text": "In addition to the other information set forth in this report, you should carefully consider the factors discussed in Part I, \u201cItem 1A. Risk Factors\u201d in our Annual Report on Form 10-K for the year ended December\u00a031, 2025, which could materially affect our business, financial condition or future results. The risks described in this report and in our Annual Report on Form 10-K are not the only risks facing our Company. Additional risks and uncertainties not currently known to us, or that we currently deem to be immaterial, could also materially adversely affect our business, financial condition or future result s.\nItem\u00a02.\u00a0Unregistered Sales of Equity Securities and Use of Proceeds\nThe following table presents information with respect to purchases of common stock of the Company made during the three months ended April\u00a03, 2026 by the Company or any \u201caffiliated purchaser\u201d of the Company as defined in Rule\u00a010b-18(a)(3) under the Exchange Act:\nPeriod Total Number of Shares Purchased 1 Average Price Paid Per Share Total Number of Shares Purchased as Part of the Publicly Announced Plan 2 Maximum Number of Shares That May Yet Be Purchased Under the Publicly Announced Plan January 1, 2026 through January 30, 2026 2,523,175 $ 70.62 2,520,600 64,428,144 January 31, 2026 through February 27, 2026 2,695,423 79.56 1,281,000 63,147,144 February 28, 2026 through April 3, 2026 1,082,612 76.71 1,080,304 62,066,840 Total 6,301,210 $ 75.49 4,881,904",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "KO 10-Q filed 2026-04-30",
+        "distance": 0.20768404006958008
+      },
+      {
+        "text": "FORM 10-K TABLE OF CONTENTS Page PART I Item 1. Business 1 Item 1A. Risk Factors 3 Item 1B. Unresolved Staff Comments 9 Item 1C. Cybersecurity 9 Item 2. Properties 10 Item 3. Legal Proceedings 10 Item 4. Mine Safety Disclosure 10 Information about our Executive Officers 11 PART II Item 5. Market for Registrant's Common Equity, Related Stockholder Matters and Issuer Purchases of Equity Securities 12 Item 6. Intentionally Omitted 13 Item 7. Management's Discussion and Analysis of Financial Condition and Results of Operations 13 Item 7A. Quantitative and Qualitative Disclosures about Market Risk 32 Item 8. Financial Statements and Supplementary Data 33 Management's Report and Reports of Independent Registered Public Accounting Firm 33 Consolidated Statements of Earnings 37 Consolidated Statements of Comprehensive Income 37 Consolidated Balance Sheets 38 Consolidated Statements of Shareholders' Equity 39 Consolidated Statements of Cash Flows 40 Notes to Consolidated Financial Statements 41 Note 1:  Summary of Significant Accounting Policies 41 Note 2:  Segment Information 43 Note 3:  Supplemental Financial Information 45 Note 4:  Goodwill and Intangible Assets 47 Note 5:  Income Taxes 49 Note 6:  Earnings Per Share 51 Note 7:  Share-based Compensation 52 Note 8:  Postretirement Benefits and Employee Stock Ownership Plan 54 Note 9:  Risk Management Activities and Fair Value Measurements 59 Note 10:  Short-term and Long-term Debt 62 Note 11:  Accumulated Other Comprehensive Income/(Loss) 64 Note 12:  Leases 64 Note 13:  Commitments and Contingencies 65 Note 14:  Supplier Finance Programs 66 Note 15:  Subsequent Event 67 Item 9. Changes in and Disagreements with Accountants on Accounting and Financial Disclosure 67 Item 9A. Controls and Procedures 67 Item 9B.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "PG 10-K filed 2026-08-04",
+        "distance": 0.21468836069107056
+      },
+      {
+        "text": "Investors should also carefully read the factors described under Item 1A, \"Risk Factors\" in this Annual Report on Form 10-K for a description of certain risks that could, among other things, cause our actual results to differ from those expressed in forward-looking statements. Investors should understand that it is not possible to predict or identify all such factors and should not consider the risks described above and under Item 1A, \"Risk Factors\" to be a complete statement of all potential risks and uncertainties.\nAll forward-looking statements speak only as of the date of this Annual Report and are expressly qualified in their entirety by the risk factors and cautionary statements included in this Annual Report. Except as is required by law, we expressly disclaim any obligation to publicly release any revisions to forward-looking statements to reflect events after the date of this Annual Report.\nTrademarks and Trade Names\nAll trademarks or trade names referred to in this Annual Report on Form 10-K are the property of the company, or, to the extent trademarks or trade names belonging to other companies are referenced in this Annual Report on Form 10-K, the property of their respective owners. Solely for convenience, the trademarks and trade names in this Annual Report on Form 10-K are referred to without the \u00ae and \u2122 symbols, but such references should not be construed as any indicator that the company or, to the extent applicable, their respective owners will not assert, to the fullest extent under applicable law, the company\u2019s or their rights thereto. We do not intend the use or display of other companies\u2019 trademarks and trade names to imply a relationship with, or endorsement or sponsorship of us by, any other companies.\nPart I\nItem 1. Business",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "LLY 10-K filed 2026-02-12",
+        "distance": 0.22039228677749634
+      },
+      {
         "text": "PART II. OTHER INFORMATION\nITEM 1. LEGAL PROCEEDINGS\nFor a description of our material pending legal proceedings, see Note 10, Commitments and Contingencies , to the consolidated financial statements included elsewhere in this Quarterly Report on Form 10-Q.\nITEM 1A. RISK FACTORS\nOur operations and financial results are subject to various risks and uncertainties, including the factors discussed in Part I, Item 1A, Risk Factors in our Annual Report on Form 10-K for the year ended December\u00a031, 2025, which could adversely affect our business, financial conditions and future results.\nITEM 2. UNREGISTERED SALES OF EQUITY SECURITIES AND USE OF PROCEEDS\nNone.\nITEM 3. DEFAULTS UPON SENIOR SECURITIES\nNone.\nITEM 4. MINE SAFETY DISCLOSURES\nNot applicable.\nITEM 5. OTHER INFORMATION\nRule 10b5-1 Trading Arrangements\nNone of the Company\u2019s directors or officers adopted , modified or terminated a Rule 10b5-1 trading arrangement or a non-Rule 10b5-1 trading arrangement during the Company\u2019s fiscal quarter ended March\u00a031, 2026, as such terms are defined under Item 408(a) of Regulation S-K.\nCEO Compensation\nAs previously disclosed in the Company\u2019s annual report on Form 10-K for the year ended December 31, 2025, a special committee of the Board consisting of disinterested directors Robyn Denholm and Kathleen Wilson-Thompson (the \u201cSpecial Committee\u201d), consistent with its purpose, reconvened to consider, evaluate and determine all aspects of the retention and incentivization of our chief executive officer, Mr. Elon Musk, and any methods, approaches or manners for doing so, including with respect to the 2025 CEO Interim Award and the 2018 CEO Performance Award.",
         "tier": 2,
         "source": "sec_edgar",
         "section_heading": "TSLA 10-Q filed 2026-04-23",
         "distance": 0.22088390588760376
-      },
-      {
-        "text": "PART II. OTHER INFORMATION\nITEM 1. LEGAL PROCEEDINGS\nFor a description of our material pending legal proceedings, see Note 11, Commitments and Contingencies , to the consolidated financial statements included elsewhere in this Quarterly Report on Form 10-Q.\nITEM 1A. RISK FACTORS\nOur operations and financial results are subject to various risks and uncertainties, including the factors discussed in Part I, Item 1A, Risk Factors in our Annual Report on Form 10-K for the year ended December\u00a031, 2025, which could adversely affect our business, financial conditions and future results.\nITEM 2. UNREGISTERED SALES OF EQUITY SECURITIES AND USE OF PROCEEDS\nNone.\nITEM 3. DEFAULTS UPON SENIOR SECURITIES\nNone.\nITEM 4. MINE SAFETY DISCLOSURES\nNot applicable.\nITEM 5. OTHER INFORMATION\nRule 10b5-1 Trading Arrangements\nNone of the Company\u2019s directors or officers adopted , modified or terminated a Rule 10b5-1 trading arrangement or a non-Rule 10b5-1 trading arrangement during the Company\u2019s fiscal quarter ended June\u00a030, 2026, as such terms are defined under Item 408(a) of Regulation S-K.\nITEM 6. EXHIBITS\nSee Index to Exhibits at the end of this Quarterly Report on Form 10-Q for the information required by this Item.\nINDEX TO EXHIBITS",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "TSLA 10-Q filed 2026-07-23",
-        "distance": 0.23557615280151367
-      },
-      {
-        "text": "EXXON MOBIL CORPORATION FORM 10-K FOR THE FISCAL YEAR ENDED DECEMBER 31, 2025 TABLE OF CONTENTS PART I Item 1. Business 1 Item 1A. Risk Factors 2 Item 1B. Unresolved Staff Comments 8 Item 1C. Cybersecurity 8 Item 2. Properties 9 Item 3. Legal Proceedings 22 Item 4. Mine Safety Disclosures 22 Information about our Executive Officers 23 PART II Item 5. Market for Registrant\u2019s Common Equity, Related Stockholder Matters and Issuer Purchases of Equity Securities 24 Item 7. Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations 24 Item 7A. Quantitative and Qualitative Disclosures About Market Risk 24 Item 8. Financial Statements and Supplementary Data 25 Item 9. Changes in and Disagreements With Accountants on Accounting and Financial Disclosure 25 Item 9A. Controls and Procedures 25 Item 9B. Other Information 26 Item 9C. Disclosure Regarding Foreign Jurisdictions that Prevent Inspections 26 PART III Item 10. Directors, Executive Officers and Corporate Governance 26 Item 11. Executive Compensation 26 Item 12. Security Ownership of Certain Beneficial Owners and Management and Related Stockholder Matters 27 Item 13. Certain Relationships and Related Transactions, and Director Independence 27 Item 14. Principal Account ant Fees and Services 27 PART IV Item 15. Exhibit and Financial Statement Schedules 27 Item 16. Form 10-K Summary 27 Financial Section 28 Index to Exhibits 128 Signatures 129\nPART I\nITEM 1. BUSINESS",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "XOM 10-K filed 2026-02-18",
-        "distance": 0.2378941774368286
-      },
-      {
-        "text": "\u2022 Adequacy of the Firm\u2019s risk management framework, disclosure controls and procedures and internal control over financial reporting;\n\u2022 Adverse judicial or regulatory proceedings;\n\u2022 Ability of the Firm to determine accurate values of certain assets and liabilities;\n\u2022 Occurrence of natural or man-made disasters or calamities, including health emergencies, the spread of infectious diseases, epidemics or pandemics, an outbreak or escalation of hostilities or other geopolitical instabilities, the effects of climate change or extraordinary events beyond the Firm's control, and the Firm\u2019s ability to deal effectively with disruptions caused by the foregoing;\n\u2022 Ability of the Firm to maintain the security of its financial, accounting, technology, data processing and other operational systems and facilities;\n\u2022 Ability of the Firm to withstand disruptions that may be caused by any failure of its operational systems or those of third parties;\n\u2022 Ability of the Firm to effectively defend itself against cyber attacks and other attempts by unauthorized parties to access information of the Firm or its customers or to disrupt the Firm\u2019s systems; and\n\u2022 The other risks and uncertainties detailed in Part I, Item 1A: Risk Factors in JPMorganChase\u2019s 2024 Form 10-K.\nAny forward-looking statements made by or on behalf of the Firm speak only as of the date they are made, and JPMorganChase does not undertake to update any forward-looking statements. The reader should, however, consult any further disclosures of a forward-looking nature the Firm may make in any subsequent Annual Reports on Form 10-K, Quarterly Reports on Form 10-Q or Current Reports on Form 8-K.\nConsolidated statements of income (unaudited)",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "JPM 10-Q filed 2025-11-04",
-        "distance": 0.25311172008514404
-      },
-      {
-        "text": "This executive overview of the MD&A highlights selected information and does not contain all of the information that is important to readers of this Form 10-Q. For a complete description of the trends and uncertainties, as well as the risks and critical accounting estimates affecting the Firm, this Form 10-Q and the 2024 Form 10-K should be read together and in their entirety.\nFinancial performance of JPMorganChase (unaudited) As of or for the period ended, (in millions, except per share data and ratios) Three months ended September 30, Nine months ended September 30, 2025 2024 Change 2025 2024 Change Selected income statement data Noninterest revenue $ 22,461 $ 19,249 17 % $ 66,201 $ 65,555 1 % Net interest income 23,966 23,405 2 70,448 69,233 2 Total net revenue 46,427 42,654 9 136,649 134,788 1 Total noninterest expense 24,281 22,565 8 71,657 69,035 4 Pre-provision profit 22,146 20,089 10 64,992 65,753 (1) Provision for credit losses 3,403 3,111 9 9,557 8,047 19 Net income 14,393 12,898 12 44,023 44,466 (1) Diluted earnings per share 5.07 4.37 16 15.38 14.94 3 Selected ratios and metrics Return on common equity 17 % 16 % 17 % 19 % Return on tangible common equity 20 19 21 23 Book value per share $ 124.96 $ 115.15 9 $ 124.96 $ 115.15 9 Tangible book value per share 105.70 96.42 10 105.70 96.42 10 Capital ratios (a)(b) CET1 capital 14.8 % 15.3 % 14.8 % 15.3 % Tier 1 capital 15.8 16.4 15.8 16.4 Total capital 17.7 18.2 17.7 18.2 Memo: NII excluding Markets (c) $ 23,391 $ 23,447 \u2014 $ 68,734 $ 69,405 (1) NIR excluding Markets (c) 14,785 12,716 16 42,537 44,492 (4) Markets (d) 8,944 7,152 25 27,543 22,958 20 Total net revenue - managed basis $ 47,120 $ 43,315 9 $ 138,814 $ 136,855 1",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "JPM 10-Q filed 2025-11-04",
-        "distance": 0.2586901783943176
       }
     ],
     "flags": []
@@ -306,39 +306,39 @@
     "notes": null,
     "top_k_results": [
       {
+        "text": "Gross profit consists of total net revenue less cost of revenue. Cost of revenue consists of the cost of semiconductors, including wafer fabrication, assembly, testing and packaging, board and device costs, manufacturing support costs, including labor and overhead associated with such purchases, final test yield fallout, inventory and warranty provisions, memory and component costs, tariffs, and shipping costs.\u00a0Cost of revenue also includes acquisition-related intangible amortization expense, costs for license and development and service arrangements, IP-related costs, and stock-based compensation related to personnel associated with manufacturing operations.\nGross margins decreased to 71.1% in fiscal year 2026 from 75.0% in fiscal year 2025 as our business model transitioned from offering Hopper HGX systems to Blackwell full-scale datacenter solutions and a $4.5 billion charge associated with H20 excess inventory and purchase obligations in the first quarter of fiscal year 2026.\nProvisions for inventory and excess inventory purchase obligations totaled $7.2\u00a0billion and $3.7\u00a0billion for fiscal years 2026 and 2025, respectively, including $4.5 billion associated with H20 excess inventory and purchase obligations for the first quarter of fiscal year 2026. Sales of previously reserved inventory and settlements of excess inventory purchase obligations resulted in a provision release of $1.5\u00a0billion and $689\u00a0million for fiscal years 2026 and 2025, respectively. The net effect on our gross margin was an unfavorable impact of 2.6% and 2.3% in fiscal years 2026 and 2025, respectively.\nOperating Expenses",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "NVDA 10-K filed 2026-02-25",
+        "distance": 0.26280027627944946
+      },
+      {
+        "text": "Year Ended Jan 25, 2026 Jan 26, 2025 Jan 28, 2024 Revenue $ 215,938 $ 130,497 $ 60,922 Cost of revenue 62,475 32,639 16,621 Gross profit 153,463 97,858 44,301 Operating expenses Research and development 18,497 12,914 8,675 Sales, general and administrative 4,579 3,491 2,654 Total operating expenses 23,076 16,405 11,329 Operating income 130,387 81,453 32,972 Interest income 2,300 1,786 866 Interest expense ( 259 ) ( 247 ) ( 257 ) Other income, net 9,022 1,034 237 Total other income, net 11,063 2,573 846 Income before income tax 141,450 84,026 33,818 Income tax expense 21,383 11,146 4,058 Net income $ 120,067 $ 72,880 $ 29,760 Net income per share: Basic $ 4.93 $ 2.97 $ 1.21 Diluted $ 4.90 $ 2.94 $ 1.19 Weighted average shares used in per share computation: Basic 24,359 24,555 24,690 Diluted 24,514 24,804 24,940\nConsolidated Statements of Comprehensive Income\n(In millions)\nYear Ended Jan 25, 2026 Jan 26, 2025 Jan 28, 2024 Net income $ 120,067 $ 72,880 $ 29,760 Other comprehensive income, net of tax Available-for-sale securities: Net change in unrealized gain 107 1 80 Cash flow hedges: Net change in unrealized gain (loss) 43 \u2014 ( 10 ) Other comprehensive income, net of tax 150 1 70 Total comprehensive income $ 120,217 $ 72,881 $ 29,830\nConsolidated Balance Sheets\n(In millions, except par value)",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "NVDA 10-K filed 2026-02-25",
+        "distance": 0.27173930406570435
+      },
+      {
+        "text": "Gross margin was $15,415 million for the fiscal quarter ended May\u00a03, 2026 compared to $10,197 million for the fiscal quarter ended May\u00a04, 2025 and $28,572 million for the two fiscal quarters ended May\u00a03, 2026 compared to $20,342 million for the two fiscal quarters ended May\u00a04, 2025. The increases were primarily due to strong product demand for our AI-related semiconductor solutions.\nAs a percentage of net revenue, gross margin was 69% for each of the fiscal quarter and two fiscal quarters ended\u00a0May\u00a03, 2026, and 68% for each of the fiscal quarter and two fiscal quarters ended\u00a0May\u00a04, 2025. The increases were primarily due to the gross margin benefit from our net revenue growth, partially offset by a higher mix of semiconductor solutions net revenue, which has a lower gross margin than infrastructure software.\nResearch and Development Expense\nResearch and development expense increased $302 million, or 11%, and $1,014 million or 21%, for the fiscal quarter and two fiscal quarters ended\u00a0May\u00a03, 2026, respectively, compared to the prior year fiscal periods. The increases were primarily due to higher stock-based compensation.\nSelling, General and Administrative Expense\nSelling, general and administrative expense decreased $28 million, or 3%, and increased $42 million or 2% for the fiscal quarter and two fiscal quarters ended\u00a0May\u00a03, 2026, respectively, compared to the prior year fiscal periods. These modest changes principally result from two factors. In the current fiscal year periods, higher stock-based compensation was substantially offset by lower acquisition-related costs compared to the prior year fiscal periods.\nStock-Based Compensation Expense",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AVGO 10-Q filed 2026-06-09",
+        "distance": 0.2754446268081665
+      },
+      {
         "text": "In 2025, we recognized total revenues of $94.83 billion, representing a decrease of $2.86 billion compared to the prior year. In 2025, our net income attributable to common stockholders was $3.79 billion, representing a decrease of $3.30 billion compared to the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies to enable increased deliveries and deployments of our products, and invest in research and development to accelerate our AI, software and fleet-based profits for further revenue growth.\nWe ended 2025 with $44.06 billion in cash and cash equivalents and investments, representing an increase of $7.50 billion from the end of 2024. Our cash flows provided by operating activities were $14.75 billion in 2025 compared to $14.92 billion in 2024, representing a decrease of $176 million. Capital expenditures amounted to $8.53 billion in 2025 compared to $11.34 billion in 2024, representing a decrease of $2.82 billion. Overall growth has allowed our business to generally fund itself, and we will continue to make critical high-value investments while maintaining a strong balance sheet.\nManagement Opportunities, Challenges and Uncertainties and 2026 Outlook\nAutomotive and AI Enabled Products\u2014Production",
         "tier": 2,
         "source": "sec_edgar",
         "section_heading": "TSLA 10-K filed 2026-01-29",
-        "distance": 0.2789992690086365
+        "distance": 0.2789992094039917
       },
       {
-        "text": "As of September\u00a027, 2025 and September\u00a028, 2024, the Company had total deferred revenue of $ 13.7 billion and $ 12.8 billion, respectively. As of September\u00a027, 2025, the Company expects 66 % of total deferred revenue to be realized in less than a year, 23 % within one-to-two years, 9 % within two-to-three years and 2 % in greater than three years.\nNote 3 \u2013 Earnings Per Share\nThe following table shows the computation of basic and diluted earnings per share for 2025, 2024 and 2023 (net income in millions and shares in thousands):\n2025 2024 2023 Numerator: Net income $ 112,010 $ 93,736 $ 96,995 Denominator: Weighted-average basic shares outstanding 14,948,500 15,343,783 15,744,231 Effect of dilutive share-based awards 56,197 64,312 68,316 Weighted-average diluted shares 15,004,697 15,408,095 15,812,547 Basic earnings per share $ 7.49 $ 6.11 $ 6.16 Diluted earnings per share $ 7.46 $ 6.08 $ 6.13\nApproximately 24 million restricted stock units (\u201cRSUs\u201d) were excluded from the computation of diluted earnings per share for 2023 because their effect would have been antidilutive.\nNote 4 \u2013 Financial Instruments\nCash, Cash Equivalents and Marketable Securities\nThe following tables show the Company\u2019s cash, cash equivalents and marketable securities by significant investment category as of September\u00a027, 2025 and September\u00a028, 2024 (in millions):",
+        "text": "Gross margin increased from a year ago on improved mix from Blackwell Ultra. Gross margin was approximately flat sequentially as our Blackwell architecture remains the vast majority of our revenue.\nOperating expenses were up 55% from a year ago and up 10% sequentially. These increases were driven by higher compute infrastructure and compensation and benefits costs.\nFinancial Information by Business Segment and Geographic Data\nRefer to Note 13 of the Notes to Condensed Consolidated Financial Statements in Part I, Item 1 of this Quarterly Report on Form 10-Q for disclosures regarding segment information.\nCritical Accounting Policies and Estimates\nRefer to Part II, Item 7, \u201cCritical Accounting Policies and Estimates\u201d of our Annual Report on Form 10-K for the fiscal year ended January\u00a025, 2026. There have been no material changes to our Critical Accounting Policies and Estimates.\nResults of Operations\nThe following table sets forth, for the periods indicated, certain items in our Condensed Consolidated Statements of Income expressed as a percentage of revenue.\nThree Months Ended Six Months Ended Jul 26, 2026 Jul 27, 2025 Jul 26, 2026 Jul 27, 2025 Revenue 100.0 % 100.0 % 100.0 % 100.0 % Cost of revenue 25.0 27.6 25.0 33.4 Gross profit 75.0 72.4 75.0 66.6 Operating expenses Research and development 7.4 9.2 7.5 9.1 Sales, general and administrative 1.4 2.4 1.5 2.4 Total operating expenses 8.8 11.6 9.0 11.5 Operating income 66.2 60.8 66.0 55.1 Other income, net 8.1 6.0 13.6 3.4 Income before income tax 74.3 66.8 79.6 58.5 Income tax expense 12.3 10.2 13.2 8.7 Net income 62.0 % 56.6 % 66.4 % 49.8 %\nRevenue and Reportable Segments\nRevenue by Reportable Segments",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "AAPL 10-K filed 2025-10-31",
-        "distance": 0.2815086841583252
-      },
-      {
-        "text": "As of or for the period ended, (in millions, except per share, ratio, employee data and where otherwise noted) 1Q26 4Q25 3Q25 2Q25 1Q25 Selected income statement data Total net revenue $ 49,836 $ 45,798 $ 46,427 $ 44,912 $ 45,310 Total noninterest expense 26,850 23,983 24,281 23,779 23,597 Pre-provision profit (a) 22,986 21,815 22,146 21,133 21,713 Provision for credit losses 2,507 4,655 (d) 3,403 2,849 3,305 Income before income tax expense 20,479 17,160 18,743 18,284 18,408 Income tax expense 3,985 4,135 4,350 3,297 3,765 Net income $ 16,494 $ 13,025 $ 14,393 $ 14,987 $ 14,643 Earnings per share data Net income:\u00a0\u00a0\u00a0\u00a0    Basic $ 5.95 $ 4.64 $ 5.08 $ 5.25 $ 5.08 Diluted 5.94 4.63 5.07 5.24 5.07 Average shares:  Basic 2,716.2 2,735.3 2,762.4 2,788.7 2,819.4 Diluted 2,720.2 2,740.5 2,767.6 2,793.7 2,824.3 Market and per common share data Market capitalization $ 788,205 $ 868,793 $ 858,683 $ 797,181 $ 681,712 Common shares at period-end 2,679.5 2,696.2 2,722.2 2,749.7 2,779.1 Book value per share $ 128.38 $ 126.99 $ 124.96 $ 122.51 $ 119.24 Tangible book value per share (\u201cTBVPS\u201d) (a) 108.87 107.56 105.70 103.40 100.36 Cash dividends declared per share 1.50 1.50 1.50 1.40 1.40 Selected ratios and metrics Return on common equity (\u201cROE\u201d) (b) 19 % 15 % 17 % 18 % 18 % Return on tangible common equity (\u201cROTCE\u201d) (a)(b) 23 18 20 21 21 Return on assets (b) 1.41 1.14 1.26 1.35 1.40 Overhead ratio 54 52 52 53 52 Loans-to-deposits ratio 56 58 56 55 54 Firm Liquidity coverage ratio (\u201cLCR\u201d) (average) 112 111 110 113 113 JPMorgan Chase Bank, N.A.",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "JPM 10-Q filed 2026-05-01",
-        "distance": 0.2913118600845337
-      },
-      {
-        "text": "Revenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 2%, and 3%, respectively.\nCurrent year net income and diluted EPS were positively impacted by net gains from investments in OpenAI, which resulted in an increase in net income and diluted EPS of $4.5 billion and $0.60, respectively. Prior year net income and diluted EPS were negatively impacted by net losses from investments in OpenAI, which resulted in a decrease in net income and diluted EPS of $1.5 billion and $0.20, respectively.\nSEGMENT RESULTS OF OPERATIONS\n(In millions, except percentages) Three Months Ended December 31, Percentage Change Six Months Ended December 31, Percentage Change 2025 2024 2025 2024 Productivity and Business Processes Revenue $ 34,116 $ 29,437 16% $ 67,136 $ 57,754 16% Cost of revenue 6,110 5,569 10% 11,831 10,863 9% Operating expenses 7,407 6,983 6% 14,299 13,490 6% Operating income $ 20,599 $ 16,885 22% $ 41,006 $ 33,401 23% Intelligent Cloud Revenue $ 32,907 $ 25,544 29% $ 63,804 $ 49,636 29% Cost of revenue 13,566 9,405 44% 25,880 18,019 44% Operating expenses 5,468 5,288 3% 10,660 10,263 4% Operating income $ 13,873 $ 10,851 28% $ 27,264 $ 21,354 28% More Personal Computing Revenue $ 14,250 $ 14,651 (3)% $ 28,006 $ 27,827 1% Cost of revenue 6,302 6,825 (8)% 12,310 13,016 (5)% Operating expenses 4,145 3,909 6% 7,730 7,361 5% Operating income $ 3,803 $ 3,917 (3)% $ 7,966 $ 7,450 7% Total Revenue $ 81,273 $ 69,632 17% $ 158,946 $ 135,217 18% Cost of revenue 25,978 21,799 19% 50,021 41,898 19% Operating expenses 17,020 16,180 5% 32,689 31,114 5% Operating income $ 38,275 $ 31,653 21% $ 76,236 $ 62,205 23%\nReportable Segments\nThree Months Ended December 31, 2025 Compared with Three Months Ended December 31, 2024\nProductivity and Business Processes",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "MSFT 10-Q filed 2026-01-28",
-        "distance": 0.2954878807067871
-      },
-      {
-        "text": "(In millions, except per share amounts) (Unaudited) Three Months Ended December 31, Six Months Ended December 31, 2025 2024 2025 2024 Revenue: Product $ 16,451 $ 16,219 $ 32,373 $ 31,491 Service and other 64,822 53,413 126,573 103,726 Total revenue 81,273 69,632 158,946 135,217 Cost of revenue: Product 3,505 3,856 6,427 7,150 Service and other 22,473 17,943 43,594 34,748 Total cost of revenue 25,978 21,799 50,021 41,898 Gross margin 55,295 47,833 108,925 93,319 Research and development 8,504 7,917 16,650 15,461 Sales and marketing 6,584 6,440 12,301 12,157 General and administrative 1,932 1,823 3,738 3,496 Operating income 38,275 31,653 76,236 62,205 Other income (expense), net 9,971 ( 2,288 ) 6,311 ( 2,571 ) Income before income taxes 48,246 29,365 82,547 59,634 Provision for income taxes 9,788 5,257 16,342 10,859 Net income $ 38,458 $ 24,108 $ 66,205 $ 48,775 Earnings per share: Basic $ 5.18 $ 3.24 $ 8.91 $ 6.56 Diluted $ 5.16 $ 3.23 $ 8.87 $ 6.53 Weighted average shares outstanding: Basic 7,431 7,435 7,432 7,434 Diluted 7,460 7,468 7,463 7,469\nCOMPREHENSIVE IN COME STATEMENTS\n(In millions) (Unaudited) Three Months Ended December 31, Six Months Ended December 31, 2025 2024 2025 2024 Net income $ 38,458 $ 24,108 $ 66,205 $ 48,775 Other comprehensive income (loss), net of tax: Net change related to derivatives ( 3 ) 34 ( 6 ) 24 Net change related to investments ( 161 ) ( 434 ) 526 680 Translation adjustments and other 223 ( 1,034 ) 125 ( 730 ) Other comprehensive income (loss) 59 ( 1,434 ) 645 ( 26 ) Comprehensive income $ 38,517 $ 22,674 $ 66,850 $ 48,749\nBALANCE SHEETS",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "MSFT 10-Q filed 2026-01-28",
-        "distance": 0.30161142349243164
+        "section_heading": "NVDA 10-Q filed 2026-08-26",
+        "distance": 0.2794255018234253
       }
     ],
     "flags": []
@@ -349,39 +349,39 @@
     "notes": null,
     "top_k_results": [
       {
-        "text": "The following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (\u201cMD&A\u201d) is intended to help the reader understand the results of operations and financial condition of Microsoft Corporation. MD&A is provided as a supplement to, and should be read in conjunction with, our consolidated financial statements and the accompanying Notes to Financial Statements (Part II, Item 8 of this Form 10-K). This section generally discusses the results of our operations for the year ended June 30, 2026 compared to the year ended June 30, 2025. For a discussion of the year ended June 30, 2025 compared to the year ended June 30, 2024, please refer to Part II, Item 7, \u201cManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\u201d in our Annual Report on Form 10-K for the year ended June 30, 2025.\nOVERVIEW\nMicrosoft is a technology company committed to making digital technology and artificial intelligence (\u201cAI\u201d) available broadly and doing so responsibly, with a mission to empower every person and every organization on the planet to achieve more. We create platforms and applications, powered by AI, that deliver innovative solutions that meet the evolving needs of our customers.\nWe generate revenue by offering a wide range of cloud-based solutions, content, and other services to people and businesses; licensing and supporting an array of software products; delivering relevant online advertising to a global audience; and designing and selling devices. Our most significant expenses are related to compensating employees; supporting and investing in our cloud-based services, including datacenter operations; designing, manufacturing, marketing, and selling our other products and services; and income taxes.",
+        "text": "Purpose, Approach and Non-GAAP Measures\nThe purpose of Management's Discussion and Analysis (MD&A) is to provide an understanding of Procter & Gamble's financial condition, results of operations and cash flows by focusing on changes in certain key measures from year to year. The MD&A is provided as a supplement to, and should be read in conjunction with, our Consolidated Financial Statements and accompanying Notes. The MD&A is organized in the following sections:\n\u2022 Overview\n\u2022 Summary of 2026 Results\n\u2022 Economic Conditions and Uncertainties\n\u2022 Results of Operations\n\u2022 Segment Results\n\u2022 Cash Flow, Financial Condition and Liquidity\n\u2022 Critical Accounting Policies and Estimates\n\u2022 Other Information\nThroughout the MD&A we refer to measures used by management to evaluate performance, including unit volume growth, net sales, net earnings, diluted net earnings per common share (diluted EPS) and operating cash flow. We also refer to a number of financial measures that are not defined under U.S. GAAP, including organic sales growth, Core earnings per share (Core EPS), adjusted free cash flow and adjusted free cash flow productivity. The explanation at the end of the MD&A provides the definition of these non-GAAP measures, details on the use and the derivation of these measures, as well as reconciliations to the most directly comparable U.S. GAAP measure.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "MSFT 10-K filed 2026-07-29",
-        "distance": 0.35866981744766235
+        "section_heading": "PG 10-K filed 2026-08-04",
+        "distance": 0.30550044775009155
       },
       {
-        "text": "The Company believes that open and honest communication among team members, managers and leaders helps create an open, collaborative work environment where everyone can contribute, grow and succeed. Team members are encouraged to come to their managers with questions, feedback or concerns, and the Company conducts surveys that gauge employee sentiment in areas like career development, manager performance and inclusion.\nThe Company is committed to the safety and security of its team members everywhere it operates. The Company supports employees with general safety, security and crisis management training, and by putting specific programs in place for those working in potentially high-hazard environments.\nAvailable Information",
+        "text": "Item 2.\u00a0\u00a0Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations\nThe following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (MD&A) is intended to provide information that will assist the reader in understanding the company\u2019s Consolidated Financial Statements, the changes in certain key items in those financial statements between select periods and the primary factors that accounted for those changes. In addition, we discuss how certain accounting principles, policies and critical estimates affect our Consolidated Financial Statements. Our discussion also contains certain forward-looking statements related to future events and expectations as well as a discussion of the many factors that we believe may have an impact on our business on an ongoing basis. This MD&A should be read in conjunction with our discussion of cautionary statements and significant risks to the company\u2019s business under Part I, Item 1A. Risk Factors of the 2025 Form\u00a010-K .\nHighlights for the second quarter of 2026 include:\n\u2022 Total sales and revenues for the second quarter of 2026 were $20.543 billion, an increase of $3.974 billion, or 24 percent, compared with $16.569 billion in the second quarter of 2025. Sales were higher across the three primary segments.\n\u2022 Operating profit margin was 20.9 percent for the second quarter of 2026, compared with 17.3 percent for the second quarter of 2025. Adjusted operating profit margin was 21.9 percent for the second quarter of 2026, compared with 17.6 percent for the second quarter of 2025.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "AAPL 10-K filed 2025-10-31",
-        "distance": 0.378883957862854
+        "section_heading": "CAT 10-Q filed 2026-08-05",
+        "distance": 0.3125571012496948
       },
       {
-        "text": "The following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (\u201cMD&A\u201d) is intended to help the reader understand the results of operations and financial condition of Microsoft Corporation. MD&A is provided as a supplement to, and should be read in conjunction with, our Annual Report on Form 10-K for the year ended June 30, 2025, and our consolidated financial statements and the accompanying Notes to Financial Statements (Part I, Item 1 of this Form 10-Q).\nOVERVIEW\nMicrosoft is a technology company committed to making digital technology and artificial intelligence (\u201cAI\u201d) available broadly and doing so responsibly, with a mission to empower every person and every organization on the planet to achieve more. We create platforms and tools, powered by AI, that deliver innovative solutions that meet the evolving needs of our customers.\nWe generate revenue by offering a wide range of cloud-based solutions, content, and other services to people and businesses; licensing and supporting an array of software products; delivering relevant online advertising to a global audience; and designing and selling devices. Our most significant expenses are related to compensating employees; supporting and investing in our cloud-based services, including datacenter operations; designing, manufacturing, marketing, and selling our other products and services; and income taxes.\nHighlights from the third quarter of fiscal year 2026 compared with the third quarter of fiscal year 2025 included:\nMicrosoft Cloud revenue increased 29% to $54.5 billion.\nCommercial remaining performance obligation increased 99% to $627 billion.\nMicrosoft 365 Commercial cloud revenue increased 19%.\nMicrosoft 365 Consumer cloud revenue increased 33%.\nLinkedIn revenue increased 12%.\nDynamics 365 revenue increased 22%.",
+        "text": "Item 2.\u00a0\u00a0Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations\nThe following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (MD&A) is intended to provide information that will assist the reader in understanding the company\u2019s Consolidated Financial Statements, the changes in certain key items in those financial statements between select periods and the primary factors that accounted for those changes. In addition, we discuss how certain accounting principles, policies and critical estimates affect our Consolidated Financial Statements. Our discussion also contains certain forward-looking statements related to future events and expectations as well as a discussion of the many factors that we believe may have an impact on our business on an ongoing basis. This MD&A should be read in conjunction with our discussion of cautionary statements and significant risks to the company\u2019s business under Part I, Item 1A. Risk Factors of the 2025 Form\u00a010-K .\nHighlights for the first quarter of 2026 include:\n\u2022 Total sales and revenues for the first quarter of 2026 were $17.415 billion, an increase of $3.166 billion, or 22 percent, compared with $14.249 billion in the first quarter of 2025. Sales were higher across the three primary segments.\n\u2022 Operating profit margin was 17.7 percent for the first quarter of 2026, compared with 18.1 percent for the first quarter of 2025. Adjusted operating profit margin was 18.0 percent for the first quarter of 2026, compared with 18.3 percent for the first quarter of 2025.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "MSFT 10-Q filed 2026-04-29",
-        "distance": 0.3795180916786194
+        "section_heading": "CAT 10-Q filed 2026-05-06",
+        "distance": 0.31414318084716797
       },
       {
-        "text": "We report our financial performance based on the following three segments: Productivity and Business Processes, Intelligent Cloud, and More Personal Computing. The segment amounts included in MD&A are presented on a basis consistent with our internal management reporting.\nAdditional information on our reportable segments is contained in Note 18 \u2013 Segment Information and Geographic Data of the Notes to Financial Statements (Part II, Item 8 of this Form 10-K).\nMetrics\nWe use metrics in assessing the performance of our business and to make informed decisions regarding the allocation of resources. We disclose metrics to enable investors to evaluate progress against our ambitions, provide transparency into performance trends, and reflect the continued evolution of our products and services. Our commercial and other business metrics are fundamentally connected based on how customers use our products and services. The metrics are disclosed in the MD&A or the Notes to Financial Statements (Part II, Item 8 of this Form 10-K). Financial metrics are calculated based on financial results prepared in accordance with accounting principles generally accepted in the United States of America (\u201cGAAP\u201d), and growth comparisons relate to the corresponding period of last fiscal year.\nIn the first quarter of fiscal year 2026, we made updates to our metrics to align with how we manage and monitor certain businesses. As part of these updates, Microsoft 365 Consumer subscribers was removed as a metric.\nCommercial",
+        "text": "Purpose, Approach and Non-GAAP Measures\nThe purpose of Management's Discussion and Analysis (MD&A) is to provide an understanding of Procter & Gamble's financial condition, results of operations and cash flows by focusing on changes in certain key measures from year to year. The MD&A is provided as a supplement to, and should be read in conjunction with, our Consolidated Financial Statements and accompanying Notes.\nThe MD&A is organized in the following sections:\n\u2022 Overview\n\u2022 Recent Developments\n\u2022 Summary of Results \u2013 Nine Months Ended March 31, 2026\n\u2022 Economic Conditions and Uncertainties\n\u2022 Results of Operations \u2013 Three and Nine Months Ended March 31, 2026\n\u2022 Segment Results \u2013 Three and Nine Months Ended March 31, 2026\n\u2022 Liquidity and Capital Resources\n\u2022 Measures Not Defined by U.S. GAAP\nThroughout the MD&A we refer to measures used by management to evaluate performance, including unit volume growth, net sales, net earnings, diluted net earnings per common share (diluted EPS) and operating cash flow. We also refer to a number of financial measures that are not defined under U.S. GAAP, consisting of organic sales growth, Core earnings per share (Core EPS), adjusted free cash flow and adjusted free cash flow productivity. The explanation at the end of the MD&A provides the definition of these non-GAAP measures, details on the use and the derivation of these measures, as well as reconciliations to the most directly comparable U.S. GAAP measure.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "MSFT 10-K filed 2026-07-29",
-        "distance": 0.3806403875350952
+        "section_heading": "PG 10-Q filed 2026-04-24",
+        "distance": 0.31566059589385986
       },
       {
-        "text": "The following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (\u201cMD&A\u201d) is intended to help the reader understand the results of operations and financial condition of Microsoft Corporation. MD&A is provided as a supplement to, and should be read in conjunction with, our Annual Report on Form 10-K for the year ended June 30, 2025, and our consolidated financial statements and the accompanying Notes to Financial Statements (Part I, Item 1 of this Form 10-Q).\nOVERVIEW\nMicrosoft is a technology company committed to making digital technology and artificial intelligence (\u201cAI\u201d) available broadly and doing so responsibly, with a mission to empower every person and every organization on the planet to achieve more. We create platforms and tools, powered by AI, that deliver innovative solutions that meet the evolving needs of our customers.\nWe generate revenue by offering a wide range of cloud-based solutions, content, and other services to people and businesses; licensing and supporting an array of software products; delivering relevant online advertising to a global audience; and designing and selling devices. Our most significant expenses are related to compensating employees; supporting and investing in our cloud-based services, including datacenter operations; designing, manufacturing, marketing, and selling our other products and services; and income taxes.\nHighlights from the second quarter of fiscal year 2026 compared with the second quarter of fiscal year 2025 included:\nMicrosoft Cloud revenue increased 26% to $51.5 billion.\nCommercial remaining performance obligation increased 110% to $625 billion.\nMicrosoft 365 Commercial cloud revenue increased 17%.\nMicrosoft 365 Consumer cloud revenue increased 29%.\nLinkedIn revenue increased 11%.",
+        "text": "Purpose, Approach and Non-GAAP Measures\nThe purpose of Management's Discussion and Analysis (MD&A) is to provide an understanding of Procter & Gamble's financial condition, results of operations and cash flows by focusing on changes in certain key measures from year to year. The MD&A is provided as a supplement to, and should be read in conjunction with, our Consolidated Financial Statements and accompanying Notes.\nThe MD&A is organized in the following sections:\n\u2022 Overview\n\u2022 Recent Developments\n\u2022 Summary of Results \u2013 Six Months Ended December 31, 2025\n\u2022 Economic Conditions and Uncertainties\n\u2022 Results of Operations \u2013 Three and Six Months Ended December 31, 2025\n\u2022 Segment Results \u2013 Three and Six Months Ended December 31, 2025\n\u2022 Liquidity and Capital Resources\n\u2022 Measures Not Defined by U.S. GAAP\nThroughout the MD&A we refer to measures used by management to evaluate performance, including unit volume growth, net sales, net earnings, diluted net earnings per common share (diluted EPS) and operating cash flow. We also refer to a number of financial measures that are not defined under U.S. GAAP, consisting of organic sales growth, Core earnings per share (Core EPS), adjusted free cash flow and adjusted free cash flow productivity. The explanation at the end of the MD&A provides the definition of these non-GAAP measures, details on the use and the derivation of these measures, as well as reconciliations to the most directly comparable U.S. GAAP measure.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "MSFT 10-Q filed 2026-01-28",
-        "distance": 0.38095057010650635
+        "section_heading": "PG 10-Q filed 2026-01-23",
+        "distance": 0.3178623914718628
       }
     ],
     "flags": []
@@ -392,39 +392,39 @@
     "notes": null,
     "top_k_results": [
       {
+        "text": "From time to time, we are subject to litigation or claims that could negatively affect our business operations and financial position.  As we have grown, we have seen a rise in the number of litigation matters against us.  These matters have included copyright and other claims related to our content, products, patent infringement claims, tax litigation, employment related litigation, as well as consumer and securities class actions, each of which are typically expensive to defend.  Litigation disputes could cause us to incur unforeseen expenses, result in content unavailability, service disruptions, and otherwise occupy a significant amount of our management's time and attention, any of which could negatively affect our business operations and financial position.  We also receive inquiries and subpoenas and other types of information requests from government authorities, and we may become subject to related claims and other actions related to our business activities.  While the ultimate outcome of investigations, inquiries, information requests and related legal proceedings is difficult to predict, such matters can be expensive, time-consuming and distracting, and adverse resolutions or settlements of those matters may result in, among other things, modification of our business practices, reputational harm or costs and significant payments, any of which could negatively affect our business operations and financial position.\nOur advertising offering is subject to various risks and uncertainties, which may adversely affect our business.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "NFLX 10-K filed 2026-01-23",
+        "distance": 0.2214478850364685
+      },
+      {
+        "text": "Claims, Litigation, Government Investigations, and Other Proceedings May Adversely Affect Our Business and Results of Operations\nAs an innovative company offering a wide range of consumer and business products and services around the world, we are regularly subject to actual and threatened claims, litigation, reviews, investigations, and other proceedings, including proceedings by governments and regulatory authorities, involving a wide range of issues, including patent and other intellectual property matters, taxes, labor and employment (including the characterization of delivery drivers), competition and antitrust, privacy, data use, data protection, data security, data localization, network security, consumer protection, commercial disputes, goods and services offered by us and by third parties (including artificial intelligence technologies and services), healthcare, and other matters. The number and scale of these proceedings have increased over time as our businesses have expanded in scope and geographic reach, as our products, services, and operations have become more complex and available to, and used by, more people, and as governments and regulatory authorities seek to regulate us on a pre-emptive basis. For example, we are litigating a number of matters alleging price fixing, monopolization, and consumer protection claims, including those brought by state attorneys general and the Federal Trade Commission. Any of these types of proceedings can have an adverse effect on us",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "AMZN 10-K filed 2026-02-06",
+        "distance": 0.22470557689666748
+      },
+      {
+        "text": "In the ordinary course of business, Johnson & Johnson and its subsidiaries are subject to numerous claims and lawsuits involving various issues such as product liability, patent disputes and claims that their product sales, marketing and pricing practices violate various antitrust, unfair trade practices and/or consumer protection laws. The Company\u2019s more significant legal proceedings are described in Note 19 Legal proceedings under Notes to the Consolidated Financial Statements included in Item 8 of this Report. Litigation, in general, and securities, derivative action, class action and multi-district litigation, in particular, can be expensive and disruptive. Some of these matters may include thousands of plaintiffs, may involve parties seeking large and/or indeterminate amounts, including punitive or exemplary damages, and may remain unresolved for several years. For example, the Company is a defendant in numerous lawsuits arising out of the use of body powders containing talc, primarily JOHNSON\u2019S Baby Powder. While the Company believes it has substantial defenses in these matters, it is not feasible to predict the ultimate outcome of litigation. The Company has been and could in the future be required to pay significant amounts as a result of settlements or judgments in these matters, potentially in excess of accruals, including matters where the Company could be held jointly and severally liable among other defendants. The resolution of, or increase in accruals for, one or more of these matters in any reporting period could have a material adverse effect on the Company\u2019s results of operations and cash flows for that period.",
+        "tier": 2,
+        "source": "sec_edgar",
+        "section_heading": "JNJ 10-K filed 2026-02-11",
+        "distance": 0.2248469591140747
+      },
+      {
         "text": "The outcome of litigation or government investigations is inherently uncertain. If one or more legal matters were resolved against the Company or an indemnified third party in a reporting period for amounts above management\u2019s expectations, the Company\u2019s results of operations, financial condition and stock price for that reporting period could be materially adversely affected. Further, such an outcome can result in significant monetary damages, disgorgement of revenue or profits, remedial corporate measures or injunctive relief against the Company. Adverse resolution of legal matters has from time to time required, and can in the future require, the Company to change its business practices. It can also limit the Company\u2019s ability to enjoin others from using, or to derive value from, its intellectual property rights, and to develop, manufacture, use, import or offer for sale certain products and services, all of which could materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.\nWhile the Company maintains insurance coverage for certain types of claims, such insurance coverage may be insufficient to cover all losses or all types of claims that may arise.\nThe Company is subject to complex and changing laws and regulations worldwide, which exposes the Company to potential liabilities, increased costs and other adverse effects on the Company\u2019s business.",
         "tier": 2,
         "source": "sec_edgar",
         "section_heading": "AAPL 10-K filed 2025-10-31",
-        "distance": 0.2302238941192627
+        "distance": 0.23022395372390747
       },
       {
-        "text": "We are also subject to various other legal proceedings, risks and claims that arise from the normal course of business activities. For example, on August 5, 2023, a putative class action was filed in the United States District Court for the Northern District of California, purportedly on behalf of all U.S. individuals impacted by a data misappropriation incident earlier that year. Several additional lawsuits followed, each asserting claims under various state laws and seeking monetary damages and other relief. If an unfavorable ruling or development were to occur in these or other possible legal proceedings, risks and claims, there exists the possibility of a material adverse impact on our business, results of operations, prospects, cash flows, financial position or brand.\nLetters of Credit\nAs of December\u00a031, 2025, we had $ 556 million of unused letters of credit outstanding.\nNote 14 \u2013 Variable Interest Entity Arrangements",
+        "text": "We are subject to a variety of legal proceedings and legal compliance risks in virtually every part of the world. We face risk of exposure to various types of claims, lawsuits and government investigations. We are involved in various claims and lawsuits related to product design, manufacture and performance liability (including claimed asbestos exposure), contracts, employment issues, environmental matters, intellectual property rights, tax, securities and other legal proceedings that arise in and outside of the ordinary course of our business.\u00a0 The industries in which we operate are also periodically reviewed or investigated by regulators, which could lead to enforcement actions, fines and penalties or the assertion of private litigation claims.\u00a0 It is not possible to predict with certainty the outcome of claims, investigations and lawsuits, and we could in the future incur judgments, fines or penalties or enter into settlements of lawsuits and claims that could have an adverse effect on our reputation, business, results of operations or financial condition in any particular period.\nThe global and diverse nature of our operations means that legal and compliance risks will continue to exist and additional legal proceedings and other contingencies, the outcome of which cannot be predicted with certainty, may arise from time to time. In addition, subsequent developments in legal proceedings may affect our assessment and estimates of loss contingencies recorded as a reserve and require us to make payments in excess of our reserves.  Such payments could have an adverse effect on our reputation, business and results of operations or financial condition.\nNew regulations or changes in financial services regulation could adversely impact Caterpillar and Cat Financial.",
         "tier": 2,
         "source": "sec_edgar",
-        "section_heading": "TSLA 10-K filed 2026-01-29",
-        "distance": 0.23485195636749268
-      },
-      {
-        "text": "We have claims and lawsuits against us that may result in adverse outcomes. We are subject to a variety of claims and lawsuits. These claims may arise from a wide variety of business practices and initiatives, including major new product releases, AI products and services, significant business transactions, warranty or product claims, employment practices, and regulation. As we continue to expand our business and offerings, we may experience new and novel legal claims. Adverse outcomes in some or all of these claims may result in significant monetary damages or injunctive relief that could adversely affect our ability to conduct our business. Litigation and other claims are subject to inherent uncertainties and management\u2019s view of these matters may change in the future. An adverse impact to our financial condition and results of operations could occur for the period in which the effect of an unfavorable outcome becomes probable and reasonably estimable.",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "MSFT 10-K filed 2026-07-29",
-        "distance": 0.2372363805770874
-      },
-      {
-        "text": "Other Legal Proceedings\nThe Company is subject to other legal proceedings and claims that have not been fully resolved and that have arisen in the ordinary course of business. The Company settled certain matters during the second quarter of 2026 that did not individually or in the aggregate have a material impact on the Company\u2019s financial condition or operating results. The outcome of litigation is inherently uncertain. If one or more legal matters were resolved against the Company in a reporting period for amounts above management\u2019s expectations, the Company\u2019s financial condition and operating results for that reporting period could be materially adversely affected.\nItem 1A.\u00a0\u00a0\u00a0\u00a0Risk Factors\nThe Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K under the heading \u201cRisk Factors.\u201d Except as set forth below, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nThe Company\u2019s products and services may be affected from time to time by design and manufacturing defects that could materially adversely affect the Company\u2019s business and result in harm to the Company\u2019s reputation.",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "AAPL 10-Q filed 2026-05-01",
-        "distance": 0.23772859573364258
-      },
-      {
-        "text": "Other Legal Proceedings\nThe Company is subject to other legal proceedings and claims that have not been fully resolved and that have arisen in the ordinary course of business. The Company settled certain matters during the third quarter of 2026 that did not individually or in the aggregate have a material impact on the Company\u2019s financial condition or operating results. The outcome of litigation is inherently uncertain. If one or more legal matters were resolved against the Company in a reporting period for amounts above management\u2019s expectations, the Company\u2019s financial condition and operating results for that reporting period could be materially adversely affected.\nItem 1A.\u00a0\u00a0\u00a0\u00a0Risk Factors\nThe Company\u2019s business, reputation, results of operations, financial condition and stock price can be materially and adversely affected by a number of factors, whether currently known or unknown, including those described in Part I, Item 1A of the 2025 Form 10-K and Part II, Item 1A of the Form 10-Q for the quarter ended March 28, 2026 (the \u201csecond quarter 2026 Form 10-Q\u201d), in each case under the heading \u201cRisk Factors.\u201d Except for the risk factors set forth below and those disclosed in Part II, Item 1A of the second quarter 2026 Form 10-Q , which are incorporated by reference herein, there have been no material changes to the Company\u2019s risk factors since the 2025 Form 10-K.\nFuture operating results depend upon the Company\u2019s ability to obtain components and computing resources in sufficient quantities and on commercially reasonable terms.",
-        "tier": 2,
-        "source": "sec_edgar",
-        "section_heading": "AAPL 10-Q filed 2026-07-31",
-        "distance": 0.24443566799163818
+        "section_heading": "CAT 10-K filed 2026-02-13",
+        "distance": 0.23086166381835938
       }
     ],
     "flags": []
@@ -439,35 +439,35 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Stochastic Price Dynamics Implied By the Limit Order Book",
-        "distance": 0.16080212593078613
+        "distance": 0.16080224514007568
       },
       {
         "text": "which will later represent the ask (resp. the bid) prices. Here we use the convention\na(0) =\u221e, b (0) = 0. (2.3)\n3\nThe set of limit order book con\ufb01gurations is de\ufb01ned as:\nL :={X = (X+,X\u2212)\u2208E, a (X)>b (X)}. (2.4)\nX+ (resp. X\u2212) then represent the buy (resp. sell) orders in the limit order book and the condition (2.4) is\ninterpreted as requiring that any outstanding buy order has a lower price than any outstanding sell order.\nThe setL will be referred to as the set of \u201cadmissible\u201d LOB con\ufb01gurations by opposition to the set E which\ncorresponds to \ufb01ctional order book con\ufb01gurations in which the constraint a(X) > b(X) is not enforced.\nThena(X) (resp. b(X) ) is the ask (resp. bid) price associated with the order book con\ufb01guration X. Figure\n3 shows an admissible con\ufb01guration of an order book.\n1 2 3 4 5 6 7 8 9\n1\n2\n3\n4\n5 buy orderssell orders\nFigure 3: An admissible con\ufb01guration of a limit order book, where the blue bars denote buy orders and the red bars denote\nsell orders. In this case, X+ = [1, 3, 2, 1, 0, 0, 0, 0, 0], and X\u2212 = [0, 0, 0, 0, 0, 1, 0, 3, 2]. Its ask price is 6 and bid price is 4.\n2.2 Order \ufb02ow\nThe state of the order book is modi\ufb01ed through order arrivals, executions or cancellations.\nWe distinguish four types of \u2019elementary\u2019 events: limit buy and sell orders and cancellation of buy and\nsell orders. A limit buy/sell order is an order to buy/sell a speci\ufb01ed amount of shares at a speci\ufb01ed price\nand a cancellation of buy/sell order is an order to cancel a certain amount of standing buy/sell shares in an\norder book. Each event is speci\ufb01ed by a price i\u2208{ 1,...,d } and a size z\u2208 N\\{0}. Let\nei := (0, 0,..., 1, 0,..., 0)\u2208 Nd,\nwhere \u201c1\u201d is in the i\u2212th position. Then an order book event of size z at price i maps a con\ufb01guration X\u2208E\nto a new con\ufb01guration X + \u2206X\u2208E. This way X\u2192X + \u2206X is described as below:\n\uf8f1\n\uf8f4\uf8f4\uf8f4\uf8f2\n\uf8f4\uf8f4\uf8f4\uf8f3",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "A mathematical framework for modelling order book dynamics",
-        "distance": 0.19919079542160034
+        "distance": 0.19919085502624512
       },
       {
         "text": "The result is a model which is su\ufb03ciently simple to allow analytical insight, and su\ufb03-\nciently realistic to provide a number of features of real life order books.\nWe are speci\ufb01cally interested in processes governing order book formation and recovery,\nand we look at some simple solutions to the resulting transport equation which are relevant\nin that context.\n2 Basic dynamics of the Limit Order Book\nSimple schematics of the limit order book is shown in Figure 1. We denote by S the price\nlevel, and by h(S,t ) the total quantity of limit orders available at level S at time t. We use\nsubscript to denote partial di\ufb00erentiation, so ht =\u2202h/\u2202t and hS =\u2202h/\u2202S .\n2.1 Conservation laws\nThe quantity between two price levels S1 and S2 is given by\nV (S1,S 2,t ) =\n\u222b S2\nS1\nh(S,t ) dS (1)\n\u2217JR is a Fund Manager at Pine Tree and a Visiting Senior Research Fellow at King\u2019s College London,\njan.rosenzweig@kcl.ac.uk\n1\narXiv:1910.09202v2  [q-fin.TR]  8 Dec 2020\nand the quantity \ufb02ux is de\ufb01ned as\nQ(S1,S 2,t ) = d\ndtV (S1,S 2,t ), (2)\nthe instantaneous rate of \ufb02ow of quantity through the given part of the order book. Then,\ndi\ufb00erentiating (1) with respect to time and using integration by parts, we get the law of\nconservation of quantity in the form\nht(S,t )\u2212QS(S,t ) =P (S,t ) (3)\nwhereQ(S,t ) is taken to mean Q(\u2212\u221e,S,t ) for the bid side, and Q(S,\u221e,t ) for the ask side.\nNote that it is unusual to make the underlying dynamics lognormal in orderbook models,\nsince the e\ufb00ects of lognormality are tiny on relevant price and time scales. Hence we formally\nallow bids lower than zero, but this has no meaningful e\ufb00ects on the analysis.\nEquation (3) is analogous to the standard physical conservation of mass. The left hand\nside contains the conserved terms, or \ufb02ow of quantity through the orderbook, and the right",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Conservation Laws in a Limit Order Book",
-        "distance": 0.2063179612159729
+        "distance": 0.20631790161132812
       },
       {
         "text": "Figure 1: MU(Micron) limit order book on 1st July 2019, with limit buy orders in blue and limit sell orders in red.\n18, 19, 20]. Queueing models [7, 10, 16, 18] represent the limit order book as a system of interacting queues,\ndriven by an order \ufb02ow described as a spatial point process. Another class of models represents the state of\nthe order book as a (pair of) densities, solution of a (stochastic) partial di\ufb00erential equation (SPDE) [8, 13].\nThese two classes of models are connected by scaling limits such as \ufb02uid limits [12, 14, 15] and di\ufb00usion\nlimits [6, 7, 17] of discrete order book models under suitable assumptions.\nThe sheer variety of stochastic models for limit order book dynamics makes it di\ufb03cult to perform a\ncomparative analysis, especially since these models use di\ufb00erent representations and assumptions as starting\npoints. In the present work we propose an approach which these models into a unifying overall framework,\nwhich can be useful for model comparison, model construction and also for investigating asymptotic behaviour\nunder various scaling assumptions. Speci\ufb01cally, we propose to decompose the dynamics of the limit order\nbook process into two separate ingredients:\n\u2022 the incoming order \ufb02ow, represented as a spatial point process, and\n\u2022 the market clearing procedure, represented as an operator acting of a pair of distributions of buy and\nsell orders.\nCurrent\nstate:\nXt\u2208L\nIntermediate\nstate:\nXt+ \u2206X\u2208E\nState at time\nt + \u2206t:\nXt+\u2206t\u2208L\nOrder \ufb02ow\nStochastic\nClearing operator\nDeterministic\nExisting models\nFigure 2: Decomposition of the order book dynamics.\nThe dynamics of the order book is decomposed as shown in Figure 2: at time t, the current state of the\norder book is Xt belonging to an appropriate state space L. An order \ufb02ow \u2206 X arrives in the order book",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "A mathematical framework for modelling order book dynamics",
-        "distance": 0.20859313011169434
+        "distance": 0.2085932493209839
       },
       {
         "text": "\ufb02ow and the clearing operator. Our model provides a \ufb02exible framework for modelling and simulating\norder book dynamics and studying various scaling limits of discrete order book models. We show that\nour framework includes previous models as special cases and yields insights into the interplay between\norder \ufb02ow and price dynamics.\nKey words: Limit order book, stochastic model, quantitative \ufb01nance, market microstructure, measure-\nvalued process\nAMS Subject classi\ufb01cation: 91-10, 91Gxx\nAcknowledgements: PD holds a visiting professor association with the Department of Mathematics,\nImperial College London, UK.\n1 Introduction\nIn the last few decades major \ufb01nancial markets have transitioned to electronic platforms where market\nparticipants may post buy and sell orders through a centralized limit order book (LOB) [5]. These orders\nare then matched and executed according to time and price priority rules. The state of the limit order\nbook, which represents outstanding buy and sell orders, constantly evolves through the arrival, execution\nand cancellation of buy and sell orders. Figure 1 shows a typical shape of the order book.\nA quantitative understanding of the dynamics of limit order books is therefore important both from a\ntheoretical standpoint for understanding the dynamics of supply and demand in order-driven markets, and\nfrom the standpoint of applications to intraday market modeling and optimal trade execution.\nThe empirical study of limit order book dynamics has revealed various empirical regularities [2, 3] across\na range of di\ufb00erent time scales [5]. Faced with the challenge of accommodating these empirical features,\nmany stochastic models for limit order book dynamics have been developed in the literature [6, 7, 9, 10, 16,\n1\narXiv:2302.01169v1  [q-fin.MF]  2 Feb 2023",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "A mathematical framework for modelling order book dynamics",
-        "distance": 0.2135683298110962
+        "distance": 0.21356844902038574
       }
     ],
     "flags": []
@@ -482,7 +482,7 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
-        "distance": 0.17154479026794434
+        "distance": 0.1715449094772339
       },
       {
         "text": "3. Settlement Latency and Limits to Arbitrage\nAs shown in a simplified framework in Section 2, marginal costs of cross-exchange arbi-\ntrage increase with settlement latency, volatility, and risk aversion. In this section, we\nfocus on the cross-exchange strategy and substantially relax the assumptions within the\nframework to reflect uncertainty in settlement latency and to allow for general utility func-\ntions. The theoretical framework is sufficiently general to reflect market frictions related\nto cryptocurrency trading such that we can empirically quantify costs for arbitrageurs\ndue to settlement latency and the resulting economic consequences.\nMore precisely, to empirically analyze the economic magnitudes and implications of\nsettlement latency, we first relax the assumptions that volatility is constant over time\nand that the settlement latency is deterministic. Then, we introduce transaction costs\nand price impact. In our framework, we endogenize the optimal trade quantity and the\noptimal choice of settlement fees.\nFirst, we generalize the return dynamics compared to the simplistic framework from\nSection 2.\nAssumption 1. For a given settlement latency \u03c4 , we model the high-price exchange log\nprice change bs\nt+\u03c4 \u2212 bs\nt as a Brownian motion with drift \u00b5s\nt such that\nrb,s\n(t:t+\u03c4 ) = \u03b4b,s\nt + \u03c4 \u00b5s\nt +\nt+\u03c4Z\nt\n\u03c3s\nt dW s\nk , (7)\nwhere \u03c3s\nt denotes the spot volatility of the bid price process on the exchange s, and W s\nk\ndenotes a Wiener process. We assume that \u03c3s\nt is constant over the interval [t, t+ \u03c4 ].7\nWe now let the latency \u03c4 denote the random waiting time until a transfer of the asset\nbetween CEXes is settled. Only weak assumptions regarding the stochastic nature of the\nsettlement latency \u03c4 are required.\n7Time-varying and stochastic volatility can be incorporated through a change of the timescale of",
@@ -496,21 +496,21 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
-        "distance": 0.17304682731628418
+        "distance": 0.17304670810699463
       },
       {
         "text": "time t. While the mempool size is observable at any point in time, we use the optimal\nfee as derived in Lemma 5 as a proxy for the individually chosen settlement fees.\nWe cannot reject the null hypothesis that the correlation between volatility and ex-\npected latency is significantly different from zero, which suggests that settlement latency\nconstitutes a source of risk that is not captured by price fluctuations. In other words,\nperiods of high spot volatility ( \u03c3s\nt )2 are not driven by high cross-exchange asset flows.\nInstead, settlement latency seems to be primarily driven by intraday fluctuation patterns\nof high network activity which are not necessarily related to cross-exchange arbitrage\nactivity. For instance, Sokolov (2021) finds that network activity spikes during periods of\nransomware attacks which increases network fees and thus, according to our theoretical\nframework, renders cross-exchange arbitrage activity more expensive.\n5.3 Estimation of Arbitrage Bounds\nHaving estimated spot volatilities (\u03c3s\nt )2 as well as the first two moments of the settlement\nlatency distribution, bEt (\u03c4 ) and bVt (\u03c4 ), we analyze the contribution of these components\nto the arbitrage bounds ds\nt . For that purpose, we estimate the arbitrage bounds according\nto our theoretical framework in Section 3 and delineate \u02c6ds\nt into individual components.\nBased on the empirically relevant CRRA case of Lemma 2, the estimated arbitrage\n27\nTable 3: Parameter estimates for the latency prediction models\nExponential Gamma\nW/o Covariates W/ Covariates W/o Covariates W/ Covariates\nIntercept 3.31 1.41 3.86 1.19\n[2.510, 4.246] [-0.070, 3.675] [2.626, 5.250] [0.013, 2.596]\n\u03b1 0.62 0.63\n[0.358, 0.902] [0.365, 0.900]\nFee per Byte -0.22 -0.22\n[-0.486, -0.031] [-0.501, -0.031]\nMempool Size 0.23 0.31\n[-0.043, 0.452] [0.059, 0.530]\nLR (Covariates) 91.33 74.59",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
-        "distance": 0.17655420303344727
+        "distance": 0.1765541434288025
       },
       {
         "text": "as of Equation (29) and the respective bounds based on the assumption Bs = 1 for all\nexchanges. We observe that the impact of exchange-specific security components on\narbitrage bounds is substantial and accounts, on average, for 23% of the bounds.\nMoreover, our theoretical framework allows us to directly analyze the relevance of\nthe latency variance. As the uncertainty of the arbitrageurs\u2019 returns increases with the\nvariance of the settlement latency, we can compare the estimated arbitrage bounds to\nthe (hypothetical) case of a deterministic latency. The last column in Table 4 reports the\npercentage increase in arbitrage bounds when adjusting for the randomness in latency.\nThe values correspond to the percentage difference between the median arbitrage bound\n30\nand bounds based on the assumption Vt(\u03c4 ) = Vt(\u03c4B) = 0. We find that the impact of\nthe latency volatility is substantial and accounts, on average, for 41% of the arbitrage\nbounds.\n6. Settlement Latency and Cross-Exchange Activity\nIn this section, we empirically investigate the major predictions of our analysis in depth:\nBased on our findings in Section 2, we hypothesize that (i) settlement latency is a costly\nfriction for cross-exchange arbitrageurs, (ii) that mitigating CEX default risk reduces\nmarginal cross-exchange arbitrage costs, and (iii) order flow chases arbitrage opportuni-\nties. The general representation of arbitrage costs due to settlement latency in Section 3\nforms the underlying base to account for transaction costs and the role of settlement fees\nin the validation process. More precisely, we reported, in line with existing literature,\nsubstantial price differences across CEXes and derived estimates of the relevant deter-\nminants of price risk related to settlement latency in Section 4. Next, we analyze the",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Building Trust Takes Time: Limits to Arbitrage for Blockchain-Based Assets",
-        "distance": 0.1860278844833374
+        "distance": 0.18602794408798218
       }
     ],
     "flags": []
@@ -539,21 +539,21 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "The self-exciting nature of the bid-ask spread dynamics",
-        "distance": 0.17959898710250854
+        "distance": 0.17959904670715332
       },
       {
         "text": "The goal of the present paper is two-fold. First, we develop a new framework for modeling market microstruc-\nture, in which the shape of the LOB, and its dynamics, ariseendogenously from the interactions between the agents.\nAmong the many advantages of such an approach is the possibility of modeling the market reaction to changes in\nthe rules of the exchange: e.g., limited trading frequency, transaction tax, etc. The second, and most important,\ngoal of the present work is to investigate the liquidity effects of trading frequency, using the proposed modeling\nframework. In particular, the main results of this paper (cf. the discussion in Section 3, as well as Theorems 4.1, 4.2\nand Corollary 4.1, in Section 4) describe the dual effect of high trading frequency. On the one hand, if the agents\nchoose to provide liquidity in equilibrium, higher trading frequency decreases the bid-ask spread and makes the\nexpected pro\ufb01ts of all market participants converge to the same (fundamental) value, thus, improving the market\n\u2217This version: February 13, 2017. First version August 28, 2015.\n\u2020Partial support from the NSF grant DMS-1411824 is acknowledged by both authors.\n\u2021We thank the anonymous referees and the Associate Editor for constructive comments that helped us improve the paper signi\ufb01cantly.\n\u00a7Address the correspondence to Sergey Nadtochiy, Mathematics Department, University of Michigan, 530 Church Street, Ann Arbor, MI\n48109, USA; e-mail: sergeyn@umich.edu.\n1\narXiv:1508.07914v4  [q-fin.TR]  9 May 2017\nef\ufb01ciency. On the other hand, higher trading frequency also makes the LOB more sensitive to the deviations of the\nagents\u2019 attitudes from market-neutrality. It is, of course, clear that a strong bullish or bearish signal induces market",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Liquidity Effects of Trading Frequency",
-        "distance": 0.2007688283920288
+        "distance": 0.20076888799667358
       },
       {
         "text": "paper but ask different questions. Rahman\net al. [2025] survey decentralised prediction-\nmarket microstructure as a methodological\ndomain, framing the open questions across\nvenues without bringing matching tick-level\ndata. Tsang and Yang [2026] run a single-\nevent time-series microstructure study on the\n2024 US presidential election market, docu-\nmenting episode-level patterns around Biden\u2019s\nwithdrawal, the September debate, and the\nOctober whale trades, and reporting a roughly\norder-of-magnitude decline in Kyle\u2019s\u03bbas the\nmarket matured; the unit of analysis is one\nmarket over many time slices, with\u03bbestimated\non aggregated rather than tick-level data. The\npresent paper is the cross-sectional, tick-level\ncomplement: 600 markets observed simultane-\nously over a single 28-day scrape window, with\nmicrostructure measures computed on the full\nevent tape and a direct on-chain trade record.\nTo our knowledge, neither authoritative on-\nchain trade direction nor a continuous off-\nchain order-book archive at tick resolution has\nbeen brought to bear at the cross-sectional\nscale we use here. The classical microstructure\nreferences behind our measurement choices\nare O\u2019Hara [1995] and Hasbrouck [2007] for\norder-book theory, Foucault et al. [2013] for\nthe liquidity-provider angle, and Huang and\nStoll [1997], Madhavan et al. [1997] for spread\ndecomposition.\nPolymarket changed this. Since 2021 the\nvenue has run a limit-order-book exchange on\nPolygon, settling in USDC against an on-chain\nconditional-token contract. Our data covers\n52 calendar days of the public order-book feed\n(2026-02-21 to 2026-04-15) at tick resolution:\n30,287,264,368 events across 385,198 distinct\nmarkets. A 28-day overlap window (2026-02-\n28 to 2026-03-27) is mirrored on chain, where\nthe CTF Exchange V1 contract logs 255 million\nOrderFilledevents whose payloads identify\nboth counterparties and the aggressor side. We",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "The Anatomy of a Decentralized Prediction Market: Microstructure Evidence from the Polymarket Order Book",
-        "distance": 0.20146828889846802
+        "distance": 0.20146822929382324
       }
     ],
     "flags": []
@@ -568,35 +568,35 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Optimal Execution with Passive Market Impact",
-        "distance": 0.2228161096572876
+        "distance": 0.22281616926193237
       },
       {
         "text": "paper we consider a recently introduced market impact model (Bouchaud\net al. , 2004, [1]), which has the property of describing both the volume\nand the temporal dependence of price change due to trading. We show\nhow this model can be used to describe price impact also in aggregated\ntrade time or in real time. We then solve analytically and calibrate with\nreal data the optimal execution problem both for risk neutral and for risk\naverse investors and we derive an e\ufb03cient frontier of optimal execution.\nWhen we include spread costs the problem must be solved numerically\nand we show that the introduction of such costs regularizes the solution.\n\u2217We acknowledge the Linear Quantitative Research team at J.P. Morgan for providing\nsupport, insights, advices and data. We thank Jean-Philippe Bouchaud, Gianbiagio Curato,\nDaniel Nehren, Xavier Abdobal, Alex Alekseev, Oleg Bogoslavskiy, Junfeng Li, Sami Haj\nSlimane for useful discussion. This work is partially supported by the grant SNS11LILLB\n\u201cPrice formation, agent\u2019s heterogeneity, and market e\ufb03ciency\u201d\n1\narXiv:1206.0682v1  [q-fin.TR]  4 Jun 2012\nContents\n1 Introduction 2\n2 Optimal execution problem 4\n2.1 The Almgren Chriss execution scheme . . . . . . . . . . . . . . . 6\n3 Data 7\n4 Propagator model in trade time 8\n5 The propagator model under other time measures 10\n5.1 Calibration of the propagator model in real time . . . . . . . . . 10\n5.2 Variance explained by the model . . . . . . . . . . . . . . . . . . 11\n6 Optimal execution model 14\n6.1 Baseline case: risk neutral investor without spread costs . . . . . 15\n6.2 Optimal execution with spread costs . . . . . . . . . . . . . . . . 16\n6.3 Optimal execution with risk aversion . . . . . . . . . . . . . . . . 17\n7 Empirically calibrated optimal execution strategies 18\n7.1 Optimal execution without spread costs . . . . . . . . . . . . . . 19",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Calibration of optimal execution of financial transactions in the presence of transient market impact",
-        "distance": 0.22785800695419312
+        "distance": 0.22785818576812744
       },
       {
         "text": "when an investor faces the task of closing a large position in an illiquid market. The\nscienti\ufb01c literature on optimal trade execution problems deals with the optimization of\n\u2217Institute of Mathematics, University of Gie\u00dfen, Arndtstr. 2, 35392 Gie\u00dfen, Germany. Email:\njulia.ackermann@math.uni-giessen.de, Phone: +49 (0)641 9932113.\n\u2020Institute of Mathematics, University of Gie\u00dfen, Arndtstr. 2, 35392 Gie\u00dfen, Germany. Email:\nthomas.kruse@math.uni-giessen.de, Phone: +49 (0)641 9932102.\n\u2021Faculty of Mathematics, University of Duisburg-Essen, Thea-Leymann-Str. 9, 45127 Essen, Germany.\nEmail: mikhail.urusov@uni-due.de, Phone: +49 (0)201 1837428.\n1\narXiv:2112.03789v2  [q-fin.TR]  22 Jul 2022\nsuch trading schedules. The inputs are time horizonT\u2208 (0,\u221e), sizex\u2208 R (shares of a\nstock) of the \ufb01nancial position to be closed until timeT and model of the price impact.\nThe literature on optimal trade execution takes price impact as exogenously given.\nDepending on how the price impact is modeled the majority of current literature can be\nnaturally divided into two groups.\nIn the \ufb01rst group of models, execution strategies(Xt)t\u2208[0,T ] have absolutely continuous\npaths t\u21a6\u2192Xt, and the price impact at any timet depends only on the derivative\u02d9Xt at\ntime t. In particular, the price impact at timet is independent of all orders executed\nat times prior tot and does not in\ufb02uence the impact of the orders executed at times\nafter t. Essentially, what is modeled in this approach is only market depth, and the\nprice impact is purely instantaneous in the sense described above.1\nIn the second group of models, trades induce a transient price impact that decays over\ntime due to resilience e\ufb00ects of the price. In such models, the execution price at timet\nis in\ufb02uenced in a nontrivial way by orders \ufb01lled at times prior tot, and the execution at",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Self-exciting price impact via negative resilience in stochastic order books",
-        "distance": 0.2324134111404419
+        "distance": 0.23241347074508667
       },
       {
         "text": "impact is accumulated, whereas a less aggressive quote reduces immediate impact but increases non-\nexecution risk and inventory costs. The solution is further analysed in Section 4 using empirically\nrealistic fill intensity and price impact parameters, which are estimated in Section 5 using NASDAQ\nstock data and LSEG FX market data.\nWe observe that the agent\u2019s optimal quote is closer to the midprice when the remaining inventory\nis large, reflecting increased urgency due to risk aversion and the terminal penalty. This effect\nreverses toward the end of the trading period because inventory is marked to the impacted midprice,\ncreating a situation in which the trader would prefer to incur the inventory penalty associated with\nan additional unit rather than bear the impact on the entire position (see Figure 1). We also observe\nin Figure 11 that the median inventory trajectory for passive order execution is remarkably close\nto that of the Almgren\u2013Chriss model, which considers only market orders. A key result of Almgren\nand Chriss [2] is that permanent price impact does not affect the trading rate but only the optimal\nstrategy\u2019s P&L. In contrast, in the passive-order case, permanent impact drives the convexity of\nthe liquidation curve (see the detailed explanation below Figure 11).\nExtensions of the model, including cases in which the fill intensity and the passive impact term\nhave different decay rates, as well as models with transient passive impact and target execution\nschedules, are studied in Section 6. In particular, the fill intensity and passive impact decay rates\nare found to differ in the FX data reported in Table 5, which makes the derivation of the optimal\nquote considerably more involved. One possible explanation is that this difference arises because",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Optimal Execution with Passive Market Impact",
-        "distance": 0.23486328125
+        "distance": 0.23486346006393433
       },
       {
         "text": "Abstract: Trading large volumes of a financial asset in order driven markets requires the use of algorithmic execution dividing the volume in many transactions in order to minimize costs due to market impact. A proper design of an optimal execution strategy strongly depends on a careful modeling of market impact, i.e. how the price reacts to trades. In this paper we consider a recently introduced market impact model (Bouchaud et al., 2004), which has the property of describing both the volume and the temporal dependence of price change due to trading. We show how this model can be used to describe price impact also in aggregated trade time or in real time. We then solve analytically and calibrate with real data the optimal execution problem both for risk neutral and for risk averse investors and we derive an efficient frontier of optimal execution. When we include spread costs the problem must be solved numerically and we show that the introduction of such costs regularizes the solution.\nCalibration of optimal execution of \ufb01nancial\ntransactions in the presence of transient market\nimpact\nEnzo Busseti a,b and Fabrizio Lillo a,c,d\u2217\na Scuola Normale Superiore di Pisa, Piazza dei Cavalieri 7, I-56126 Pisa, Italy\nb J.P. Morgan, Linear Quantitative Research, 10 Aldermanbury, London EC2V 7RF,\nUK\nc Dipartimento di Fisica, viale delle Scienze I-90128, Palermo, Italy\nd Santa Fe Institute, 1399 Hyde Park Road, Santa Fe NM 87501, USA\nAbstract\nTrading large volumes of a \ufb01nancial asset in order driven markets\nrequires the use of algorithmic execution dividing the volume in many\ntransactions in order to minimize costs due to market impact. A proper\ndesign of an optimal execution strategy strongly depends on a careful\nmodeling of market impact, i.e. how the price reacts to trades. In this",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Calibration of optimal execution of financial transactions in the presence of transient market impact",
-        "distance": 0.23517215251922607
+        "distance": 0.23517221212387085
       }
     ],
     "flags": []
@@ -611,14 +611,14 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Unwinding Toxic Flow with Partial Information",
-        "distance": 0.19777941703796387
+        "distance": 0.19777947664260864
       },
       {
         "text": "Abstract: We consider a central trading desk which aggregates the inflow of clients' orders with unobserved toxicity, i.e. persistent adverse directionality. The desk chooses either to internalise the inflow or externalise it to the market in a cost effective manner. In this model, externalising the order flow creates both price impact costs and an additional market feedback reaction for the inflow of trades. The desk's objective is to maximise the daily trading P&L subject to end of the day inventory penalization. We formulate this setting as a partially observable stochastic control problem and solve it in two steps. First, we derive the filtered dynamics of the inventory and toxicity, projected to the observed filtration, which turns the stochastic control problem into a fully observed problem. Then we use a variational approach in order to derive the unique optimal trading strategy. We illustrate our results for various scenarios in which the desk is facing momentum and mean-reverting toxicity. Our implementation shows that the P&L performance gap between the partially observable problem and the full information case are of order $0.01\\%$ in all tested scenarios.\nUnwinding Toxic Flow with Partial Information\nAlexander Barzykin 1, Robert Boyce \u22172, and Eyal Neuman 2\n1HSBC\n2Department of Mathematics, Imperial College London\nJuly 8, 2024\nAbstract\nWe consider a central trading desk which aggregates the inflow of clients\u2019\norders with unobserved toxicity, i.e. persistent adverse directionality. The desk\nchooses either to internalise the inflow or externalise it to the market in a cost\neffective manner. In this model, externalising the order flow creates both price\nimpact costs and an additional market feedback reaction for the inflow of trades.",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Unwinding Toxic Flow with Partial Information",
-        "distance": 0.21296322345733643
+        "distance": 0.2129632830619812
       },
       {
         "text": "strategies. The statistical properties of toxic flows and indicators that predict them,\nsuch as volume imbalance and trade intensity, have received a considerable amount\nof attention in [13, 18, 16, 17] among others.\nOne of the fundamental problems faced by modern financial institutions is how to\noptimally unwind a stochastic order flow. Hence, in addition to the academic work on\ndetection and prediction of toxic flows, some effort was dedicated to optimisation of\ntrading performance despite their presence. It is a common practice that market mak-\ners and brokers unwind the order flow by matching their clients\u2019 opposite transactions\nin a process called internalization. The remaining orders are routed and executed in\nthe market as out-flow orders (also known as externalization). Butz and Oomen [10]\nproposed a simple model for internalization using queuing theory, in which the agent\ncan skew their prices in order to control inventory risk. Barzykin et al. [6] proposed\na stochastic optimal control model which combines internalization and externaliza-\ntion. In their model, the dealer sets quotes to attract flow while they simultaneously\nhedge in a separate liquidity pool. The common situation of an informed trader with\ninformation about the trend of an asset price and a broker who trades at a loss was\nstudied in Cartea and S\u00e1nchez-Betancourt [12]. However in their setting, the broker\ntakes advantage of knowing the parameters of the toxic order flow which he uses as a\nsignal in order to decide whether to internalise or externalise, depending on the state\nin the market.\nIn pursuit of minimising firm-wide trading costs due to price impact, many in-\nstitutions have centralised trading activity, including into desks commonly known as\ncentral risk books (CRBs), which net opposite orders of clients. In a recent work",
@@ -632,14 +632,14 @@
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Unwinding Toxic Flow with Partial Information",
-        "distance": 0.23724591732025146
+        "distance": 0.23724597692489624
       },
       {
         "text": "agent (orange) for true value ofb = \u22120.2.\n5 Conclusion\nIn this paper we have considered a model for a central trading desk which aggregates\nthe inflow of clients\u2019 orders with unobserved toxicity. The desk then faces a continuous\n25\ndilemma of whether to internalise their inventory and save on transaction costs and\nmarketimpactbutbeartheriskofadverseselection, ortoexternaliseinacosteffective\nmanner and reduce risk. Using institutional FX flow as an example, we showed that\nthe probabilistic properties of the order flow\u2019s drift can randomly change from mean-\nreverting to momentum-driven from day to day, while the distribution parameters of\nthe toxicity remain stable throughout a one year horizon. Our empirical study also\npointed out that unwinding the order flow creates a significant feedback effect on the\nflow.\nThe desk\u2019s typical objective is to maximise the risk-adjusted daily P&L. As in the\ncurrent CRB setting the desk does not influence the flow directly, we have considered\na utility maximizing trading P&L subject to end of the day inventory penalization.\nWe have formulated the aforementioned setting as a partially observable stochastic\ncontrol problem and solved it in two steps. First, we derived the filtered dynamics\nof the inventory and toxicity, projected to the observed filtration, which turns the\nstochastic control problem into a fully observed problem. Then we used a variational\napproach in order to derive the unique optimal trading strategy. We have illustrated\nour results for various scenarios in which the desk is facing momentum and mean-\nreverting toxicity. We have shown that feedback of externalization has a prominent\neffect on the P&L, even for small values of the feedback parameter. We then studied\nthe P&L performance gap between the partially observable problem and the full",
         "tier": 3,
         "source": "arxiv",
         "section_heading": "Unwinding Toxic Flow with Partial Information",
-        "distance": 0.2418586015701294
+        "distance": 0.24185854196548462
       }
     ],
     "flags": []
