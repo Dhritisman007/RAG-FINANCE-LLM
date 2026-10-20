@@ -278,6 +278,19 @@ It asks the SEC for each company's current latest 10-K + two 10-Qs and downloads
 
 Retrieval after both: **59/59 route, 59/59 hit@k, MRR 0.94**. The raw Day 7 sanity check (which bypasses the router) now flags "How does a limit order book work?": the new limit-order articles rank 2nd, 4th and 5th among order-book papers. Through the router this question is technical and searches only filings and papers (q15 still hits), so the flag is expected.
 
+### Full evaluation on the expanded corpus (Day 16)
+All 59 golden questions with qwen2.5:7b after the corpus expansion (25 companies, 47 explainers):
+
+| | Concept (22) | Technical (26) | Portfolio (11) | **All (59)** |
+|---|---|---|---|---|
+| Route / hit@k | 100% / 100% | 100% / 100% | 100% / 100% | **100% / 100%** (MRR 0.94) |
+| Citation accuracy | 94% | 91% | 88% | **91%** |
+| Required figures | — | 6/6 | 6/6 | **12/12** |
+| Unanswerable refused | 2/2 | 3/3 | 1/1 | **6/6** (0 answerable refused) |
+| Numbers in no source / answer | 0.52 | 0.17 | 0.00 | 0.28 |
+
+Most "numbers in no source" are **invented worked examples in concept answers** — e.g. a "$50,000 salary" for the 401(k) and "$50 vs $51" for arbitrage, neither in the article — despite the template's "never make up an example". The number check catches them and the UI warns, but the model still does it; it's the main open quality issue. (Run note: an Ollama auto-update restarted the Mac mid-run; the checkpoint kept 49 answers and the last 10 ran on Ollama 0.40.6 instead of 0.33.2.)
+
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
 
@@ -334,11 +347,12 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
 **Open:**
-1. **Mislabelled numbers aren't *detected*** — the number check only verifies a number exists in the sources, not that it's attached to the right row or period. (qwen2.5:7b labelled every table figure correctly in the evaluation; this is a safety-net gap, not an observed failure. An earlier entry here claimed qwen converted Tesla's revenue to "$94.83 billion" against the verbatim rule — wrong: the 10-K itself says "$94.83 billion".)
-2. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
-3. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
-4. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
-5. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
+1. **Invented worked examples in concept answers** — qwen2.5:7b adds illustrative numbers that aren't in the source (0.52 per concept answer). Detected and flagged, not prevented; options: a stricter concept prompt, or answering only with examples quoted from the context.
+2. **Mislabelled numbers aren't *detected*** — the number check only verifies a number exists in the sources, not that it's attached to the right row or period. (qwen2.5:7b labelled every table figure correctly in the evaluation; this is a safety-net gap, not an observed failure. An earlier entry here claimed qwen converted Tesla's revenue to "$94.83 billion" against the verbatim rule — wrong: the 10-K itself says "$94.83 billion".)
+3. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
+4. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
+5. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
+6. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
 
 ---
 
@@ -350,6 +364,9 @@ ollama pull qwen2.5:7b      # default model (~4.7 GB)
 ollama pull llama3.2        # optional: faster, less reliable
 python scripts/prices.py --update   # optional: prices for "how is my portfolio doing?"
 ```
+
+### Troubleshooting: "no models" after a restart
+Ollama's models live on the external drive (Ollama → Settings → Model location). If the Mac restarts and Ollama launches before the drive mounts, it logs `models path not accessible, using default` and serves an empty default folder — `ollama list` shows nothing and FinRAG can't answer. Quit and reopen Ollama (or restart its server) once the drive is mounted.
 
 ### Run the pipeline
 
@@ -388,4 +405,5 @@ python scripts/rag_loop.py --interactive
 - [x] Expand the SEC corpus to 25 companies (Day 15)
 - [x] Tier 1 gaps the eval exposed (Day 16)
 - [x] Filing refresh (Day 16)
-- [ ] Full 59-question answer evaluation with qwen2.5:7b on the expanded corpus
+- [x] Full 59-question answer evaluation on the expanded corpus (Day 16)
+- [ ] Stop invented examples in concept answers

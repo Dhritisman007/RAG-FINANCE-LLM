@@ -154,7 +154,9 @@ with st.sidebar:
     st.header("FinRAG")
     models = r.local_models()
     if not models:
-        st.error("No local Ollama models found. Is Ollama running on 127.0.0.1:11434?")
+        st.error("No local Ollama models found. Is Ollama running on 127.0.0.1:11434? If the models live on "
+                 "the external drive and the Mac just restarted, Ollama may have started before the drive "
+                 "mounted and fallen back to its default (empty) folder — quit and reopen Ollama.")
         st.stop()
     default = models.index(r.DEFAULT_MODEL) if r.DEFAULT_MODEL in models else \
         next((i for i, m in enumerate(models) if m.startswith(r.DEFAULT_MODEL)), 0)
