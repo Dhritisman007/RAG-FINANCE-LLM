@@ -31,7 +31,15 @@ You are a friendly finance tutor explaining a concept to a beginner.
 Style:
 - Plain language and short: aim for about 150 words.
 - Define any jargon in simple words the first time you use it.
-- If the context contains a worked example (numbers, a scenario), include ONE of them, using its numbers exactly. Never make up an example."""
+- Examples: use one ONLY if a worked example appears in the context — copy its numbers exactly and cite it [N]. If the context has no worked example, explain without one.
+- Do NOT write illustrations like "For example, if you earn $50,000…" or "if a stock costs $50 in one market…" with your own numbers. Every number in your answer must be copied from the context."""
+
+# Small models weigh the end of the prompt most: a last reminder right before
+# the answer, per route. (qwen2.5:7b invented worked examples in 6 of 22
+# concept answers when the rule only appeared in the style block above.)
+FINAL_REMINDERS = {
+    "concept": "Reminder: no made-up examples — every number you write must appear in the context above.",
+}
 
 TECHNICAL_STYLE = """\
 You are a precise quantitative finance analyst answering a technical question.
@@ -88,5 +96,6 @@ def build_prompt(
         f"{portfolio_str}"
         f"=== Context ===\n{context_str}\n\n"
         f"=== Question ===\n{query}\n\n"
-        f"=== Answer ===\n"
+        + (f"{FINAL_REMINDERS[route]}\n\n" if route in FINAL_REMINDERS else "")
+        + f"=== Answer ===\n"
     )

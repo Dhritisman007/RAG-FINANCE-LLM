@@ -31,7 +31,8 @@ GROUNDING_MUST_SAY = [
     'Do not add a separate "Sources" or "References" list',
 ]
 STYLE_MUST_SAY = {
-    "concept": ["Plain language", "Define any jargon", "include ONE of them", "Never make up an example"],
+    "concept": ["Plain language", "Define any jargon", "ONLY if a worked example appears in the context",
+                "Do NOT write illustrations", "Every number in your answer must be copied from the context"],
     "technical": ["Copy formulas", "verbatim", "Never round", "State the assumptions", "do not estimate"],
     "portfolio": ["Do NOT restate, recompute or estimate any position numbers", "[N] citation",
                   "not investment advice", "Do not tell the user to buy, sell or hold"],
@@ -124,6 +125,14 @@ def test_cloud_models_are_refused() -> None:
     print("PASS: Ollama cloud models are refused; local model names are allowed")
 
 
+def test_concept_reminder_sits_right_before_the_answer() -> None:
+    concept = build_prompt("q?", final_citations(), route="concept")
+    assert concept.rstrip().endswith(prompts.FINAL_REMINDERS["concept"] + "\n\n=== Answer ===")
+    technical = build_prompt("q?", final_citations(), route="technical")
+    assert prompts.FINAL_REMINDERS["concept"] not in technical
+    print("PASS: the concept prompt ends with the no-made-up-examples reminder; other routes don't")
+
+
 if __name__ == "__main__":
     test_every_template_has_grounding_and_style_rules()
     test_labels_match_printed_source_order()
@@ -131,4 +140,5 @@ if __name__ == "__main__":
     test_empty_context_and_default_route()
     test_rules_contain_no_copyable_domain_example()
     test_cloud_models_are_refused()
+    test_concept_reminder_sits_right_before_the_answer()
     print("\nAll prompt tests passed.")

@@ -289,7 +289,19 @@ All 59 golden questions with qwen2.5:7b after the corpus expansion (25 companies
 | Unanswerable refused | 2/2 | 3/3 | 1/1 | **6/6** (0 answerable refused) |
 | Numbers in no source / answer | 0.52 | 0.17 | 0.00 | 0.28 |
 
-Most "numbers in no source" are **invented worked examples in concept answers** — e.g. a "$50,000 salary" for the 401(k) and "$50 vs $51" for arbitrage, neither in the article — despite the template's "never make up an example". The number check catches them and the UI warns, but the model still does it; it's the main open quality issue. (Run note: an Ollama auto-update restarted the Mac mid-run; the checkpoint kept 49 answers and the last 10 ran on Ollama 0.40.6 instead of 0.33.2.)
+Most "numbers in no source" are **invented worked examples in concept answers** — e.g. a "$50,000 salary" for the 401(k) and "$50 vs $51" for arbitrage, neither in the article — despite the template's "never make up an example". The number check catches them and the UI warns.
+
+**Fix (Day 16):** the concept rule now names the failure concretely ("do NOT write illustrations like 'For example, if you earn $50,000…' with your own numbers") and the concept prompt ends with a one-line reminder right before the answer — small models weigh the end of the prompt most. Re-run on the 22 concept questions (`data/eval/eval_answers_qwen2.5-7b_concept_prompt_v2.json`):
+
+| Concept answers | Before | After |
+|---|---|---|
+| Answers with numbers in no source | 6/22 (11 numbers) | **1/22** (1 number) |
+| Numbers in no source / answer | 0.52 | **0.05** |
+| Citation accuracy | 94% | **98%** |
+| Unanswerable refused / answerable refused | 100% / 0% | 100% / 0% |
+| Median answer length | 462 chars | 454 chars |
+
+The one left (a made-up "0.04%" expense ratio) is flagged in the UI. Regenerating flagged answers was considered and not added: it would cost another model call for a small remaining gain. (Run note: an Ollama auto-update restarted the Mac mid-run; the checkpoint kept 49 answers and the last 10 ran on Ollama 0.40.6 instead of 0.33.2.)
 
 ### Portfolio-aware queries
 Holdings live in `data/portfolio/holdings.csv` (`ticker,quantity,avg_cost,purchase_date`) and are looked up as **structured data**, not embedded. When the router picks the portfolio route (e.g. "my AAPL position", "Is Apple a good company?"):
@@ -347,7 +359,7 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 - ~~Near-duplicate SEC chunks~~ — the EDGAR extractor emitted both `<div>` and its inner `<span>`, doubling 23% of lines (up to 51% in some filings), split tables into one line per cell, and kept page headers/footers and the hidden XBRL header (a 58k-token chunk). Fixed at extraction; SEC text dropped from 136k to 15k lines with no content words lost. Cross-filing restatements (10-Q repeating 10-K text — real content, kept in the corpus) are suppressed at retrieval time instead.
 
 **Open:**
-1. **Invented worked examples in concept answers** — qwen2.5:7b adds illustrative numbers that aren't in the source (0.52 per concept answer). Detected and flagged, not prevented; options: a stricter concept prompt, or answering only with examples quoted from the context.
+1. **Occasional invented examples in concept answers** — down from 6/22 to 1/22 answers after the Day 16 prompt fix; the remaining case is flagged by the number check. A regenerate-on-flag guard would close it at the cost of an extra model call.
 2. **Mislabelled numbers aren't *detected*** — the number check only verifies a number exists in the sources, not that it's attached to the right row or period. (qwen2.5:7b labelled every table figure correctly in the evaluation; this is a safety-net gap, not an observed failure. An earlier entry here claimed qwen converted Tesla's revenue to "$94.83 billion" against the verbatim rule — wrong: the 10-K itself says "$94.83 billion".)
 3. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
 4. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
@@ -406,4 +418,4 @@ python scripts/rag_loop.py --interactive
 - [x] Tier 1 gaps the eval exposed (Day 16)
 - [x] Filing refresh (Day 16)
 - [x] Full 59-question answer evaluation on the expanded corpus (Day 16)
-- [ ] Stop invented examples in concept answers
+- [x] Cut invented examples in concept answers from 6/22 to 1/22 (Day 16)
