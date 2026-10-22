@@ -13,6 +13,7 @@ Run from finrag/:
 from __future__ import annotations
 
 import contextlib
+import html
 import io
 import itertools
 import re
@@ -28,12 +29,7 @@ import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
 from portfolio_store import HOLDINGS_PATH, format_position, load_holdings, add_holding, save_holdings  # noqa: E402
 
-st.set_page_config(page_title="FinRAG", page_icon="📈", layout="wide",
-                   initial_sidebar_state="expanded")  # model, route and privacy note visible on load
-# Streamlit collapses the sidebar to 0 px but lets its contents spill out ("F/i/n/R/A/G"
-# stacked down the left edge); clip it while collapsed.
-st.markdown('<style>[data-testid="stSidebar"][aria-expanded="false"] { overflow: hidden; }</style>',
-            unsafe_allow_html=True)
+st.set_page_config(page_title="FinRAG", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 # ── Privacy guard ────────────────────────────────────────────────────────────
 if st.get_option("server.address") not in ("127.0.0.1", "localhost") or st.get_option("browser.gatherUsageStats"):
@@ -182,91 +178,223 @@ def edit_holdings_dialog() -> None:
         st.rerun()
 
 
-# ── Sidebar ──────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("FinRAG")
-    models = r.local_models()
-    if not models:
-        st.error("No local models found. Either start Ollama (127.0.0.1:11434) or the MLX server "
-                 "(`scripts/start_mlx_server.sh`, 127.0.0.1:8080). If Ollama's models live on the external "
-                 "drive and the Mac just restarted, Ollama may have started before the drive mounted and "
-                 "fallen back to its default (empty) folder — quit and reopen Ollama.")
-        st.stop()
-    default = models.index(r.DEFAULT_MODEL) if r.DEFAULT_MODEL in models else \
-        next((i for i, m in enumerate(models) if m.startswith(r.DEFAULT_MODEL)), 0)
-    model = st.selectbox("Model (local only)", models, index=default,
-                         help="mlx:… models run on Apple's MLX server; the others on Ollama.")
-    route = st.radio("Route", ["auto", "concept", "technical", "portfolio"], horizontal=True,
-                     help="auto = deterministic rules in router.py")
-    use_portfolio = st.toggle("Use my holdings", value=True)
-    check = st.toggle("Check citations", value=True)
-    show_details = st.toggle("Show routing details", value=False)
-
-    st.caption("🔒 Answers are generated locally (cloud models refused, no telemetry). Your holdings file "
-               "stays on this machine; live prices send only stock symbols to Yahoo Finance.")
-    if st.button("Clear chat"):
-        st.session_state.messages = []
-        st.rerun()
-
-# ── Main ─────────────────────────────────────────────────────────────────────
-collection = get_collection()
-if collection is None:
-    st.error("Vector store not found — run `python scripts/build_vectorstore.py` first.")
-    st.stop()
-
-st.title("📈 FinRAG")
-st.caption(f"Answers from {collection.count():,} passages of finance explainers, SEC filings "
-           "and market-microstructure papers — every answer cites its sources.")
+# ── Theme ────────────────────────────────────────────────────────────────────
+# System fonts only: a web font would be fetched from the internet on every load.
+st.markdown("""<style>
+:root { --card: #121826; --line: #1f2937; --muted: #8b95a7; --up: #22c55e; --down: #ef4444; --accent: #3b82f6; }
+.block-container { padding-top: 1.2rem; padding-bottom: 1rem; max-width: 1600px; }
+header[data-testid="stHeader"] { background: transparent; height: 0; }
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none; }
+html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; }
+.topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.brand { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+.brand .mark { color: var(--accent); }
+.brand small { color: var(--muted); font-weight: 500; font-size: 0.85rem; margin-left: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+        border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+.pill.open { color: var(--up); border-color: rgba(34,197,94,.35); }
+.pill.closed { color: #f59e0b; border-color: rgba(245,158,11,.35); }
+.pane-title { font-size: 0.78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 4px 0 10px; }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.kpi .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; }
+.kpi .value { font-size: 1.25rem; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .sub { font-size: 0.8rem; margin-top: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.up { color: var(--up) !important; } .down { color: var(--down) !important; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+@media (max-width: 900px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.stat .label { color: var(--muted); font-size: 0.72rem; } .stat .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.footnote { color: var(--muted); font-size: 0.75rem; }
+div[data-testid="stTabs"] button p { font-size: 0.9rem; }
+</style>""", unsafe_allow_html=True)
 
 LIVE_EVERY_SEC = 60
+UP, DOWN = "#22c55e", "#ef4444"
+# Allocation colours: no red or green, which would read as loss or gain.
+PALETTE = ["#3b82f6", "#8b5cf6", "#06b6d4", "#f59e0b", "#14b8a6", "#ec4899", "#6366f1", "#eab308", "#0ea5e9", "#a855f7"]
+SUGGESTIONS = ["How is my portfolio doing?", "What risks does Reliance disclose in its annual report?",
+               "What is a SIP and how does compounding help it?", "Compare TCS and Infosys margins"]
 
 
-def portfolio_table(holdings: list[dict], quotes: dict[str, dict]) -> tuple[list[dict], dict]:
-    """
-    Rows for the live table plus ₹ totals — all arithmetic here, never by the model.
-    Indian listings are in ₹; US holdings are converted at the USD→INR rate.
-    """
+def market_status() -> tuple[str, bool]:
+    """NSE regular session 09:15–15:30 IST, Monday–Friday (exchange holidays not included)."""
+    from datetime import datetime, time as dtime, timedelta, timezone
+    now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    is_open = now.weekday() < 5 and dtime(9, 15) <= now.time() <= dtime(15, 30)
+    return f"NSE {'open' if is_open else 'closed'}", is_open  # no clock: the bar only redraws on a full rerun
+
+
+def ask(question: str) -> None:
+    """Queue a question for the assistant (used by suggestion and stock-view buttons)."""
+    if st.session_state.get("pending") is None:
+        st.session_state.messages.append({"role": "user", "content": question})
+        st.session_state.pending = question
+
+
+def tone(x) -> str:
+    return "" if x is None else ("up" if x >= 0 else "down")
+
+
+def kpi(label: str, value: str, sub: str = "", cls: str = "") -> str:
+    return (f'<div class="kpi"><div class="label">{html.escape(label)}</div>'
+            f'<div class="value {cls}">{html.escape(value)}</div><div class="sub {cls}">{html.escape(sub)}</div></div>')
+
+
+def portfolio_frame(holdings: list[dict], quotes: dict[str, dict]):
+    """Per-holding table (numbers in ₹ for totals) plus ₹ totals — all arithmetic here, never by the model."""
+    import pandas as pd
     fx = (quotes.get(prices.FX_TICKER) or {}).get("price")
-    rows = []
-    tot = {"value": 0.0, "cost": 0.0, "day": 0.0, "prev": 0.0, "missing": [], "no_fx": []}
+    rows, tot = [], {"value": 0.0, "cost": 0.0, "day": 0.0, "prev": 0.0, "missing": [], "no_fx": []}
     for h in holdings:
         symbol, exchange = prices.display_symbol(h["ticker"])
         cur = prices.currency(h["ticker"])
         rate = 1.0 if cur == "INR" else fx
         q = quotes.get(prices.normalize_ticker(h["ticker"]))
-        row = {"Stock": symbol, "Exchange": exchange, "Qty": h["quantity"],
-               "Avg price": prices.money(h["avg_cost"], cur), "LTP": None, "Day %": None,
-               "Current (₹)": None, "P&L (₹)": None, "P&L %": None}
+        row = {"Stock": symbol, "Exch": exchange, "Qty": h["quantity"], "Avg": h["avg_cost"], "LTP": None,
+               "Day %": None, "Invested ₹": None, "Current ₹": None, "P&L ₹": None, "P&L %": None, "cur": cur,
+               "ticker": h["ticker"]}
         if q is None or rate is None:
             (tot["missing"] if q is None else tot["no_fx"]).append(symbol)
-            rows.append(row)
-            continue
-        cost, value = h["quantity"] * h["avg_cost"] * rate, h["quantity"] * q["price"] * rate
-        prev = q.get("prev_close")
-        tot["value"] += value
-        tot["cost"] += cost
-        if prev:
-            tot["day"] += h["quantity"] * (q["price"] - prev) * rate
-            tot["prev"] += h["quantity"] * prev * rate
-        row.update({"LTP": prices.money(q["price"], cur), "Day %": (q["price"] / prev - 1) * 100 if prev else None,
-                    "Current (₹)": prices.inr(value), "P&L (₹)": prices.signed_money(value - cost),
-                    "P&L %": (value - cost) / cost * 100 if cost else None})
+        else:
+            cost, value = h["quantity"] * h["avg_cost"] * rate, h["quantity"] * q["price"] * rate
+            prev = q.get("prev_close")
+            tot["value"] += value
+            tot["cost"] += cost
+            if prev:
+                tot["day"] += h["quantity"] * (q["price"] - prev) * rate
+                tot["prev"] += h["quantity"] * prev * rate
+            row.update({"LTP": q["price"], "Day %": (q["price"] / prev - 1) * 100 if prev else None,
+                        "Invested ₹": cost, "Current ₹": value, "P&L ₹": value - cost,
+                        "P&L %": (value - cost) / cost * 100 if cost else None})
         rows.append(row)
     tot["fx"] = fx if any(prices.currency(h["ticker"]) == "USD" for h in holdings) else None
-    return rows, tot
+    return pd.DataFrame(rows), tot
 
 
-def portfolio_panel(pending) -> None:
-    with st.expander("📊 My portfolio", expanded=True):
+def holdings_table(df) -> None:
+    def money_native(row, col):
+        v = row[col]
+        return "—" if v is None or v != v else prices.money(v, row["cur"])
+
+    view = df.copy()
+    view["Avg"] = [money_native(r, "Avg") for _, r in df.iterrows()]
+    view["LTP"] = [money_native(r, "LTP") for _, r in df.iterrows()]
+    view = view.drop(columns=["cur", "ticker", "Exch"])  # US stocks are the ones priced in $
+
+    def colour(v):
+        return "" if v is None or v != v else f"color: {UP if v >= 0 else DOWN}"
+
+    def inr_or_dash(v):
+        return "—" if v is None or v != v else prices.inr(v)
+
+    styled = (view.style
+              .format({"Qty": "{:g}", "Day %": lambda v: "—" if v != v or v is None else f"{v:+.2f}%",
+                       "P&L %": lambda v: "—" if v != v or v is None else f"{v:+.2f}%",
+                       "Invested ₹": inr_or_dash, "Current ₹": inr_or_dash,
+                       "P&L ₹": lambda v: "—" if v != v or v is None else prices.signed_money(v)})
+              .map(colour, subset=["Day %", "P&L ₹", "P&L %"]))
+    st.dataframe(styled, hide_index=True, width="stretch", height=min(420, 38 + 35 * len(view)))
+
+
+def allocation_charts(df) -> None:
+    import plotly.graph_objects as go
+    priced = df[df["Current ₹"].notna()]
+    if priced.empty:
+        st.caption("No prices yet.")
+        return
+    left, right = st.columns(2)
+    donut = go.Figure(go.Pie(labels=priced["Stock"], values=priced["Current ₹"], hole=0.62, sort=True,
+                             marker=dict(colors=PALETTE, line=dict(color="#0b0f17", width=2)),
+                             textinfo="percent", hovertemplate="%{label}: ₹%{value:,.0f}<extra></extra>"))
+    donut.update_layout(title=dict(text="Allocation by value", font=dict(size=13)), height=300,
+                        margin=dict(l=10, r=10, t=40, b=10), legend=dict(orientation="v", font=dict(size=11)),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    left.plotly_chart(donut, width="stretch", config={"displayModeBar": False})
+    ordered = priced.sort_values("P&L %")
+    bars = go.Figure(go.Bar(x=ordered["P&L %"], y=ordered["Stock"], orientation="h",
+                            marker_color=[UP if v >= 0 else DOWN for v in ordered["P&L %"]],
+                            hovertemplate="%{y}: %{x:+.1f}%<extra></extra>"))
+    bars.update_layout(title=dict(text="Return on cost", font=dict(size=13)), height=300,
+                       margin=dict(l=10, r=10, t=40, b=10), xaxis=dict(ticksuffix="%", gridcolor="#1f2937"),
+                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    right.plotly_chart(bars, width="stretch", config={"displayModeBar": False})
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def cached_history(ticker: str) -> list[tuple[str, float]]:
+    return prices.yahoo_history(ticker, "1y")
+
+
+def stock_view(holdings: list[dict], pending) -> None:
+    import plotly.graph_objects as go
+    names = {prices.display_symbol(h["ticker"])[0]: h for h in holdings}
+    pick = st.selectbox("Stock", list(names), label_visibility="collapsed", key="stock_pick")
+    h = names[pick]
+    cur = prices.currency(h["ticker"])
+    try:
+        history = cached_history(h["ticker"])
+    except Exception as e:
+        st.warning(f"Couldn't load price history: {e}")
+        return
+    if len(history) < 2:
+        st.caption("Not enough price history.")
+        return
+    s = prices.price_stats(history)
+    dates, closes = [d for d, _ in history], [c for _, c in history]
+    colour = UP if closes[-1] >= closes[0] else DOWN
+    fig = go.Figure(go.Scatter(x=dates, y=closes, mode="lines", line=dict(color=colour, width=2),
+                               fill="tozeroy", fillcolor="rgba(34,197,94,0.08)" if colour == UP else "rgba(239,68,68,0.08)",
+                               hovertemplate="%{x}: " + ("₹" if cur == "INR" else "$") + "%{y:,.2f}<extra></extra>"))
+    fig.add_hline(y=h["avg_cost"], line_dash="dot", line_color="#8b95a7",
+                  annotation_text=f"your avg {prices.money(h['avg_cost'], cur)}", annotation_position="top left",
+                  annotation_font_color="#8b95a7")
+    lo, hi = min(closes + [h["avg_cost"]]), max(closes + [h["avg_cost"]])
+    fig.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), showlegend=False,
+                      yaxis=dict(range=[lo * 0.95, hi * 1.03], gridcolor="#1f2937"), xaxis=dict(showgrid=False),
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+    def pct(v):
+        return "—" if v is None else f"{v:+.1f}%"
+    cells = [("52-week high", prices.money(s["high_52w"], cur), ""), ("52-week low", prices.money(s["low_52w"], cur), ""),
+             ("1 month", pct(s["ret_1m"]), tone(s["ret_1m"])), ("3 months", pct(s["ret_3m"]), tone(s["ret_3m"])),
+             ("1 year", pct(s["ret_1y"]), tone(s["ret_1y"])), ("Volatility (ann.)", f"{s['volatility']:.1f}%", ""),
+             ("Max drawdown", f"{s['max_drawdown']:.1f}%", "down" if s["max_drawdown"] < 0 else ""),
+             ("Your return", pct((s["last"] / h["avg_cost"] - 1) * 100 if h["avg_cost"] else None),
+              tone(s["last"] - h["avg_cost"]))]
+    st.markdown('<div class="stats">' + "".join(
+        f'<div class="stat"><div class="label">{label}</div><div class="value {cls}">{html.escape(v)}</div></div>'
+        for label, v, cls in cells) + "</div>", unsafe_allow_html=True)
+    st.markdown('<p class="footnote">Past prices, not a forecast · Yahoo Finance daily closes</p>',
+                unsafe_allow_html=True)
+    a, b, c = st.columns(3)
+    for col, label, q in [(a, "Key risks", f"What are the key risks for {pick}?"),
+                          (b, "Revenue & margins", f"What were {pick}'s revenue and profit in the latest year?"),
+                          (c, "Business outlook", f"What does {pick}'s management say about the outlook?")]:
+        if col.button(label, key=f"q_{label}_{pick}", width="stretch", disabled=pending is not None):
+            ask(q)
+            st.rerun(scope="app")
+
+
+def portfolio_pane(pending) -> None:
+    head = st.columns([2.2, 1, 1, 1], vertical_alignment="center")
+    head[0].markdown('<p class="pane-title">Portfolio</p>', unsafe_allow_html=True)
+    live = head[1].toggle("Live", value=True, key="live",
+                          help=f"Refresh prices from Yahoo Finance every {LIVE_EVERY_SEC} s. Yahoo sees your "
+                               "stock symbols — never your quantities or prices paid.")
+    with head[2].popover("＋ Add", width="stretch"):
         with st.form("add_stock", clear_on_submit=True, border=False):
-            c1, c2, c3, c4, c5, c6 = st.columns([1.4, 0.9, 0.9, 1.1, 1.3, 0.8], vertical_alignment="bottom")
-            symbol = c1.text_input("Stock symbol", placeholder="e.g. RELIANCE, TCS", max_chars=16)
-            exchange = c2.selectbox("Exchange", ["NSE", "BSE", "US"])
-            qty = c3.number_input("Qty", min_value=0.0, value=None, step=1.0, format="%g")
-            cost = c4.number_input("Avg buy price", min_value=0.0, value=None, step=1.0, format="%.2f",
-                                   help="Per share — in ₹ for NSE/BSE, in $ for US stocks")
-            bought = c5.date_input("Bought on (optional)", value=None, format="DD/MM/YYYY")
-            if c6.form_submit_button("➕ Add", type="primary", width="stretch"):
+            symbol = st.text_input("Stock symbol", placeholder="e.g. RELIANCE, TCS, HDFCBANK", max_chars=16)
+            c1, c2 = st.columns(2)
+            exchange = c1.selectbox("Exchange", ["NSE", "BSE", "US"])
+            qty = c2.number_input("Quantity", min_value=0.0, value=None, step=1.0, format="%g")
+            c3, c4 = st.columns(2)
+            cost = c3.number_input("Avg buy price", min_value=0.0, value=None, step=1.0, format="%.2f",
+                                   help="Per share — ₹ for NSE/BSE, $ for US")
+            bought = c4.date_input("Bought on", value=None, format="DD/MM/YYYY")
+            if st.form_submit_button("Add to portfolio", type="primary", width="stretch"):
                 ticker = prices.with_exchange(symbol, exchange) if symbol.strip() else ""
                 errors = add_holding({"ticker": ticker, "quantity": qty, "avg_cost": cost,
                                       "purchase_date": bought.isoformat() if bought else ""})
@@ -274,151 +402,205 @@ def portfolio_panel(pending) -> None:
                     st.error(e)
                 if not errors:
                     st.session_state.live_quotes = None  # fetch the new stock's price now
-                    st.session_state.price_note = f"Saved {prices.display_symbol(ticker)[0]} ({exchange})"
+                    st.toast(f"Added {prices.display_symbol(ticker)[0]} ({exchange})")
+                    st.rerun()
+    if head[3].button("Edit", width="stretch", help="Change or delete holdings"):
+        edit_holdings_dialog()
+    if st.session_state.get("price_note"):
+        st.toast(st.session_state.pop("price_note"))
 
-        holdings = load_holdings()
-        if not holdings:
-            st.caption("No holdings yet — add your first stock above (NSE symbols like RELIANCE, TCS, HDFCBANK). "
-                       "Saved only on this machine.")
-            return
-        top = st.columns([1, 1, 3], vertical_alignment="center")
-        live = top[0].toggle("Live prices", value=True, key="live",
-                             help=f"Refresh prices from Yahoo Finance every {LIVE_EVERY_SEC} s. Yahoo sees "
-                                  "your stock symbols — never your quantities or prices paid.")
-        if top[1].button("Edit / remove", help="Change or delete holdings"):
-            edit_holdings_dialog()
-        if st.session_state.get("price_note"):
-            top[2].success(st.session_state.pop("price_note"))
+    holdings = load_holdings()
+    if not holdings:
+        st.info("No holdings yet — use **＋ Add** to add your first stock (NSE symbols like RELIANCE, TCS, HDFCBANK). "
+                "Your holdings stay on this machine.")
+        return
 
-        # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
-        @st.fragment(run_every=LIVE_EVERY_SEC if live and pending is None else None)
-        def live_view() -> None:
-            import time
-            from datetime import datetime
-            tickers = [h["ticker"] for h in holdings]
-            cached = st.session_state.get("live_quotes")
-            fresh = cached and cached["tickers"] == tickers and time.time() - cached["at"] < LIVE_EVERY_SEC - 5
-            error = None
-            if live and not fresh:
-                try:
-                    quotes = prices.yahoo_quotes(prices.with_fx(tickers))
-                    prices.save_yahoo_prices(quotes)  # answers use the same prices
-                    st.session_state.live_quotes = {"tickers": tickers, "at": time.time(), "quotes": quotes}
-                except Exception as e:
-                    error = e
-            cached = st.session_state.get("live_quotes")
-            if cached and cached["tickers"] == tickers:
-                quotes, stamp = cached["quotes"], datetime.fromtimestamp(cached["at"]).strftime("%H:%M:%S")
-            else:  # live off (or failed before any fetch): last saved prices, no day change
-                quotes = {t: {**p, "prev_close": None} for t, p in prices.load_prices().items()}
-                stamp = None
-            rows, tot = portfolio_table(holdings, quotes)
-            pnl = tot["value"] - tot["cost"]
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Invested", prices.inr(tot["cost"]))
-            m2.metric("Current value", prices.inr(tot["value"]))
-            m3.metric("Day's P&L", prices.signed_money(tot["day"]) if tot["prev"] else "—",
-                      f"{tot['day'] / tot['prev'] * 100:+.2f}%" if tot["prev"] else None)
-            m4.metric("Total P&L", prices.signed_money(pnl),
-                      f"{pnl / tot['cost'] * 100:+.2f}%" if tot["cost"] else None)
-            st.dataframe(rows, hide_index=True, width="stretch", column_config={
-                "Qty": st.column_config.NumberColumn(format="%g"),
-                "Day %": st.column_config.NumberColumn(format="%+.2f%%"),
-                "P&L %": st.column_config.NumberColumn(format="%+.2f%%"),
-            })
-            note = (f"Live · updated {stamp} · Yahoo Finance (NSE/BSE quotes may be delayed)" if stamp
-                    else "Last saved prices — turn on Live prices to refresh")
-            if tot["fx"]:
-                note += f" · US stocks at ₹{tot['fx']:.2f}/$"
-            if tot["missing"]:
-                note += f" · no price for {', '.join(tot['missing'])} — check the symbol and exchange"
-            if tot["no_fx"]:
-                note += f" · no USD→INR rate yet for {', '.join(tot['no_fx'])}"
-            st.caption(note)
-            if error:
-                st.warning(f"Price refresh failed: {error}")
+    # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
+    @st.fragment(run_every=LIVE_EVERY_SEC if live and pending is None else None)
+    def dashboard() -> None:
+        import time
+        from datetime import datetime
+        tickers = [h["ticker"] for h in holdings]
+        cached = st.session_state.get("live_quotes")
+        fresh = cached and cached["tickers"] == tickers and time.time() - cached["at"] < LIVE_EVERY_SEC - 5
+        error = None
+        if live and not fresh:
+            try:
+                quotes = prices.yahoo_quotes(prices.with_fx(tickers))
+                prices.save_yahoo_prices(quotes)  # answers use the same prices
+                st.session_state.live_quotes = {"tickers": tickers, "at": time.time(), "quotes": quotes}
+            except Exception as e:
+                error = e
+        cached = st.session_state.get("live_quotes")
+        if cached and cached["tickers"] == tickers:
+            quotes, stamp = cached["quotes"], datetime.fromtimestamp(cached["at"]).strftime("%H:%M:%S")
+        else:  # live off (or failed before any fetch): last saved prices, no day change
+            quotes = {t: {**p, "prev_close": None} for t, p in prices.load_prices().items()}
+            stamp = None
+        df, tot = portfolio_frame(holdings, quotes)
+        pnl = tot["value"] - tot["cost"]
+        day_pct = tot["day"] / tot["prev"] * 100 if tot["prev"] else None
+        pnl_pct = pnl / tot["cost"] * 100 if tot["cost"] else None
+        st.markdown('<div class="kpis">'
+                    + kpi("Invested", prices.inr(tot["cost"]), f"{len(holdings)} holdings")
+                    + kpi("Current value", prices.inr(tot["value"]), "")
+                    + kpi("Day's P&L", prices.signed_money(tot["day"]) if tot["prev"] else "—",
+                          f"{day_pct:+.2f}%" if day_pct is not None else "", tone(day_pct))
+                    + kpi("Total P&L", prices.signed_money(pnl), f"{pnl_pct:+.2f}%" if pnl_pct is not None else "",
+                          tone(pnl_pct))
+                    + "</div>", unsafe_allow_html=True)
+        holdings_tab, alloc_tab, stock_tab = st.tabs(["Holdings", "Allocation", "Stock view"])
+        with holdings_tab:
+            holdings_table(df)
+        with alloc_tab:
+            allocation_charts(df)
+        with stock_tab:
+            stock_view(holdings, pending)
+        note = (f"Live · updated {stamp} · Yahoo Finance (NSE/BSE quotes may be delayed)" if stamp
+                else "Last saved prices — turn on Live to refresh")
+        if tot["fx"]:
+            note += f" · US stocks at ₹{tot['fx']:.2f}/$"
+        if tot["missing"]:
+            note += f" · no price for {', '.join(tot['missing'])} — check the symbol and exchange"
+        if tot["no_fx"]:
+            note += f" · no USD→INR rate yet for {', '.join(tot['no_fx'])}"
+        st.markdown(f'<p class="footnote">{html.escape(note)}</p>', unsafe_allow_html=True)
+        if error:
+            st.warning(f"Price refresh failed: {error}")
 
-        live_view()
+    dashboard()
 
 
+def answer_pending(query: str) -> None:
+    """Route, retrieve, stream the answer and check citations for the queued question."""
+    with st.chat_message("assistant"):
+        decision, plan, positions = r.plan_query(query, use_portfolio=use_portfolio, route=route)
+        res = {
+            "route": decision.route, "confidence": decision.confidence, "secondary": decision.secondary_routes,
+            "describe": decision.describe(), "positions": positions, "citations": [],
+            "retrieval_notes": [], "answer": "", "disclaimer": "", "report": None,
+            "valuation": r.valuation_for(decision, positions),
+        }
+        render_route(res, show_details)  # the route is known before searching — show it right away
+        log = io.StringIO()
+        with st.spinner("Searching the corpus…"), contextlib.redirect_stdout(log):
+            citations = r.retrieve_for_plan(query, collection, plan)
+        res["citations"] = citations
+        res["retrieval_notes"] = [line.strip() for line in log.getvalue().splitlines() if line.startswith("↪")]
+        render_retrieval_notes(res)
+        render_positions(positions)
+        render_valuation(res["valuation"])
+
+        if not citations:  # never ask the model to answer from nothing
+            res["answer"] = (prices.summary_sentence(res["valuation"]) if res["valuation"]
+                             else prompts.NO_CONTEXT_ANSWER)
+            st.markdown(md(res["answer"]))
+        else:
+            prompt = r.build_prompt(query, citations, positions=positions, route=decision.route)
+            try:
+                tokens = r.stream_tokens(prompt, model=model)
+                # On an 8 GB machine the first token can take a minute (model load + reading
+                # the passages): show progress until it arrives, then stream.
+                with st.spinner(f"{model} is reading {len(citations)} passages… "
+                                "(the first answer also loads the model)"):
+                    first = next(tokens, "")
+                res["answer"] = st.write_stream(md(tok) for tok in itertools.chain([first], tokens))
+                res["answer"] = res["answer"].replace("\\$", "$")  # store unescaped
+            except Exception as e:  # unreachable server, cloud-model refusal, ...
+                st.error(f"Generation failed: {e}")
+
+        res["refusal"] = bool(res["answer"]) and is_refusal(res["answer"])
+        if decision.route == "portfolio" and res["answer"] and citations and not res["refusal"]:
+            res["disclaimer"] = prompts.PORTFOLIO_DISCLAIMER
+            st.caption(res["disclaimer"])
+        render_sources(citations, refusal=res["refusal"])
+        # A refusal has nothing to check — the "no citations" warning would make a
+        # correct "not covered" answer look like a failure.
+        if check and res["answer"] and citations and not res["refusal"]:
+            with st.spinner("Checking citations…"):
+                res["report"] = check_citations(res["answer"], citations, get_encoder(),
+                                                extra_sources=[query] + [format_position(h) for h in positions])
+            render_report(res["report"])
+    st.session_state.messages.append({"role": "assistant", "result": res})
+
+
+def assistant_pane(pending) -> None:
+    head = st.columns([3, 1], vertical_alignment="center")
+    head[0].markdown('<p class="pane-title">Research assistant</p>', unsafe_allow_html=True)
+    if head[1].button("Clear", width="stretch", disabled=pending is not None or not st.session_state.messages):
+        st.session_state.messages = []
+        st.rerun()
+    box = st.container(height=640, border=True)
+    with box:
+        if not st.session_state.messages:
+            st.markdown("**Ask about your holdings, a company's filings or annual report, or a finance concept.**")
+            st.caption(f"Answers come from {collection.count():,} passages — finance explainers, US SEC filings, "
+                       "Indian annual reports and market-microstructure papers — and every answer cites its sources.")
+            for i, s in enumerate(SUGGESTIONS):
+                if st.button(s, key=f"suggest_{i}", width="stretch"):
+                    ask(s)
+                    st.rerun()
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                if msg["role"] == "user":
+                    st.markdown(md(msg["content"]))
+                else:
+                    render_assistant(msg["result"], show_details)
+    # A new question while an answer is still generating would restart the script and
+    # silently drop that answer, so the input is locked until the pending one is done.
+    query = st.chat_input("Ask about a stock, a filing, a concept, or your holdings…",
+                          disabled=pending is not None)
+    if query:
+        ask(query)
+        st.rerun()
+    if pending:
+        try:
+            with box:
+                answer_pending(pending)
+        finally:
+            st.session_state.pending = None  # a failing question must not lock the input forever
+        st.rerun()  # re-enable the input
+
+
+# ── Page ─────────────────────────────────────────────────────────────────────
+collection = get_collection()
+if collection is None:
+    st.error("Vector store not found — run `python scripts/build_vectorstore.py` first.")
+    st.stop()
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
 pending = st.session_state.get("pending")
-if use_portfolio:
-    portfolio_panel(pending)
 
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        if msg["role"] == "user":
-            st.markdown(md(msg["content"]))
-        else:
-            render_assistant(msg["result"], show_details)
+models = r.local_models()
+status, is_open = market_status()
+top = st.columns([5, 1.1], vertical_alignment="center")
+with top[1].popover("⚙ Settings", width="stretch"):
+    if models:
+        default = models.index(r.DEFAULT_MODEL) if r.DEFAULT_MODEL in models else \
+            next((i for i, m in enumerate(models) if m.startswith(r.DEFAULT_MODEL)), 0)
+        model = st.selectbox("Model (local only)", models, index=default,
+                             help="mlx:… models run on Apple's MLX server; the others on Ollama.")
+    route = st.radio("Route", ["auto", "concept", "technical", "portfolio"], horizontal=True,
+                     help="auto = deterministic rules in router.py")
+    use_portfolio = st.toggle("Use my holdings in answers", value=True)
+    check = st.toggle("Check citations", value=True)
+    show_details = st.toggle("Show routing details", value=False)
+    st.caption("🔒 Answers are generated on this Mac (cloud models refused, no telemetry). Your holdings file stays "
+               "here; live prices send only stock symbols to Yahoo Finance.")
+top[0].markdown(
+    '<div class="topbar"><div class="brand"><span class="mark">◆</span> FinRAG<small>Research terminal</small></div>'
+    f'<span class="pill {"open" if is_open else "closed"}">● {html.escape(status)}</span>'
+    f'<span class="pill">🔒 Local · {html.escape(model if models else "no model")}</span>'
+    f'<span class="pill">{collection.count():,} passages</span></div>', unsafe_allow_html=True)
+if not models:
+    st.error("No local models found. Either start Ollama (127.0.0.1:11434) or the MLX server "
+             "(`scripts/start_mlx_server.sh`, 127.0.0.1:8080). If Ollama's models live on the external "
+             "drive and the Mac just restarted, Ollama may have started before the drive mounted and "
+             "fallen back to its default (empty) folder — quit and reopen Ollama.")
+    st.stop()
 
-# A new question while an answer is still generating would restart the script and
-# silently drop that answer, so the input is locked until the pending one is done.
-query = st.chat_input("Ask about a finance concept, a filing, a paper, or your holdings…",
-                      disabled=pending is not None)
-if query:
-    st.session_state.messages.append({"role": "user", "content": query})
-    st.session_state.pending = query
-    st.rerun()
-
-if pending:
-    query = pending
-    try:
-        with st.chat_message("assistant"):
-            decision, plan, positions = r.plan_query(query, use_portfolio=use_portfolio, route=route)
-            res = {
-                "route": decision.route, "confidence": decision.confidence, "secondary": decision.secondary_routes,
-                "describe": decision.describe(), "positions": positions, "citations": [],
-                "retrieval_notes": [], "answer": "", "disclaimer": "", "report": None,
-                "valuation": r.valuation_for(decision, positions),
-            }
-            render_route(res, show_details)  # the route is known before searching — show it right away
-            log = io.StringIO()
-            with st.spinner("Searching the corpus…"), contextlib.redirect_stdout(log):
-                citations = r.retrieve_for_plan(query, collection, plan)
-            res["citations"] = citations
-            res["retrieval_notes"] = [line.strip() for line in log.getvalue().splitlines() if line.startswith("↪")]
-            render_retrieval_notes(res)
-            render_positions(positions)
-            render_valuation(res["valuation"])
-
-            if not citations:  # never ask the model to answer from nothing
-                res["answer"] = (prices.summary_sentence(res["valuation"]) if res["valuation"]
-                                 else prompts.NO_CONTEXT_ANSWER)
-                st.markdown(md(res["answer"]))
-            else:
-                prompt = r.build_prompt(query, citations, positions=positions, route=decision.route)
-                try:
-                    tokens = r.stream_tokens(prompt, model=model)
-                    # On an 8 GB machine the first token can take a minute (model load + reading
-                    # the passages): show progress until it arrives, then stream.
-                    with st.spinner(f"{model} is reading {len(citations)} passages… "
-                                    "(the first answer also loads the model)"):
-                        first = next(tokens, "")
-                    res["answer"] = st.write_stream(md(tok) for tok in itertools.chain([first], tokens))
-                    res["answer"] = res["answer"].replace("\\$", "$")  # store unescaped
-                except Exception as e:  # unreachable server, cloud-model refusal, ...
-                    st.error(f"Generation failed: {e}")
-
-            res["refusal"] = bool(res["answer"]) and is_refusal(res["answer"])
-            if decision.route == "portfolio" and res["answer"] and citations and not res["refusal"]:
-                res["disclaimer"] = prompts.PORTFOLIO_DISCLAIMER
-                st.caption(res["disclaimer"])
-            render_sources(citations, refusal=res["refusal"])
-            # A refusal has nothing to check — the "no citations" warning would make a
-            # correct "not covered" answer look like a failure.
-            if check and res["answer"] and citations and not res["refusal"]:
-                with st.spinner("Checking citations…"):
-                    res["report"] = check_citations(res["answer"], citations, get_encoder(),
-                                                    extra_sources=[query] + [format_position(h) for h in positions])
-                render_report(res["report"])
-
-        st.session_state.messages.append({"role": "assistant", "result": res})
-    except Exception:
-        st.session_state.pending = None  # a failing question must not lock the input forever
-        raise
-    st.session_state.pending = None
-    st.rerun()  # re-enable the input
+left, right = st.columns([1.35, 1], gap="large")
+with left:
+    portfolio_pane(pending)
+with right:
+    assistant_pane(pending)

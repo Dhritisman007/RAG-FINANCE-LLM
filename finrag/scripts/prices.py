@@ -198,6 +198,44 @@ def fetch_yahoo_prices(tickers: list[str], path: Path = YAHOO_PRICES_PATH, downl
     return sum(t in quotes for t in wanted), [t for t in wanted if t not in quotes]
 
 
+def yahoo_history(ticker: str, period: str = "1y", download=None) -> list[tuple[str, float]]:
+    """Daily closes [(YYYY-MM-DD, close), ...] for one ticker, oldest first. Yahoo sees the ticker."""
+    if download is None:
+        import yfinance as yf
+        download = yf.download
+    t = normalize_ticker(ticker)
+    data = download([t], period=period, interval="1d", progress=False, auto_adjust=False, threads=False)
+    close = data["Close"][t].dropna()
+    return [(d.date().isoformat(), float(v)) for d, v in close.items()]
+
+
+def price_stats(history: list[tuple[str, float]]) -> dict:
+    """
+    Descriptive statistics of a price history — what happened, not a forecast:
+    52-week high/low, 1/3/12-month returns, annualised volatility, and the
+    largest peak-to-trough fall.
+    """
+    import math
+    closes = [c for _, c in history]
+    if len(closes) < 2:
+        return {}
+    last = closes[-1]
+
+    def ret(days: int):  # ~21 trading days a month
+        return (last / closes[-days - 1] - 1) * 100 if len(closes) > days else None
+
+    daily = [b / a - 1 for a, b in zip(closes, closes[1:])]
+    mean = sum(daily) / len(daily)
+    vol = math.sqrt(sum((x - mean) ** 2 for x in daily) / max(1, len(daily) - 1)) * math.sqrt(252) * 100
+    peak, drawdown = closes[0], 0.0
+    for c in closes:
+        peak = max(peak, c)
+        drawdown = min(drawdown, (c / peak - 1) * 100)
+    year = closes[-252:]
+    return {"last": last, "high_52w": max(year), "low_52w": min(year), "ret_1m": ret(21), "ret_3m": ret(63),
+            "ret_1y": ret(min(252, len(closes) - 1)), "volatility": vol, "max_drawdown": drawdown}
+
+
 def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANUAL_PRICES_PATH,
                 yahoo_path: Path = YAHOO_PRICES_PATH) -> dict[str, dict]:
     """{ticker: {"price", "as_of", "source"}} — newest date wins; same date: manual > Yahoo > Nasdaq."""

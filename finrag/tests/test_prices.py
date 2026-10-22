@@ -146,6 +146,25 @@ def test_yahoo_prices_and_source_precedence() -> None:
     print("PASS: Yahoo closes for holdings (stocks and funds); same-date precedence manual > Yahoo > Nasdaq")
 
 
+def test_history_and_stats() -> None:
+    import pandas as pd
+    idx = pd.bdate_range("2025-10-01", periods=260)
+    closes = [100 + i * 0.5 for i in range(200)] + [199.5 - i * 2 for i in range(60)]   # rise, then a fall
+
+    def fake_download(tickers, **kwargs):
+        assert tickers == ["RELIANCE.NS"] and kwargs["period"] == "1y"
+        return pd.DataFrame({("Close", "RELIANCE.NS"): closes}, index=idx)
+
+    h = prices.yahoo_history("reliance.ns", download=fake_download)
+    assert len(h) == 260 and h[0] == ("2025-10-01", 100.0) and h[-1][1] == closes[-1]
+    s = prices.price_stats(h)
+    assert s["high_52w"] == 199.5 and s["low_52w"] == min(closes[-252:]) and s["last"] == closes[-1]
+    assert round(s["max_drawdown"], 2) == round((closes[-1] / 199.5 - 1) * 100, 2)
+    assert round(s["ret_1m"], 2) == round((closes[-1] / closes[-22] - 1) * 100, 2) and s["volatility"] > 0
+    assert prices.price_stats([("2026-01-01", 1.0)]) == {}
+    print("PASS: price history, 52-week range, returns, volatility and max drawdown")
+
+
 if __name__ == "__main__":
     test_fetch_never_sends_tickers()
     test_endpoint_change_fails_loudly()
@@ -153,4 +172,5 @@ if __name__ == "__main__":
     test_valuation_math_stale_and_missing()
     test_indian_listings_and_rupees()
     test_yahoo_prices_and_source_precedence()
+    test_history_and_stats()
     print("\nAll price tests passed.")

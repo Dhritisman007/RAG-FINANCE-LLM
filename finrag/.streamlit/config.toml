@@ -14,3 +14,12 @@ serverAddress = "localhost"
 
 [client]
 toolbarMode = "minimal"   # hides "Deploy" (one click would publish the app — and your holdings — to Streamlit Cloud)
+
+[theme]
+base = "dark"
+primaryColor = "#3b82f6"
+backgroundColor = "#0b0f17"
+secondaryBackgroundColor = "#121826"
+textColor = "#e5e7eb"
+borderColor = "#1f2937"
+baseRadius = "10px"
