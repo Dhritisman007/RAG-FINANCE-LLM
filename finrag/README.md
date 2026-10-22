@@ -1,12 +1,12 @@
 # FinRAG — Financial Knowledge RAG Agent
 
-A fully local Retrieval-Augmented Generation (RAG) pipeline over a three-tier financial corpus — plain-language explainers, SEC filings (10-K / 10-Q) and arXiv market-microstructure papers — answered by a local LLM via Ollama, with optional portfolio-aware queries over your own holdings.
+A fully local Retrieval-Augmented Generation (RAG) pipeline over a three-tier financial corpus — plain-language explainers, SEC filings (10-K / 10-Q) and arXiv market-microstructure papers — answered by a local LLM (Ollama, or Apple's MLX as the alternative), with a live portfolio tracker for Indian (NSE/BSE) and US stocks in ₹ and portfolio-aware queries over your own holdings.
 
 Built day-by-day as a structured learning project — each script corresponds to one pipeline stage.
 
 > All paths and commands below are relative to `finrag/`.
 
-> **Privacy by design:** everything runs on this machine. Embeddings run locally (sentence-transformers), the vector store is local ChromaDB with telemetry disabled, and generation goes only to the Ollama server on `localhost` (pinned in code, so `OLLAMA_HOST` can't redirect it). Portfolio data is never sent to any cloud API, and `holdings.csv` is git-ignored.
+> **Privacy by design:** everything runs on this machine. Embeddings run locally (sentence-transformers), the vector store is local ChromaDB with telemetry disabled, and generation goes only to the Ollama or MLX server on `127.0.0.1` (pinned in code, so `OLLAMA_HOST` can't redirect it). Portfolio data is never sent to any cloud API, and `holdings.csv` is git-ignored. **One deliberate exception:** live prices come from Yahoo Finance, which sees the stock symbols you hold — never your quantities or prices paid.
 
 ---
 
@@ -30,6 +30,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 14 | Local price data + valuation | `prices.py` | ✅ Done — whole-market download, no tickers ever sent |
 | 15 | Corpus expansion: 25 companies | `corpus_manifest.yaml`, `router.py` | ✅ Done — 75 SEC filings, 16,946 passages |
 | 16 | Tier 1 gaps + filing refresh | `scrape_tier1.py`, `refresh_filings.py` | ✅ Done — 47 explainers; refresh found a missed JPM 10-Q |
+| 17 | Live portfolio (NSE/BSE, ₹) + MLX backend | `app.py`, `prices.py`, `portfolio_store.py`, `llm_backends.py` | ✅ Done — add stocks in the UI, live prices every 60 s, MLX fallback when Ollama is down |
 
 ---
 
@@ -318,6 +319,26 @@ python scripts/portfolio_store.py                           # list holdings
 
 ---
 
+### Day 17 — Live portfolio in ₹ (Indian stocks) and an Ollama alternative
+**Portfolio panel.** The main screen now opens with a **📊 My portfolio** panel above the chat:
+- **Add a stock:** symbol (`RELIANCE`, `TCS`, `HDFCBANK`…), exchange (NSE by default, BSE or US), quantity, average buy price and an optional purchase date. Buying more of a stock you hold merges the lots at the weighted average price. **Edit / remove** opens a table editor for everything else. Every save is validated (`portfolio_store.validate_holdings`: bad symbols, blank or negative numbers, duplicates, future dates) and written atomically, so a crash can't leave a half-written file.
+- **Live prices:** with *Live prices* on, the panel refreshes from Yahoo Finance every 60 s without reloading the chat: Invested, Current value, Day's P&L, Total P&L, and per stock LTP, Day %, Current, P&L. Refresh pauses while an answer is generating, so it can't interrupt one.
+- **Rupees:** NSE/BSE holdings are stored with Yahoo's suffixes (`RELIANCE.NS`, `TCS.BO`) and priced in ₹; totals use Indian digit grouping (₹12,34,567.80). US holdings stay in $ per share and are converted to ₹ at the live USD→INR rate (`USDINR=X`, a currency pair, so it reveals nothing about you). Without a rate they are left out of the ₹ totals rather than mixed in as dollars.
+- The chat uses the same prices. "How is my portfolio doing?" gets a ₹ valuation computed by code; "my RELIANCE shares" (or "Wipro" for `WIPRO.NS`) routes to your position. Indian companies have no SEC filings in the corpus, so those questions use the explainers plus your position instead of an empty filing search.
+- **Privacy:** Yahoo sees the symbols requested — never quantities or costs. The Nasdaq whole-market download (Day 14, no tickers sent, US stocks only) is still available as `--update-market`. Same-date precedence: manual price file > Yahoo > Nasdaq.
+
+```bash
+python scripts/prices.py --update          # Yahoo prices for your holdings (+ USD→INR if you hold US stocks)
+python scripts/prices.py                   # ₹ valuation
+```
+
+**MLX: the alternative to Ollama.** `scripts/llm_backends.py` adds Apple's MLX next to Ollama:
+- Models named `mlx:…` run on a local MLX server (`127.0.0.1:8080`, started by `scripts/start_mlx_server.sh`, offline mode, no telemetry); everything else runs on Ollama.
+- If Ollama isn't running or comes up with no models (the restart-before-the-drive-mounts problem), FinRAG uses the MLX model instead of failing; the UI's model picker lists both.
+- Same model (Qwen2.5-7B-Instruct, 4-bit), measured on the same six questions on the 8 GB M1: **decode is the same** (9–12 tokens/s on both), **prefill is slower on MLX** (first token 24–52 s on 3,000+-token technical/portfolio prompts vs ~30 s on Ollama), and the answers were equally correct and cited. So MLX is a working backup, not a speed-up; on this machine the bottleneck is memory, not the runtime.
+
+**Leaner prompts.** Technical and portfolio retrieval went from k=6/5 to k=4 (hit@k still 100%, MRR 0.94, precision up), and technical/portfolio answers aim for about 200 words, which cuts both prefill and decode time.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -330,6 +351,8 @@ python tests/test_evaluate.py    # refusal detection, label matching, golden-set
 python tests/test_exact_index.py # exact search ranking, distances, filters
 python tests/test_prices.py      # no tickers in the price request, parsing, manual overrides, valuation math
 python tests/test_refresh.py     # only filings missing from disk are fetched; nothing is deleted
+python tests/test_portfolio_store.py  # holdings validation, atomic save, add/merge lots
+python tests/test_llm_backends.py     # Ollama/MLX switch and fallback, MLX streaming (no servers needed)
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -361,10 +384,11 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 **Open:**
 1. **Occasional invented examples in concept answers** — down from 6/22 to 1/22 answers after the Day 16 prompt fix; the remaining case is flagged by the number check. A regenerate-on-flag guard would close it at the cost of an extra model call.
 2. **Mislabelled numbers aren't *detected*** — the number check only verifies a number exists in the sources, not that it's attached to the right row or period. (qwen2.5:7b labelled every table figure correctly in the evaluation; this is a safety-net gap, not an observed failure. An earlier entry here claimed qwen converted Tesla's revenue to "$94.83 billion" against the verbatim rule — wrong: the 10-K itself says "$94.83 billion".)
-3. **Slow answers on 8 GB** — ~2 minutes per qwen2.5:7b answer on an 8 GB M1 (memory-bound); llama3.2 is twice as fast but much less reliable.
+3. **Slow answers on 8 GB** — 15–60 s per qwen2.5:7b answer on an 8 GB M1 after the Day 17 trims (memory-bound; MLX is no faster); llama3.2 is twice as fast but much less reliable.
 4. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 5. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
 6. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
+7. **No Indian company filings** — the corpus's company documents are US SEC filings, so questions about an Indian holding are answered from the explainers plus your position only. Adding Indian annual reports (BSE/NSE filings) is the natural next corpus expansion.
 
 ---
 
@@ -376,6 +400,16 @@ ollama pull qwen2.5:7b      # default model (~4.7 GB)
 ollama pull llama3.2        # optional: faster, less reliable
 python scripts/prices.py --update   # optional: prices for "how is my portfolio doing?"
 ```
+
+**Optional: MLX (Apple Silicon) as an alternative to Ollama** — one-time ~4 GB download to the external drive, then start the server whenever you want it:
+
+```bash
+pip install mlx-lm
+HF_HOME="/Volumes/Crucial X9/hf-cache" python -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/Qwen2.5-7B-Instruct-4bit')"
+scripts/start_mlx_server.sh
+```
+
+The script sets `MLX_MPI_LIBNAME` so MLX doesn't load Anaconda's MPICH library (it expects Open MPI and aborts). On the exFAT drive macOS leaves `._*` files in the model cache, which crash the Hugging Face cache scan behind `/v1/models`; FinRAG checks `/health` instead, and `find "/Volumes/Crucial X9/hf-cache" -name "._*" -delete` cleans them.
 
 ### Troubleshooting: "no models" after a restart
 Ollama's models live on the external drive (Ollama → Settings → Model location). If the Mac restarts and Ollama launches before the drive mounts, it logs `models path not accessible, using default` and serves an empty default folder — `ollama list` shows nothing and FinRAG can't answer. Quit and reopen Ollama (or restart its server) once the drive is mounted.
@@ -419,3 +453,6 @@ python scripts/rag_loop.py --interactive
 - [x] Filing refresh (Day 16)
 - [x] Full 59-question answer evaluation on the expanded corpus (Day 16)
 - [x] Cut invented examples in concept answers from 6/22 to 1/22 (Day 16)
+- [x] Live portfolio panel: add stocks in the UI, NSE/BSE in ₹, 60 s refresh (Day 17)
+- [x] MLX backend as an Ollama alternative, with automatic fallback (Day 17)
+- [ ] Indian annual reports in the corpus
