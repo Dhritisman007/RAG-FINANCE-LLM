@@ -1,10 +1,11 @@
 """
 FinRAG chat UI (Streamlit) — the same pipeline as scripts/rag_loop.py:
-route -> retrieve -> route prompt -> local Ollama -> sources + citation check.
+route -> retrieve -> route prompt -> local LLM (Ollama or MLX) -> sources + citation check.
 
 Local only, by design: the server binds 127.0.0.1 and sends no usage
 statistics (.streamlit/config.toml); the app refuses to start otherwise,
-because it shows your holdings. Generation only uses local Ollama models.
+because it shows your holdings. Generation only uses local models (Ollama, or MLX
+on 127.0.0.1:8080 — see scripts/start_mlx_server.sh).
 
 Run from finrag/:
     streamlit run app.py
@@ -25,7 +26,7 @@ import prices  # noqa: E402
 import prompts  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
-from portfolio_store import HOLDINGS_PATH, format_position, load_holdings  # noqa: E402
+from portfolio_store import HOLDINGS_PATH, format_position, load_holdings, add_holding, save_holdings  # noqa: E402
 
 st.set_page_config(page_title="FinRAG", page_icon="📈", layout="wide",
                    initial_sidebar_state="expanded")  # model, route and privacy note visible on load
@@ -149,51 +150,60 @@ def render_assistant(res: dict, show_details: bool) -> None:
     render_report(res["report"])
 
 
+@st.dialog("Edit holdings", width="large")
+def edit_holdings_dialog() -> None:
+    """Add, change or delete holdings; saved to data/portfolio/holdings.csv after validation."""
+    from datetime import date
+    st.caption("Add a row with the + at the bottom; select rows and press Delete to remove them. "
+               "Saved only on this machine.")
+    rows = [{"ticker": h["ticker"], "quantity": h["quantity"], "avg_cost": h["avg_cost"],
+             "purchase_date": date.fromisoformat(h["purchase_date"]) if h["purchase_date"] else None}
+            for h in load_holdings()]
+    edited = st.data_editor(
+        rows or [{"ticker": "", "quantity": None, "avg_cost": None, "purchase_date": None}],
+        num_rows="dynamic", hide_index=True, width="stretch", key="holdings_editor",
+        column_config={
+            "ticker": st.column_config.TextColumn("Ticker", help="NSE: RELIANCE.NS · BSE: RELIANCE.BO · US: AAPL", max_chars=20),
+            "quantity": st.column_config.NumberColumn("Shares", min_value=0.0, format="%g"),
+            "avg_cost": st.column_config.NumberColumn("Avg price", min_value=0.0, format="%.2f", help="₹ for NSE/BSE, $ for US"),
+            "purchase_date": st.column_config.DateColumn("Purchased", format="YYYY-MM-DD", max_value=date.today()),
+        },
+    )
+    save, cancel = st.columns(2)
+    if save.button("Save", type="primary", width="stretch"):
+        errors = save_holdings(edited)
+        if errors:
+            for e in errors:
+                st.error(e)
+        else:
+            st.session_state.price_note = "Holdings saved"
+            st.rerun()
+    if cancel.button("Cancel", width="stretch"):
+        st.rerun()
+
+
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("FinRAG")
     models = r.local_models()
     if not models:
-        st.error("No local Ollama models found. Is Ollama running on 127.0.0.1:11434? If the models live on "
-                 "the external drive and the Mac just restarted, Ollama may have started before the drive "
-                 "mounted and fallen back to its default (empty) folder — quit and reopen Ollama.")
+        st.error("No local models found. Either start Ollama (127.0.0.1:11434) or the MLX server "
+                 "(`scripts/start_mlx_server.sh`, 127.0.0.1:8080). If Ollama's models live on the external "
+                 "drive and the Mac just restarted, Ollama may have started before the drive mounted and "
+                 "fallen back to its default (empty) folder — quit and reopen Ollama.")
         st.stop()
     default = models.index(r.DEFAULT_MODEL) if r.DEFAULT_MODEL in models else \
         next((i for i, m in enumerate(models) if m.startswith(r.DEFAULT_MODEL)), 0)
-    model = st.selectbox("Model (local only)", models, index=default)
+    model = st.selectbox("Model (local only)", models, index=default,
+                         help="mlx:… models run on Apple's MLX server; the others on Ollama.")
     route = st.radio("Route", ["auto", "concept", "technical", "portfolio"], horizontal=True,
                      help="auto = deterministic rules in router.py")
     use_portfolio = st.toggle("Use my holdings", value=True)
     check = st.toggle("Check citations", value=True)
     show_details = st.toggle("Show routing details", value=False)
 
-    if use_portfolio:
-        holdings = load_holdings()
-        st.subheader("Holdings")
-        if holdings:
-            st.markdown("\n".join(f"- **{h['ticker']}** · {h['quantity']:g} sh @ {md(f'${h['avg_cost']:,.2f}')}"
-                                   f" · since {h['purchase_date']}" for h in holdings))
-            summary = prices.summarize(prices.value_positions(holdings, prices.load_prices()))
-            if summary["priced"]:
-                st.caption(md(f"Worth ${summary['market_value']:,.2f} · {summary['gain_pct']:+.1f}% "
-                              f"on cost · prices as of {summary['as_of']}"
-                              + (" ⚠ stale" if summary["stale"] else "")))
-            if st.button("Update prices", help="One request downloads ~7,000 US stock prices from Nasdaq's "
-                                               "screener. It contains no tickers, so it reveals nothing "
-                                               "about your holdings."):
-                with st.spinner("Downloading whole-market prices…"):
-                    try:
-                        n = prices.fetch_market_prices()
-                        st.session_state.price_note = f"Updated {n:,} prices"
-                        st.rerun()  # redraw the sidebar summary with the new prices
-                    except Exception as e:
-                        st.error(f"Price update failed: {e}")
-            if st.session_state.get("price_note"):
-                st.success(st.session_state.pop("price_note"))
-        else:
-            st.caption(f"No holdings file at {HOLDINGS_PATH.relative_to(Path(__file__).parent)}")
-    st.caption("🔒 Local only: Ollama on 127.0.0.1, cloud models refused, no telemetry. "
-               "Holdings never leave this machine.")
+    st.caption("🔒 Answers are generated locally (cloud models refused, no telemetry). Your holdings file "
+               "stays on this machine; live prices send only stock symbols to Yahoo Finance.")
     if st.button("Clear chat"):
         st.session_state.messages = []
         st.rerun()
@@ -208,8 +218,135 @@ st.title("📈 FinRAG")
 st.caption(f"Answers from {collection.count():,} passages of finance explainers, SEC filings "
            "and market-microstructure papers — every answer cites its sources.")
 
+LIVE_EVERY_SEC = 60
+
+
+def portfolio_table(holdings: list[dict], quotes: dict[str, dict]) -> tuple[list[dict], dict]:
+    """
+    Rows for the live table plus ₹ totals — all arithmetic here, never by the model.
+    Indian listings are in ₹; US holdings are converted at the USD→INR rate.
+    """
+    fx = (quotes.get(prices.FX_TICKER) or {}).get("price")
+    rows = []
+    tot = {"value": 0.0, "cost": 0.0, "day": 0.0, "prev": 0.0, "missing": [], "no_fx": []}
+    for h in holdings:
+        symbol, exchange = prices.display_symbol(h["ticker"])
+        cur = prices.currency(h["ticker"])
+        rate = 1.0 if cur == "INR" else fx
+        q = quotes.get(prices.normalize_ticker(h["ticker"]))
+        row = {"Stock": symbol, "Exchange": exchange, "Qty": h["quantity"],
+               "Avg price": prices.money(h["avg_cost"], cur), "LTP": None, "Day %": None,
+               "Current (₹)": None, "P&L (₹)": None, "P&L %": None}
+        if q is None or rate is None:
+            (tot["missing"] if q is None else tot["no_fx"]).append(symbol)
+            rows.append(row)
+            continue
+        cost, value = h["quantity"] * h["avg_cost"] * rate, h["quantity"] * q["price"] * rate
+        prev = q.get("prev_close")
+        tot["value"] += value
+        tot["cost"] += cost
+        if prev:
+            tot["day"] += h["quantity"] * (q["price"] - prev) * rate
+            tot["prev"] += h["quantity"] * prev * rate
+        row.update({"LTP": prices.money(q["price"], cur), "Day %": (q["price"] / prev - 1) * 100 if prev else None,
+                    "Current (₹)": prices.inr(value), "P&L (₹)": prices.signed_money(value - cost),
+                    "P&L %": (value - cost) / cost * 100 if cost else None})
+        rows.append(row)
+    tot["fx"] = fx if any(prices.currency(h["ticker"]) == "USD" for h in holdings) else None
+    return rows, tot
+
+
+def portfolio_panel(pending) -> None:
+    with st.expander("📊 My portfolio", expanded=True):
+        with st.form("add_stock", clear_on_submit=True, border=False):
+            c1, c2, c3, c4, c5, c6 = st.columns([1.4, 0.9, 0.9, 1.1, 1.3, 0.8], vertical_alignment="bottom")
+            symbol = c1.text_input("Stock symbol", placeholder="e.g. RELIANCE, TCS", max_chars=16)
+            exchange = c2.selectbox("Exchange", ["NSE", "BSE", "US"])
+            qty = c3.number_input("Qty", min_value=0.0, value=None, step=1.0, format="%g")
+            cost = c4.number_input("Avg buy price", min_value=0.0, value=None, step=1.0, format="%.2f",
+                                   help="Per share — in ₹ for NSE/BSE, in $ for US stocks")
+            bought = c5.date_input("Bought on (optional)", value=None, format="DD/MM/YYYY")
+            if c6.form_submit_button("➕ Add", type="primary", width="stretch"):
+                ticker = prices.with_exchange(symbol, exchange) if symbol.strip() else ""
+                errors = add_holding({"ticker": ticker, "quantity": qty, "avg_cost": cost,
+                                      "purchase_date": bought.isoformat() if bought else ""})
+                for e in errors:
+                    st.error(e)
+                if not errors:
+                    st.session_state.live_quotes = None  # fetch the new stock's price now
+                    st.session_state.price_note = f"Saved {prices.display_symbol(ticker)[0]} ({exchange})"
+
+        holdings = load_holdings()
+        if not holdings:
+            st.caption("No holdings yet — add your first stock above (NSE symbols like RELIANCE, TCS, HDFCBANK). "
+                       "Saved only on this machine.")
+            return
+        top = st.columns([1, 1, 3], vertical_alignment="center")
+        live = top[0].toggle("Live prices", value=True, key="live",
+                             help=f"Refresh prices from Yahoo Finance every {LIVE_EVERY_SEC} s. Yahoo sees "
+                                  "your stock symbols — never your quantities or prices paid.")
+        if top[1].button("Edit / remove", help="Change or delete holdings"):
+            edit_holdings_dialog()
+        if st.session_state.get("price_note"):
+            top[2].success(st.session_state.pop("price_note"))
+
+        # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
+        @st.fragment(run_every=LIVE_EVERY_SEC if live and pending is None else None)
+        def live_view() -> None:
+            import time
+            from datetime import datetime
+            tickers = [h["ticker"] for h in holdings]
+            cached = st.session_state.get("live_quotes")
+            fresh = cached and cached["tickers"] == tickers and time.time() - cached["at"] < LIVE_EVERY_SEC - 5
+            error = None
+            if live and not fresh:
+                try:
+                    quotes = prices.yahoo_quotes(prices.with_fx(tickers))
+                    prices.save_yahoo_prices(quotes)  # answers use the same prices
+                    st.session_state.live_quotes = {"tickers": tickers, "at": time.time(), "quotes": quotes}
+                except Exception as e:
+                    error = e
+            cached = st.session_state.get("live_quotes")
+            if cached and cached["tickers"] == tickers:
+                quotes, stamp = cached["quotes"], datetime.fromtimestamp(cached["at"]).strftime("%H:%M:%S")
+            else:  # live off (or failed before any fetch): last saved prices, no day change
+                quotes = {t: {**p, "prev_close": None} for t, p in prices.load_prices().items()}
+                stamp = None
+            rows, tot = portfolio_table(holdings, quotes)
+            pnl = tot["value"] - tot["cost"]
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Invested", prices.inr(tot["cost"]))
+            m2.metric("Current value", prices.inr(tot["value"]))
+            m3.metric("Day's P&L", prices.signed_money(tot["day"]) if tot["prev"] else "—",
+                      f"{tot['day'] / tot['prev'] * 100:+.2f}%" if tot["prev"] else None)
+            m4.metric("Total P&L", prices.signed_money(pnl),
+                      f"{pnl / tot['cost'] * 100:+.2f}%" if tot["cost"] else None)
+            st.dataframe(rows, hide_index=True, width="stretch", column_config={
+                "Qty": st.column_config.NumberColumn(format="%g"),
+                "Day %": st.column_config.NumberColumn(format="%+.2f%%"),
+                "P&L %": st.column_config.NumberColumn(format="%+.2f%%"),
+            })
+            note = (f"Live · updated {stamp} · Yahoo Finance (NSE/BSE quotes may be delayed)" if stamp
+                    else "Last saved prices — turn on Live prices to refresh")
+            if tot["fx"]:
+                note += f" · US stocks at ₹{tot['fx']:.2f}/$"
+            if tot["missing"]:
+                note += f" · no price for {', '.join(tot['missing'])} — check the symbol and exchange"
+            if tot["no_fx"]:
+                note += f" · no USD→INR rate yet for {', '.join(tot['no_fx'])}"
+            st.caption(note)
+            if error:
+                st.warning(f"Price refresh failed: {error}")
+
+        live_view()
+
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+pending = st.session_state.get("pending")
+if use_portfolio:
+    portfolio_panel(pending)
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -220,7 +357,6 @@ for msg in st.session_state.messages:
 
 # A new question while an answer is still generating would restart the script and
 # silently drop that answer, so the input is locked until the pending one is done.
-pending = st.session_state.get("pending")
 query = st.chat_input("Ask about a finance concept, a filing, a paper, or your holdings…",
                       disabled=pending is not None)
 if query:

@@ -105,7 +105,7 @@ def test_retrieval_plans() -> None:
     concept = route_query("What is compound interest?", HOLDINGS).plan
     assert concept.tiers == [1] and concept.k == 4 and concept.distance_threshold is not None
     tech = route_query("How does a limit order book work?", HOLDINGS).plan
-    assert tech.tiers == [2, 3] and tech.k == 6
+    assert tech.tiers == [2, 3] and tech.k == 4
     tsla = route_query("What risk factors does Tesla disclose in its 10-K?", HOLDINGS).plan
     assert tsla.tiers == [2] and tsla.tickers == ["TSLA"]
     port = route_query("What risks does my AAPL position face?", HOLDINGS).plan
@@ -153,6 +153,24 @@ def test_expanded_company_detection() -> None:
     print("PASS: 25-company detection by ticker and name; visa / V-shaped / meta-analysis / PG-13 don't match")
 
 
+def test_indian_holdings() -> None:
+    holdings = [{"ticker": "RELIANCE.NS", "quantity": 10, "avg_cost": 2400.0, "purchase_date": ""},
+                {"ticker": "WIPRO.BO", "quantity": 5, "avg_cost": 450.0, "purchase_date": ""},
+                {"ticker": "M&M.NS", "quantity": 2, "avg_cost": 1500.0, "purchase_date": ""},
+                {"ticker": "AAPL", "quantity": 1, "avg_cost": 180.0, "purchase_date": ""}]
+    for q, held in [("What risks does my RELIANCE position face?", ["RELIANCE.NS"]),
+                    ("Should I worry about my Wipro shares?", ["WIPRO.BO"]),
+                    ("How is M&M doing for me?", ["M&M.NS"]),
+                    ("reliance industries outlook", [])]:            # lowercase prose isn't a ticker
+        d = route_query(q, holdings=holdings)
+        assert d.held_tickers == held, (q, d.held_tickers)
+        if held:
+            assert d.route == "portfolio" and not d.plan.tickers, (q, d.plan)  # no SEC filings to restrict to
+    d = route_query("Compare my RELIANCE and AAPL positions", holdings=holdings)
+    assert d.plan.tickers == ["AAPL"]                                  # filings only for the company that has them
+    print("PASS: Indian holdings matched with or without .NS/.BO; no empty SEC-filing search for them")
+
+
 if __name__ == "__main__":
     ok = test_labelled_accuracy()
     test_mixed_queries_report_secondary_signals()
@@ -160,6 +178,7 @@ if __name__ == "__main__":
     test_no_portfolio_and_forced_route()
     test_valuation_flag_only_for_own_performance()
     test_expanded_company_detection()
+    test_indian_holdings()
     if not ok:
         sys.exit("\nRouter accuracy test FAILED")
     print("\nAll router tests passed.")

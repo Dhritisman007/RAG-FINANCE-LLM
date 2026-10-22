@@ -26,3 +26,5 @@ data/portfolio/manual_prices.csv
 
 # Local run logs
 data/logs/
+data/portfolio/*.tmp
+data/portfolio/yahoo_prices.csv

@@ -44,6 +44,7 @@ FINAL_REMINDERS = {
 TECHNICAL_STYLE = """\
 You are a precise quantitative finance analyst answering a technical question.
 Style:
+- Focused: about 200 words, unless the question asks for a full list.
 - Be exact. Copy formulas, variable definitions and table values verbatim from the context.
 - Never round, convert or re-derive numbers that appear in the context; quote them as written, with their units and periods (e.g. "fiscal 2025", "in millions").
 - State the assumptions, conditions or scope the source attaches to a result (model, sample period, company, filing).
@@ -53,6 +54,7 @@ PORTFOLIO_STYLE = """\
 You are a careful assistant explaining how source material relates to the user's own holdings.
 The user's position details are shown to them separately, exactly as recorded, and an "educational, not investment advice" note is added automatically.
 Style:
+- Focused: about 200 words.
 - Do NOT restate, recompute or estimate any position numbers (shares, average cost, cost basis, current value, gains or returns). Refer to the holding only as "your <TICKER> position".
 - Explain the relevant filing-based risks or context, each with its [N] citation.
 - When quoting figures from a filing table, copy them verbatim with the table's unit and period, and name the line item they belong to.

@@ -40,6 +40,109 @@ def load_holdings(path: Path = HOLDINGS_PATH) -> list[dict]:
     return holdings
 
 
+# US (AAPL, BRK-B) and Indian NSE/BSE symbols with Yahoo suffixes (RELIANCE.NS, M&M.NS, BAJAJ-AUTO.BO)
+TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9&.\-]{0,19}$")
+INDIA_SUFFIXES = (".NS", ".BO")
+
+
+def validate_holdings(rows: list[dict]) -> tuple[list[dict], list[str]]:
+    """
+    Clean and check edited rows -> (holdings, errors). Blank rows are dropped.
+    Each error names the row (1-based) so the UI can point at it.
+    """
+    import math
+    from datetime import date
+
+    def blank(v) -> bool:  # the table editor returns empty number cells as NaN, not None
+        return v is None or v == "" or (isinstance(v, float) and math.isnan(v))
+
+    def number(v):
+        if blank(v):
+            raise ValueError
+        x = float(v)
+        if math.isnan(x) or math.isinf(x):
+            raise ValueError
+        return x
+
+    holdings, errors, seen = [], [], set()
+    for i, row in enumerate(rows, start=1):
+        ticker = str(row.get("ticker") or "").strip().upper()
+        qty, cost, when = row.get("quantity"), row.get("avg_cost"), row.get("purchase_date")
+        if not ticker and blank(qty) and blank(cost):
+            continue  # an empty row the editor added
+        if not TICKER_RE.match(ticker):
+            errors.append(f"Row {i}: '{ticker or '(blank)'}' isn't a valid ticker (e.g. RELIANCE.NS, TCS.BO, AAPL).")
+        elif ticker in seen:
+            errors.append(f"Row {i}: {ticker} appears twice — combine it into one row.")
+        seen.add(ticker)
+        try:
+            qty = number(qty)
+            if qty <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"Row {i}: shares must be a number greater than 0.")
+        try:
+            cost = number(cost)
+            if cost < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"Row {i}: average cost must be a number of 0 or more.")
+        if isinstance(when, date):
+            when = when.isoformat()
+        when = str(when or "").strip()[:10]
+        if when:
+            try:
+                if date.fromisoformat(when) > date.today():
+                    errors.append(f"Row {i}: purchase date {when} is in the future.")
+            except ValueError:
+                errors.append(f"Row {i}: purchase date must be YYYY-MM-DD.")
+        if not errors or not errors[-1].startswith(f"Row {i}:"):
+            holdings.append({"ticker": ticker, "quantity": qty, "avg_cost": cost, "purchase_date": when})
+    return holdings, errors
+
+
+def save_holdings(rows: list[dict], path: Path = HOLDINGS_PATH) -> list[str]:
+    """
+    Validate and write holdings.csv. Returns the errors; nothing is written
+    unless every row is valid. Writes to a temp file first, so a crash can't
+    leave a half-written holdings file.
+    """
+    holdings, errors = validate_holdings(rows)
+    if errors:
+        return errors
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".csv.tmp")
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["ticker", "quantity", "avg_cost", "purchase_date"])
+        for h in holdings:
+            w.writerow([h["ticker"], f"{h['quantity']:g}", f"{h['avg_cost']:.2f}", h["purchase_date"]])
+    tmp.replace(path)
+    return []
+
+
+def add_holding(row: dict, path: Path = HOLDINGS_PATH) -> list[str]:
+    """
+    Add one position and save. Buying more of a ticker already held merges the
+    lots: shares add up, average cost becomes the weighted average, and the
+    earlier purchase date is kept. Returns the errors (nothing saved if any).
+    """
+    new, errors = validate_holdings([row])
+    if errors or not new:
+        return [e.removeprefix("Row 1: ") for e in errors] or ["Enter a ticker, shares and average cost."]
+    new = new[0]
+    rows = load_holdings(path)
+    held = next((h for h in rows if h["ticker"] == new["ticker"]), None)
+    if held:
+        total = held["quantity"] + new["quantity"]
+        held["avg_cost"] = (held["quantity"] * held["avg_cost"] + new["quantity"] * new["avg_cost"]) / total
+        held["quantity"] = total
+        held["purchase_date"] = min(filter(None, [held["purchase_date"], new["purchase_date"]]), default="")
+    else:
+        rows.append(new)
+    return save_holdings(rows, path)
+
+
 def get_holding(ticker: str, holdings: list[dict] | None = None) -> dict | None:
     """Look up one position by ticker (case-insensitive). None if not held."""
     if holdings is None:
@@ -52,20 +155,42 @@ def find_held_tickers(query: str, holdings: list[dict] | None = None) -> list[st
     """
     Tickers from holdings that appear in the query as whole uppercase words
     (e.g. "my AAPL position"). Case-sensitive on purpose so short tickers
-    don't match ordinary words.
+    don't match ordinary words. Indian holdings also match without their
+    exchange suffix ("my RELIANCE shares" -> RELIANCE.NS), or capitalised
+    when 5+ letters long ("Wipro" -> WIPRO.NS).
     """
     if holdings is None:
         holdings = load_holdings()
-    return [h["ticker"] for h in holdings
-            if re.search(rf"(?<![A-Za-z]){re.escape(h['ticker'])}(?![A-Za-z])", query)]
+    found = []
+    for h in holdings:
+        t = h["ticker"]
+        forms = [t]
+        if t.endswith(INDIA_SUFFIXES):
+            base = t[:-3]
+            forms += [base] + ([base.capitalize()] if len(base) >= 5 and base.isalpha() else [])
+        if any(re.search(rf"(?<![A-Za-z&]){re.escape(f)}(?![A-Za-z&])", query) for f in forms):
+            found.append(t)
+    return found
+
+
+def _price(x: float, ticker: str) -> str:
+    if not ticker.upper().endswith(INDIA_SUFFIXES):
+        return f"${x:,.2f}"
+    whole, frac = f"{x:.2f}".split(".")  # Indian grouping: ₹12,34,567.80
+    head, tail = whole[:-3], whole[-3:]
+    groups = []
+    while len(head) > 2:
+        groups.insert(0, head[-2:])
+        head = head[:-2]
+    return "₹" + ",".join(([head] if head else []) + groups + [tail]) + "." + frac
 
 
 def format_position(h: dict) -> str:
     qty = f"{h['quantity']:g}"
     cost_basis = h["quantity"] * h["avg_cost"]
     bought = f", purchased {h['purchase_date']}" if h["purchase_date"] else ""
-    return (f"{h['ticker']}: {qty} shares @ avg cost ${h['avg_cost']:,.2f} "
-            f"(total cost basis ${cost_basis:,.2f}){bought}")
+    return (f"{h['ticker']}: {qty} shares @ avg cost {_price(h['avg_cost'], h['ticker'])} "
+            f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}")
 
 
 if __name__ == "__main__":

@@ -172,26 +172,34 @@ PORTFOLIO_CONCEPT_THRESHOLD = 0.28
 # Broad technical questions (no company named): at most this many passages per
 # paper, so answers draw on several sources. Over-fetch more to backfill.
 TECHNICAL_MAX_PER_DOC = 2
+# Passages per route. On an 8 GB M1 qwen2.5:7b reads ~100-150 prompt tokens/s, so
+# every ~450-token passage costs ~4 s before the first word. Technical was 6 and
+# portfolio 5 (prompts of 3,100-3,600 and 1,800-2,650 tokens); 4 each since Day 17.
+CONCEPT_K = 4
+TECHNICAL_K = 4
+PORTFOLIO_K = 4
 TECHNICAL_OVERFETCH = 5
 
 
 def _plan(route: str, held: list[str], companies: list[str], query: str) -> RetrievalPlan:
     if route == "concept":
-        return RetrievalPlan(tiers=[1], k=4, overfetch=3,
+        return RetrievalPlan(tiers=[1], k=CONCEPT_K, overfetch=3,
                              distance_threshold=CONCEPT_DISTANCE_THRESHOLD, fallback_tiers=None)
     if route == "technical":
         if companies:  # a named company -> its filings
-            return RetrievalPlan(tiers=[2], k=6, overfetch=3, tickers=companies)
-        return RetrievalPlan(tiers=[2, 3], k=6, overfetch=TECHNICAL_OVERFETCH, max_per_doc=TECHNICAL_MAX_PER_DOC)
+            return RetrievalPlan(tiers=[2], k=TECHNICAL_K, overfetch=3, tickers=companies)
+        return RetrievalPlan(tiers=[2, 3], k=TECHNICAL_K, overfetch=TECHNICAL_OVERFETCH, max_per_doc=TECHNICAL_MAX_PER_DOC)
     # portfolio
     concept_k = 2 if DEFINITION_RE.search(query) else 0
-    if held:
-        return RetrievalPlan(tiers=[2], k=5, overfetch=3, tickers=held, concept_k=concept_k,
+    with_filings = [t for t in held if t in CORPUS_COMPANIES]  # e.g. Indian holdings have no SEC filings
+    if with_filings:
+        return RetrievalPlan(tiers=[2], k=PORTFOLIO_K, overfetch=3, tickers=with_filings, concept_k=concept_k,
                              distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD)
-    # "my portfolio" with no specific ticker: every position + Tier 1 material only
+    # "my portfolio" with no specific ticker (or only holdings without filings in the
+    # corpus): the positions + Tier 1 material only
     # if it genuinely covers the question. No fallback — for "how is my portfolio
     # doing?" a wider search only returns unrelated papers (best hit 0.31, HFT).
-    return RetrievalPlan(tiers=[1], k=4, overfetch=3, distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD,
+    return RetrievalPlan(tiers=[1], k=CONCEPT_K, overfetch=3, distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD,
                          fallback=False)
 
 

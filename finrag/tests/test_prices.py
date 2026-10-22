@@ -73,7 +73,7 @@ def test_parse_normalize_and_manual_override() -> None:
         market.write_text("ticker,price,as_of,source\nAAPL,343.46,2026-10-19T17:04,screener\n"
                           "BRK-B,1234.5,2026-10-19T17:04,screener\n")
         manual.write_text("ticker,price,date\nvbtlx,10.50,2026-10-18\nAAPL,300,2026-10-01\nBRK.B,1300,2026-10-19\n")
-        p = prices.load_prices(market, manual)
+        p = prices.load_prices(market, manual, Path(tmp) / "no_yahoo.csv")  # never read real price files
     assert p["VBTLX"]["price"] == 10.5 and p["VBTLX"]["source"] == "manual price file"   # fund via manual file
     assert p["AAPL"]["price"] == 343.46                                                   # older manual loses
     assert p["BRK-B"]["price"] == 1300                                                    # same-day manual wins
@@ -82,17 +82,68 @@ def test_parse_normalize_and_manual_override() -> None:
 
 def test_valuation_math_stale_and_missing() -> None:
     p = {"AAPL": {"price": 343.46, "as_of": "2026-10-19T17:04", "source": "s"},
-         "BRK-B": {"price": 1234.5, "as_of": "2026-10-10", "source": "s"}}
+         "BRK-B": {"price": 1234.5, "as_of": "2026-10-10", "source": "s"},
+         prices.FX_TICKER: {"price": 84.0, "as_of": "2026-10-19", "source": "s"}}
     v = prices.value_positions(HOLDINGS, p, today=date(2026, 10, 19))
     aapl, brk, fund = v
     assert round(aapl["market_value"], 2) == 8586.50 and round(aapl["gain"], 2) == 4024.00
-    assert round(aapl["gain_pct"], 1) == 88.2 and not aapl["stale"]
+    assert round(aapl["gain_pct"], 1) == 88.2 and not aapl["stale"] and aapl["currency"] == "USD"
+    assert round(aapl["value_inr"], 2) == round(8586.50 * 84, 2)                 # US holdings in ₹ at the FX rate
     assert brk["stale"] and fund["missing"] and fund["market_value"] is None
     s = prices.summarize(v)
-    assert round(s["market_value"], 2) == 8586.50 + 2469.00 and s["missing"] == ["VBTLX"] and s["stale"] == ["BRK.B"]
+    assert round(s["market_value"], 2) == round((8586.50 + 2469.00) * 84, 2)
+    assert s["missing"] == ["VBTLX"] and s["stale"] == ["BRK.B"]
     sentence = prices.summary_sentence(v)
     assert "Not included (no price): VBTLX" in sentence and "run --update" in sentence and "not investment advice" in sentence
-    print("PASS: market value / gain math, stale-price and missing-price reporting")
+    assert "₹9,28,662.00" in sentence and "converted to rupees" in sentence
+    no_fx = prices.summarize(prices.value_positions(HOLDINGS, {k: x for k, x in p.items() if k != prices.FX_TICKER},
+                                                    today=date(2026, 10, 19)))
+    assert no_fx["priced"] == 0 and no_fx["no_fx"] == ["AAPL", "BRK.B"]           # never mixes $ into ₹ totals
+    print("PASS: market value / gain math, ₹ totals via USD→INR, stale-price and missing-price reporting")
+
+
+def test_indian_listings_and_rupees() -> None:
+    assert prices.normalize_ticker("reliance.ns") == "RELIANCE.NS" and prices.normalize_ticker("m&m.bo") == "M&M.BO"
+    assert prices.normalize_ticker("brk.b") == "BRK-B"                            # US class shares unchanged
+    assert prices.with_exchange("tcs", "NSE") == "TCS.NS" and prices.with_exchange("tcs", "BSE") == "TCS.BO"
+    assert prices.with_exchange("INFY.BO", "NSE") == "INFY.BO" and prices.with_exchange("aapl", "US") == "AAPL"
+    assert prices.display_symbol("RELIANCE.NS") == ("RELIANCE", "NSE") and prices.display_symbol("AAPL") == ("AAPL", "US")
+    assert prices.inr(1234567.8) == "₹12,34,567.80" and prices.inr(999) == "₹999.00" and prices.inr(-123456) == "-₹1,23,456.00"
+    assert prices.signed_money(2500.5) == "+₹2,500.50" and prices.money(1234.5, "USD") == "$1,234.50"
+    assert prices.with_fx(["TCS.NS"]) == ["TCS.NS"] and prices.with_fx(["TCS.NS", "AAPL"])[-1] == prices.FX_TICKER
+    holdings = [{"ticker": "RELIANCE.NS", "quantity": 10, "avg_cost": 2400.0, "purchase_date": ""}]
+    v = prices.value_positions(holdings, {"RELIANCE.NS": {"price": 2850.0, "as_of": "2026-10-19", "source": "s"}},
+                               today=date(2026, 10, 19))
+    assert v[0]["currency"] == "INR" and v[0]["value_inr"] == 28500.0           # no FX needed for ₹ listings
+    line = prices.format_valuation(v)[0]
+    assert "10 × ₹2,850.00 = ₹28,500.00" in line and "+₹4,500.00" in line, line
+    print("PASS: NSE/BSE suffixes, ₹ with Indian digit grouping, rupee valuation without FX")
+
+
+def test_yahoo_prices_and_source_precedence() -> None:
+    import pandas as pd
+    asked = []
+
+    def fake_download(tickers, **kwargs):
+        asked.append(list(tickers))
+        idx = pd.to_datetime(["2026-10-16", "2026-10-19"])
+        cols = pd.MultiIndex.from_product([["Close"], ["AAPL", "VBTLX", "GONE"]])
+        return pd.DataFrame([[343.46, 9.32, float("nan")], [342.94, 9.29, float("nan")]], index=idx, columns=cols)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        yahoo, market, manual = Path(tmp) / "y.csv", Path(tmp) / "m.csv", Path(tmp) / "man.csv"
+        n, missing = prices.fetch_yahoo_prices(["aapl", "VBTLX", "GONE", "AAPL"], yahoo, download=fake_download)
+        assert asked[0] == ["AAPL", "GONE", "USDINR=X", "VBTLX"]  # holdings (normalised, de-duplicated) + the FX pair
+        assert n == 2 and missing == ["GONE"]
+        q = prices.yahoo_quotes(["AAPL"], download=fake_download)["AAPL"]       # live panel: day change
+        assert q == {"price": 342.94, "prev_close": 343.46, "as_of": "2026-10-19"}
+        market.write_text("ticker,price,as_of,source\nAAPL,343.46,2026-10-19T17:04,screener\n")
+        p = prices.load_prices(market, manual, yahoo)
+        assert p["AAPL"]["price"] == 342.94 and p["AAPL"]["source"] == prices.YAHOO_SOURCE   # same date: Yahoo > Nasdaq
+        assert p["VBTLX"]["price"] == 9.29                                                    # a fund Nasdaq doesn't list
+        manual.write_text("ticker,price,date\nAAPL,350,2026-10-19\n")
+        assert prices.load_prices(market, manual, yahoo)["AAPL"]["price"] == 350            # same date: manual wins
+    print("PASS: Yahoo closes for holdings (stocks and funds); same-date precedence manual > Yahoo > Nasdaq")
 
 
 if __name__ == "__main__":
@@ -100,4 +151,6 @@ if __name__ == "__main__":
     test_endpoint_change_fails_loudly()
     test_parse_normalize_and_manual_override()
     test_valuation_math_stale_and_missing()
+    test_indian_listings_and_rupees()
+    test_yahoo_prices_and_source_precedence()
     print("\nAll price tests passed.")
