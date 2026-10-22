@@ -2,7 +2,7 @@
 # This is the single source of truth for what gets ingested.
 # Day 2/3 scrapers read this file; they do not hardcode source lists themselves.
 
-target_total_docs: 157  # soft target (tier1 47 + tier2 75 + tier3 35)
+target_total_docs: 172  # soft target (tier1 47 + tier2 75 + tier2_india 15 + tier3 35)
 
 tier1_fundamentals:
   description: >
@@ -166,6 +166,66 @@ tier2_filings:
   note: >
     SEC requires a descriptive User-Agent header with contact email on all
     requests (e.g. "FinRAG-Coach research@yourdomain.com"). Enforce in scraper.
+
+tier2_india:
+  description: >
+    Annual reports of large NSE-listed Indian companies (Day 18): the integrated
+    report, Board's report, MD&A, corporate governance and the consolidated
+    financial statements. Amounts are in ₹ (mostly ₹ crore).
+  target_count: 15  # 15 companies x latest annual report
+  doc_type: "annual_report"
+  source:
+    name: nse_annual_report
+    listing_api: "https://www.nseindia.com/api/annual-reports?index=equities&symbol={symbol}"
+  keep_sections: ["Integrated Report", "Board's Report", "Management Discussion and Analysis",
+                  "Corporate Governance Report", "Consolidated Financial Statements"]
+  skip_sections: ["Notice", "Business Responsibility and Sustainability Report", "Standalone Financial Statements"]
+  companies: # NIFTY large caps across sectors; tickers use Yahoo's NSE suffix
+    - symbol: RELIANCE
+      name: "Reliance Industries"
+      sector: "Energy & conglomerate"
+    - symbol: TCS
+      name: "Tata Consultancy Services"
+      sector: "IT services"
+    - symbol: INFY
+      name: "Infosys"
+      sector: "IT services"
+    - symbol: HDFCBANK
+      name: "HDFC Bank"
+      sector: "Private bank"
+    - symbol: ICICIBANK
+      name: "ICICI Bank"
+      sector: "Private bank"
+    - symbol: SBIN
+      name: "State Bank of India"
+      sector: "Public sector bank"
+    - symbol: BHARTIARTL
+      name: "Bharti Airtel"
+      sector: "Telecom"
+    - symbol: ITC
+      name: "ITC"
+      sector: "FMCG & tobacco"
+    - symbol: HINDUNILVR
+      name: "Hindustan Unilever"
+      sector: "FMCG"
+    - symbol: LT
+      name: "Larsen & Toubro"
+      sector: "Engineering & construction"
+    - symbol: BAJFINANCE
+      name: "Bajaj Finance"
+      sector: "NBFC"
+    - symbol: MARUTI
+      name: "Maruti Suzuki India"
+      sector: "Automobiles"
+    - symbol: SUNPHARMA
+      name: "Sun Pharmaceutical Industries"
+      sector: "Pharmaceuticals"
+    - symbol: TATASTEEL
+      name: "Tata Steel"
+      sector: "Metals"
+    - symbol: ASIANPAINT
+      name: "Asian Paints"
+      sector: "Paints & consumer"
 
 tier3_microstructure:
   description: >

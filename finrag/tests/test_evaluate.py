@@ -53,13 +53,17 @@ def test_relevance_and_numbers() -> None:
 def test_golden_fact_forms_appear_in_their_filings() -> None:
     """Every accepted form of a required figure must appear verbatim in a relevant filing."""
     raw = Path(__file__).parent.parent / "data" / "raw" / "tier2"
-    texts = {p.name: p.read_text(encoding="utf-8") for p in raw.glob("tier2_secedgar_*.txt") if not p.name.startswith("._")}
+    # Match documents by their stored title, as the evaluator does (SEC filings and Indian annual reports).
+    docs = {}
+    for txt in raw.glob("tier2_*.txt"):
+        meta = txt.with_suffix(".meta.json")
+        if txt.name.startswith("._") or not meta.exists():
+            continue
+        docs[txt.name] = (json.loads(meta.read_text(encoding="utf-8"))["title"], txt.read_text(encoding="utf-8"))
     for q in (json.loads(line) for line in open(GOLDEN_PATH, encoding="utf-8")):
         for fact in q["must_include"]:
             for form in ([fact] if isinstance(fact, str) else fact):
-                hits = [n for n, t in texts.items() if form in t
-                        and any(n.startswith("tier2_secedgar_" + d.split()[0] + "-" + d.split()[1].replace("-", ""))
-                                for d in q["relevant_docs"])]
+                hits = [n for n, (title, text) in docs.items() if form in text and is_relevant(title, q["relevant_docs"])]
                 assert hits, f"{q['id']}: {form!r} is not in any of its relevant filings"
     print("PASS: every accepted form of every required figure appears verbatim in its filing")
 

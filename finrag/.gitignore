@@ -28,3 +28,6 @@ data/portfolio/manual_prices.csv
 data/logs/
 data/portfolio/*.tmp
 data/portfolio/yahoo_prices.csv
+
+# Cached annual-report PDFs (Day 18) — large; the extracted text is what the pipeline uses
+data/pdf_cache/

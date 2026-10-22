@@ -157,18 +157,37 @@ def test_indian_holdings() -> None:
     holdings = [{"ticker": "RELIANCE.NS", "quantity": 10, "avg_cost": 2400.0, "purchase_date": ""},
                 {"ticker": "WIPRO.BO", "quantity": 5, "avg_cost": 450.0, "purchase_date": ""},
                 {"ticker": "M&M.NS", "quantity": 2, "avg_cost": 1500.0, "purchase_date": ""},
+                {"ticker": "TCS.BO", "quantity": 3, "avg_cost": 3500.0, "purchase_date": ""},
                 {"ticker": "AAPL", "quantity": 1, "avg_cost": 180.0, "purchase_date": ""}]
-    for q, held in [("What risks does my RELIANCE position face?", ["RELIANCE.NS"]),
-                    ("Should I worry about my Wipro shares?", ["WIPRO.BO"]),
-                    ("How is M&M doing for me?", ["M&M.NS"]),
-                    ("reliance industries outlook", [])]:            # lowercase prose isn't a ticker
+    for q, held, filings in [
+            ("What risks does my RELIANCE position face?", ["RELIANCE.NS"], ["RELIANCE.NS"]),
+            ("What risks does Reliance face for me?", ["RELIANCE.NS"], ["RELIANCE.NS"]),   # by name
+            ("Should I worry about my Wipro shares?", ["WIPRO.BO"], []),       # no annual report in the corpus
+            ("How is M&M doing for me?", ["M&M.NS"], []),
+            ("What does my TCS holding depend on?", ["TCS.BO"], ["TCS.NS"])]:   # BSE holding, NSE report
         d = route_query(q, holdings=holdings)
-        assert d.held_tickers == held, (q, d.held_tickers)
-        if held:
-            assert d.route == "portfolio" and not d.plan.tickers, (q, d.plan)  # no SEC filings to restrict to
+        assert d.route == "portfolio" and d.held_tickers == held and d.plan.tickers == filings, (q, d.held_tickers, d.plan)
     d = route_query("Compare my RELIANCE and AAPL positions", holdings=holdings)
-    assert d.plan.tickers == ["AAPL"]                                  # filings only for the company that has them
-    print("PASS: Indian holdings matched with or without .NS/.BO; no empty SEC-filing search for them")
+    assert sorted(d.plan.tickers) == ["AAPL", "RELIANCE.NS"]
+    print("PASS: Indian holdings matched by symbol (with or without .NS/.BO) or name; reports used where the corpus has them")
+
+
+def test_indian_company_detection() -> None:
+    cases = {
+        "What was Reliance's revenue in FY26?": ["RELIANCE.NS"], "Compare TCS and Infosys margins": ["TCS.NS", "INFY.NS"],
+        "What did HDFC Bank say about deposits?": ["HDFCBANK.NS"], "How exposed is L&T to order backlog?": ["LT.NS"],
+        "What is SBI's net interest margin?": ["SBIN.NS"], "Bharti Airtel ARPU trend": ["BHARTIARTL.NS"],
+        # ordinary words that must NOT match a company
+        "Is reliance on short-term debt risky?": [],
+        # known limitation: an uppercase "ITC" always means the company, even as "input tax credit"
+        "What is an ITC (input tax credit)?": ["ITC.NS"],
+    }
+    for q, want in cases.items():
+        got = route_query(q, HOLDINGS).company_tickers
+        assert got == want, (q, got, want)
+    d = route_query("What was Reliance's revenue in FY26?", HOLDINGS)
+    assert d.route == "technical" and d.plan.tickers == ["RELIANCE.NS"]
+    print("PASS: 15 Indian companies by symbol or name; lowercase 'reliance' is just a word")
 
 
 if __name__ == "__main__":
@@ -179,6 +198,7 @@ if __name__ == "__main__":
     test_valuation_flag_only_for_own_performance()
     test_expanded_company_detection()
     test_indian_holdings()
+    test_indian_company_detection()
     if not ok:
         sys.exit("\nRouter accuracy test FAILED")
     print("\nAll router tests passed.")

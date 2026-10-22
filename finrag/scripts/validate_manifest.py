@@ -14,7 +14,7 @@ def load_manifest() -> dict:
 
 
 def validate(manifest: dict) -> None:
-    tiers = ["tier1_fundamentals", "tier2_filings", "tier3_microstructure"]
+    tiers = ["tier1_fundamentals", "tier2_filings", "tier2_india", "tier3_microstructure"]
     total_target = 0
 
     print("=== Corpus Manifest Validation ===\n")

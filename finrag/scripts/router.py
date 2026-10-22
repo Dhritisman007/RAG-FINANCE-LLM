@@ -59,10 +59,40 @@ CORPUS_COMPANIES = {
     "BA": ["boeing"],
     "NFLX": ["netflix"],
     "NEE": ["nextera", "next era energy", "florida power & light"],
+    # Day 18: Indian annual reports (NSE). Keyed by Yahoo's NSE ticker; the bare
+    # symbol ("TCS", "INFY") also matches. A BSE holding (.BO) maps to the same company.
+    "RELIANCE.NS": ["reliance industries"],
+    "TCS.NS": ["tata consultancy services", "tata consultancy"],
+    "INFY.NS": ["infosys"],
+    "HDFCBANK.NS": ["hdfc bank"],
+    "ICICIBANK.NS": ["icici bank"],
+    "SBIN.NS": ["state bank of india"],
+    "BHARTIARTL.NS": ["bharti airtel", "airtel"],
+    "ITC.NS": [],
+    "HINDUNILVR.NS": ["hindustan unilever"],
+    "LT.NS": ["larsen & toubro", "larsen and toubro", "l&t"],
+    "BAJFINANCE.NS": ["bajaj finance"],
+    "MARUTI.NS": ["maruti suzuki", "maruti"],
+    "SUNPHARMA.NS": ["sun pharma", "sun pharmaceutical"],
+    "TATASTEEL.NS": ["tata steel"],
+    "ASIANPAINT.NS": ["asian paints"],
 }
 # Names that are also ordinary words ("a travel visa", "meta-analysis", "the
 # Amazon river") count only when capitalised.
-CASE_SENSITIVE_NAMES = {"V": ["Visa"], "META": ["Meta"], "AMZN": ["Amazon"]}
+CASE_SENSITIVE_NAMES = {"V": ["Visa"], "META": ["Meta"], "AMZN": ["Amazon"],
+                        # "reliance on debt", "icici" in prose are rare, but "Reliance" lowercase is a word
+                        "RELIANCE.NS": ["Reliance", "RIL"], "SBIN.NS": ["SBI"], "HINDUNILVR.NS": ["HUL"],
+                        "ICICIBANK.NS": ["ICICI"], "HDFCBANK.NS": ["HDFC Bank"]}
+
+
+def filing_key(ticker: str) -> str:
+    """The corpus key for a held ticker: a BSE listing (.BO) shares its NSE company's reports."""
+    return ticker[:-3] + ".NS" if ticker.endswith(".BO") else ticker
+
+
+def symbol_of(ticker: str) -> str:
+    """The symbol people type: 'TCS.NS' -> 'TCS'."""
+    return ticker[:-3] if ticker.endswith(".NS") else ticker
 # Tickers of 1-2 letters (V, BA, GS, KO, PG) also appear inside ordinary text
 # ("V-shaped recovery", "PG-13"): they must stand alone as a word.
 SHORT_TICKER_RE = r"(?:(?<=^)|(?<=[\s$(]))({t})(?=$|[\s'’?.,!:;)])"
@@ -191,7 +221,7 @@ def _plan(route: str, held: list[str], companies: list[str], query: str) -> Retr
         return RetrievalPlan(tiers=[2, 3], k=TECHNICAL_K, overfetch=TECHNICAL_OVERFETCH, max_per_doc=TECHNICAL_MAX_PER_DOC)
     # portfolio
     concept_k = 2 if DEFINITION_RE.search(query) else 0
-    with_filings = [t for t in held if t in CORPUS_COMPANIES]  # e.g. Indian holdings have no SEC filings
+    with_filings = [filing_key(t) for t in held if filing_key(t) in CORPUS_COMPANIES]  # filings / annual reports on disk
     if with_filings:
         return RetrievalPlan(tiers=[2], k=PORTFOLIO_K, overfetch=3, tickers=with_filings, concept_k=concept_k,
                              distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD)
@@ -219,13 +249,14 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
     """
     if holdings is None:
         holdings = load_holdings() if allow_portfolio else []
-    held_set = {h["ticker"] for h in holdings} if allow_portfolio else set()
+    held_key = {filing_key(h["ticker"]): h["ticker"] for h in holdings} if allow_portfolio else {}
 
     # Corpus companies mentioned by ticker (uppercase) or by name
     companies = []
     for ticker, names in CORPUS_COMPANIES.items():
-        ticker_re = (SHORT_TICKER_RE.format(t=ticker) if len(ticker) <= 2
-                     else rf"(?<![A-Za-z]){ticker}(?![A-Za-z])")
+        symbol = re.escape(symbol_of(ticker))
+        ticker_re = (SHORT_TICKER_RE.format(t=symbol) if len(symbol) <= 2
+                     else rf"(?<![A-Za-z]){symbol}(?![A-Za-z])")
         if re.search(ticker_re, query) or \
            any(re.search(rf"(?<![\w&]){re.escape(n)}(?![\w&])", query, re.I) for n in names) or \
            any(re.search(rf"\b{re.escape(n)}\b", query) for n in CASE_SENSITIVE_NAMES.get(ticker, [])):
@@ -235,14 +266,14 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
     portfolio_words = _find(PORTFOLIO_PHRASES, query) if allow_portfolio else []
     # A held company counts whether named by ticker ("JPM") or by name
     # ("JPMorgan") — otherwise the two spellings would route differently.
-    held_by_name = [t for t in companies if t in held_set and t not in held]
+    held_by_name = [held_key[t] for t in companies if t in held_key and held_key[t] not in held]
     held = held + held_by_name
 
     signals: dict[str, list[str]] = {r: [] for r in ROUTES}
     signals["portfolio"] = [f"held:{t}" for t in held] + portfolio_words
 
     tech = _find(MICROSTRUCTURE_TERMS, query) + _find(FILING_TERMS, query)
-    non_held = [t for t in companies if t not in held]
+    non_held = [t for t in companies if held_key.get(t) not in held]
     tech += [f"company:{t}" for t in non_held]
     if tech or companies:
         tech += _find(FILING_AMBIGUOUS, query)
