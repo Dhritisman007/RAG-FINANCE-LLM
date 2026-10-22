@@ -1,5 +1,5 @@
 """
-FinRAG chat UI (Streamlit) — the same pipeline as scripts/rag_loop.py:
+PortIQ — the FinRAG chat UI (Streamlit), the same pipeline as scripts/rag_loop.py:
 route -> retrieve -> route prompt -> local LLM (Ollama or MLX) -> sources + citation check.
 
 Local only, by design: the server binds 127.0.0.1 and sends no usage
@@ -29,11 +29,16 @@ import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
 from portfolio_store import HOLDINGS_PATH, format_position, load_holdings, add_holding, save_holdings  # noqa: E402
 
-st.set_page_config(page_title="FinRAG", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+# Brand: PortIQ — "Upload. Ask. Get Insights." The mark in assets/ is an SVG recreation;
+# a saved original (assets/portiq_logo.png or .svg) is used instead when present.
+ASSETS = Path(__file__).parent / "assets"
+LOGO = next((p for p in (ASSETS / "portiq_logo.svg", ASSETS / "portiq_logo.png") if p.exists()),
+            ASSETS / "portiq_mark.svg")
+st.set_page_config(page_title="PortIQ", page_icon=str(LOGO), layout="wide", initial_sidebar_state="collapsed")
 
 # ── Privacy guard ────────────────────────────────────────────────────────────
 if st.get_option("server.address") not in ("127.0.0.1", "localhost") or st.get_option("browser.gatherUsageStats"):
-    st.error("FinRAG shows your holdings, so it only runs bound to 127.0.0.1 with usage statistics off. "
+    st.error("PortIQ shows your holdings, so it only runs bound to 127.0.0.1 with usage statistics off. "
              "Run it from `finrag/` (which has `.streamlit/config.toml`):  `streamlit run app.py`")
     st.stop()
 
@@ -181,15 +186,18 @@ def edit_holdings_dialog() -> None:
 # ── Theme ────────────────────────────────────────────────────────────────────
 # System fonts only: a web font would be fetched from the internet on every load.
 st.markdown("""<style>
-:root { --card: #121826; --line: #1f2937; --muted: #8b95a7; --up: #22c55e; --down: #ef4444; --accent: #3b82f6; }
+:root { --card: #121826; --line: #1f2937; --muted: #8b95a7; --up: #22c55e; --down: #ef4444; --accent: #6366f1;
+        --brand: linear-gradient(90deg, #3b6cff 0%, #7c3aed 100%); }
 .block-container { padding-top: 1.2rem; padding-bottom: 1rem; max-width: 1600px; }
 header[data-testid="stHeader"] { background: transparent; height: 0; }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none; }
 html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; }
 .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.brand { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-.brand .mark { color: var(--accent); }
-.brand small { color: var(--muted); font-weight: 500; font-size: 0.85rem; margin-left: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 34px; height: 34px; display: block; }
+.brand .word { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.brand .iq { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand small { display: block; color: var(--muted); font-weight: 500; font-size: 0.72rem; letter-spacing: .02em; margin-top: 3px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
         border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
 .pill.open { color: var(--up); border-color: rgba(34,197,94,.35); }
@@ -199,7 +207,8 @@ html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "SF
 @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
 .kpi .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; }
-.kpi .value { font-size: 1.25rem; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .value { font-size: clamp(1rem, 1.5vw, 1.3rem); font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi .sub { font-size: 0.8rem; margin-top: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .up { color: var(--up) !important; } .down { color: var(--down) !important; }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
@@ -213,9 +222,16 @@ div[data-testid="stTabs"] button p { font-size: 0.9rem; }
 LIVE_EVERY_SEC = 60
 UP, DOWN = "#22c55e", "#ef4444"
 # Allocation colours: no red or green, which would read as loss or gain.
-PALETTE = ["#3b82f6", "#8b5cf6", "#06b6d4", "#f59e0b", "#14b8a6", "#ec4899", "#6366f1", "#eab308", "#0ea5e9", "#a855f7"]
+PALETTE = ["#3b6cff", "#7c3aed", "#06b6d4", "#a78bfa", "#14b8a6", "#f59e0b", "#6366f1", "#ec4899", "#0ea5e9", "#eab308"]
 SUGGESTIONS = ["How is my portfolio doing?", "What risks does Reliance disclose in its annual report?",
                "What is a SIP and how does compounding help it?", "Compare TCS and Infosys margins"]
+
+
+def logo_src() -> str:
+    """The logo as a data URI, so the page loads it without any network request."""
+    import base64
+    mime = "image/svg+xml" if LOGO.suffix == ".svg" else "image/png"
+    return f"data:{mime};base64,{base64.b64encode(LOGO.read_bytes()).decode()}"
 
 
 def market_status() -> tuple[str, bool]:
@@ -442,11 +458,12 @@ def portfolio_pane(pending) -> None:
         day_pct = tot["day"] / tot["prev"] * 100 if tot["prev"] else None
         pnl_pct = pnl / tot["cost"] * 100 if tot["cost"] else None
         st.markdown('<div class="kpis">'
-                    + kpi("Invested", prices.inr(tot["cost"]), f"{len(holdings)} holdings")
-                    + kpi("Current value", prices.inr(tot["value"]), "")
-                    + kpi("Day's P&L", prices.signed_money(tot["day"]) if tot["prev"] else "—",
+                    # whole rupees on the cards (paise in the table), as Indian broker apps show it
+                    + kpi("Invested", prices.inr(tot["cost"], 0), f"{len(holdings)} holdings")
+                    + kpi("Current value", prices.inr(tot["value"], 0), "")
+                    + kpi("Day's P&L", prices.signed_money(tot["day"], decimals=0) if tot["prev"] else "—",
                           f"{day_pct:+.2f}%" if day_pct is not None else "", tone(day_pct))
-                    + kpi("Total P&L", prices.signed_money(pnl), f"{pnl_pct:+.2f}%" if pnl_pct is not None else "",
+                    + kpi("Total P&L", prices.signed_money(pnl, decimals=0), f"{pnl_pct:+.2f}%" if pnl_pct is not None else "",
                           tone(pnl_pct))
                     + "</div>", unsafe_allow_html=True)
         holdings_tab, alloc_tab, stock_tab = st.tabs(["Holdings", "Allocation", "Stock view"])
@@ -588,7 +605,8 @@ with top[1].popover("⚙ Settings", width="stretch"):
     st.caption("🔒 Answers are generated on this Mac (cloud models refused, no telemetry). Your holdings file stays "
                "here; live prices send only stock symbols to Yahoo Finance.")
 top[0].markdown(
-    '<div class="topbar"><div class="brand"><span class="mark">◆</span> FinRAG<small>Research terminal</small></div>'
+    f'<div class="topbar"><div class="brand"><img src="{logo_src()}" alt="">'
+    '<div><div class="word">Port<span class="iq">IQ</span></div><small>Upload. Ask. Get Insights.</small></div></div>'
     f'<span class="pill {"open" if is_open else "closed"}">● {html.escape(status)}</span>'
     f'<span class="pill">🔒 Local · {html.escape(model if models else "no model")}</span>'
     f'<span class="pill">{collection.count():,} passages</span></div>', unsafe_allow_html=True)

@@ -110,6 +110,7 @@ def test_indian_listings_and_rupees() -> None:
     assert prices.display_symbol("RELIANCE.NS") == ("RELIANCE", "NSE") and prices.display_symbol("AAPL") == ("AAPL", "US")
     assert prices.inr(1234567.8) == "₹12,34,567.80" and prices.inr(999) == "₹999.00" and prices.inr(-123456) == "-₹1,23,456.00"
     assert prices.signed_money(2500.5) == "+₹2,500.50" and prices.money(1234.5, "USD") == "$1,234.50"
+    assert prices.inr(1098872.11, 0) == "₹10,98,872" and prices.signed_money(-549.9, decimals=0) == "-₹550"
     assert prices.with_fx(["TCS.NS"]) == ["TCS.NS"] and prices.with_fx(["TCS.NS", "AAPL"])[-1] == prices.FX_TICKER
     holdings = [{"ticker": "RELIANCE.NS", "quantity": 10, "avg_cost": 2400.0, "purchase_date": ""}]
     v = prices.value_positions(holdings, {"RELIANCE.NS": {"price": 2850.0, "as_of": "2026-10-19", "source": "s"}},

@@ -1,4 +1,4 @@
-# FinRAG is local-only: the UI shows your holdings, so it must never be
+# PortIQ (FinRAG) is local-only: the UI shows your holdings, so it must never be
 # reachable from the network, and no usage statistics are sent anywhere.
 [server]
 address = "127.0.0.1"   # Streamlit's default listens on every interface (LAN-visible)
@@ -17,7 +17,7 @@ toolbarMode = "minimal"   # hides "Deploy" (one click would publish the app — 
 
 [theme]
 base = "dark"
-primaryColor = "#3b82f6"
+primaryColor = "#6366f1"  # PortIQ indigo, between the logo's blue and violet
 backgroundColor = "#0b0f17"
 secondaryBackgroundColor = "#121826"
 textColor = "#e5e7eb"

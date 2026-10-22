@@ -80,9 +80,9 @@ def display_symbol(ticker: str) -> tuple[str, str]:
     return t, "US"
 
 
-def inr(x: float) -> str:
-    """Indian digit grouping: 1234567.8 -> '₹12,34,567.80'."""
-    whole, frac = f"{abs(x):.2f}".split(".")
+def inr(x: float, decimals: int = 2) -> str:
+    """Indian digit grouping: 1234567.8 -> '₹12,34,567.80' (decimals=0 -> '₹12,34,568')."""
+    whole, _, frac = f"{abs(x):.{decimals}f}".partition(".")
     head, tail = whole[:-3], whole[-3:]
     groups = []
     while len(head) > 2:
@@ -90,15 +90,16 @@ def inr(x: float) -> str:
         head = head[:-2]
     if head:
         groups.insert(0, head)
-    return ("-" if x < 0 else "") + "₹" + ",".join(groups + [tail]) + "." + frac
+    return ("-" if x < 0 else "") + "₹" + ",".join(groups + [tail]) + ("." + frac if frac else "")
 
 
 def money(x: float, cur: str = "INR") -> str:
     return inr(x) if cur == "INR" else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
 
 
-def signed_money(x: float, cur: str = "INR") -> str:
-    return ("+" if x >= 0 else "-") + money(abs(x), cur)
+def signed_money(x: float, cur: str = "INR", decimals: int = 2) -> str:
+    sign = "+" if x >= 0 else "-"
+    return sign + (inr(abs(x), decimals) if cur == "INR" else money(abs(x), cur))
 
 
 def parse_price(text: str) -> float | None:
