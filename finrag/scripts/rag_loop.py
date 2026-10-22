@@ -61,6 +61,7 @@ from citations import (  # noqa: E402
 )
 from portfolio_store import format_position, get_holding, load_holdings  # noqa: E402
 from router import RetrievalPlan, RouteDecision, forced_route, route_query  # noqa: E402
+import llm_backends as backends  # noqa: E402
 import prices  # noqa: E402
 import prompts  # noqa: E402
 
@@ -93,6 +94,8 @@ class CloudModelError(ValueError):
 
 def ensure_local_model(model: str) -> None:
     """Refuse Ollama cloud models: by name tag, and by the server's own metadata."""
+    if backends.is_mlx(model):
+        return  # MLX runs in-process on this Mac, bound to 127.0.0.1
     if CLOUD_MODEL_RE.search(model):
         raise CloudModelError(f"'{model}' is an Ollama cloud model — prompts would leave this machine. "
                               "FinRAG only runs local models (e.g. llama3.2, qwen2.5:7b).")
@@ -268,7 +271,11 @@ def _check_ollama() -> bool:
 
 
 def stream_tokens(prompt: str, model: str = DEFAULT_MODEL):
-    """Yield answer tokens from the local Ollama server (used by stream_answer and app.py)."""
+    """Yield answer tokens from the local backend (Ollama, or MLX for "mlx:" models / as fallback)."""
+    model = backends.resolve(model)
+    if backends.is_mlx(model):
+        yield from backends.mlx_stream(prompt, model, MAX_ANSWER_TOKENS)
+        return
     import ollama
     ensure_local_model(model)
     client = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_SEC)
@@ -305,6 +312,11 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
 
 def generate(prompt: str, model: str = DEFAULT_MODEL, options: dict | None = None) -> str:
     """Silent, non-streaming generation (used by get_answer and evaluate.py)."""
+    model = backends.resolve(model)
+    if backends.is_mlx(model):
+        opts = options or {}
+        return backends.mlx_generate(prompt, model, opts.get("num_predict", MAX_ANSWER_TOKENS),
+                                     opts.get("temperature", 0.0))
     import ollama
     ensure_local_model(model)
     response = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_SEC).generate(model=model, prompt=prompt, stream=False,
@@ -510,14 +522,8 @@ def rag_query(
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 def local_models() -> list[str]:
-    """Models installed on the local Ollama server, excluding cloud models."""
-    try:
-        import requests
-        tags = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5).json().get("models", [])
-    except Exception:
-        return []
-    names = [m["name"] for m in tags if not m.get("remote_host")]
-    return [n for n in names if not CLOUD_MODEL_RE.search(n)]
+    """Local models: Ollama's (excluding cloud models) plus MLX's when its server is up."""
+    return [n for n in backends.available_models() if not CLOUD_MODEL_RE.search(n)]
 
 
 def open_collection() -> chromadb.Collection | None:
