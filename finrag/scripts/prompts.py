@@ -67,6 +67,22 @@ PORTFOLIO_DISCLAIMER = "Note: this is educational information based on company f
 NO_CONTEXT_ANSWER = ("The sources in this corpus don't cover this question, so there is nothing to answer it from. "
                      "(The corpus has no market prices or performance data.)")
 
+# Day 18: Indian annual reports mix standalone and consolidated columns and print major
+# subsidiaries' statements inside the consolidated section; a 7B model quoted Jio
+# Platforms' revenue as Reliance's and a standalone column as Infosys'. Added only
+# when an annual-report passage is in the context, so SEC-filing prompts are unchanged.
+ANNUAL_REPORT_RULES = """\
+Indian annual reports in the context:
+- Amounts are in ₹ crore unless the table says otherwise, with Indian digit grouping (e.g. ₹11,75,919 crore). Quote them exactly as written.
+- For the company's own results, use CONSOLIDATED figures. Where a table has Standalone and Consolidated columns, take the Consolidated one and say so.
+- Tables list the current year first (e.g. 2025-26, then 2024-25).
+- A statement headed with a subsidiary's name (e.g. "Jio Platforms Limited", "Reliance Retail Ventures Limited") shows that subsidiary's results, not the parent company's. Do not present it as the company's total."""
+
+
+def has_annual_report(citations: list[Citation]) -> bool:
+    return any("Annual Report FY" in (c.doc_title or "") for c in citations)
+
+
 STYLES = {"concept": CONCEPT_STYLE, "technical": TECHNICAL_STYLE, "portfolio": PORTFOLIO_STYLE}
 
 
@@ -95,7 +111,8 @@ def build_prompt(
 
     return (
         f"{style}\n\n{GROUNDING_RULES}\n\n"
-        f"{portfolio_str}"
+        + (f"{ANNUAL_REPORT_RULES}\n\n" if has_annual_report(citations) else "")
+        + f"{portfolio_str}"
         f"=== Context ===\n{context_str}\n\n"
         f"=== Question ===\n{query}\n\n"
         + (f"{FINAL_REMINDERS[route]}\n\n" if route in FINAL_REMINDERS else "")

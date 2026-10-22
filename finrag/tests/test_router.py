@@ -177,6 +177,7 @@ def test_indian_company_detection() -> None:
         "What was Reliance's revenue in FY26?": ["RELIANCE.NS"], "Compare TCS and Infosys margins": ["TCS.NS", "INFY.NS"],
         "What did HDFC Bank say about deposits?": ["HDFCBANK.NS"], "How exposed is L&T to order backlog?": ["LT.NS"],
         "What is SBI's net interest margin?": ["SBIN.NS"], "Bharti Airtel ARPU trend": ["BHARTIARTL.NS"],
+        "What was Jio Platforms' revenue?": ["RELIANCE.NS"],   # a subsidiary -> its parent's annual report
         # ordinary words that must NOT match a company
         "Is reliance on short-term debt risky?": [],
         # known limitation: an uppercase "ITC" always means the company, even as "input tax credit"

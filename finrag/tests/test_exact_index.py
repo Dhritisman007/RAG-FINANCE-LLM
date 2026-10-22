@@ -50,7 +50,29 @@ def test_where_filters() -> None:
     print("PASS: where filters ($and, $in, $or, equality); unsupported operators raise")
 
 
+def test_hybrid_keyword_fusion() -> None:
+    """A passage that names the asked-for line item is promoted even when its vector is farther away."""
+    vecs = [[1, 0], [0.98, 0.2], [0.95, 0.31], [0.6, 0.8], [0, 1]]
+    docs = ["Jio Platforms revenue from services table", "Retail segment revenue table", "cash flow statement",
+            "In FY 2025-26 we delivered consolidated revenues and net profit of the group", "unrelated paper"]
+    meta = [{"tier": 2, "company_ticker": "RELIANCE.NS"}] * 4 + [{"tier": 3}]
+    coll = FakeCollection(vecs, meta)
+    coll._data["documents"] = docs
+    idx = ExactIndex(coll)
+    where = {"$and": [{"tier": 2}, {"company_ticker": "RELIANCE.NS"}]}
+    dense = idx.query([[1, 0]], 2, where)["ids"][0]
+    assert "c3" not in dense                                                   # dense alone misses it
+    res = idx.hybrid_query("What were the consolidated revenues and net profit?", [[1, 0]], 2, where)
+    assert "c3" in res["ids"][0] and "c4" not in res["ids"][0], res["ids"]      # keyword match promoted; filter kept
+    i = res["ids"][0].index("c3")
+    assert np.isclose(res["distances"][0][i], 1 - 0.6)                         # displayed distance is the true cosine
+    assert res["sort_keys"][0] == sorted(res["distances"][0])                  # order-preserving key, same scale
+    assert idx.hybrid_query("the of and", [[1, 0]], 2, where)["ids"] == [dense] # only stopwords: dense order
+    print("PASS: hybrid search fuses keyword and dense rankings; distances stay true, order survives sorting")
+
+
 if __name__ == "__main__":
     test_exact_ranking_distances_and_ties()
     test_where_filters()
+    test_hybrid_keyword_fusion()
     print("\nAll exact-index tests passed.")

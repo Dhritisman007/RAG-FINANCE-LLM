@@ -61,7 +61,7 @@ CORPUS_COMPANIES = {
     "NEE": ["nextera", "next era energy", "florida power & light"],
     # Day 18: Indian annual reports (NSE). Keyed by Yahoo's NSE ticker; the bare
     # symbol ("TCS", "INFY") also matches. A BSE holding (.BO) maps to the same company.
-    "RELIANCE.NS": ["reliance industries"],
+    "RELIANCE.NS": ["reliance industries", "jio", "jio platforms", "reliance jio", "reliance retail"],  # + subsidiaries
     "TCS.NS": ["tata consultancy services", "tata consultancy"],
     "INFY.NS": ["infosys"],
     "HDFCBANK.NS": ["hdfc bank"],

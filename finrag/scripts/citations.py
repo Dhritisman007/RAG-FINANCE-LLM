@@ -40,9 +40,16 @@ class Citation:
     company_ticker: str = ""         # Tier 2 only
     arxiv_id: str = ""               # Tier 3 only
     date_published: str = ""         # ISO date or empty
+    # Ordering key on the distance scale. Hybrid (dense + keyword) results set it so the
+    # fused order survives the distance-based sorts below; `distance` stays the true cosine.
+    sort_key: float | None = None
 
     # Raw metadata kept for downstream consumers (e.g. eval scripts)
     raw_metadata: dict[str, Any] = field(default_factory=dict, repr=False)
+
+
+def order_key(c: Citation) -> float:
+    return c.distance if c.sort_key is None else c.sort_key
 
 
 # ---------------------------------------------------------------------------
@@ -101,9 +108,11 @@ def citations_from_chroma_results(
     metas = results.get("metadatas", [[]])[0]
     dists = results.get("distances", [[]])[0]
     ids = (results.get("ids") or [[]])[0] or [""] * len(docs)
+    keys = (results.get("sort_keys") or [[]])[0] or [None] * len(docs)
 
-    for rank, (doc, meta, dist, cid) in enumerate(zip(docs, metas, dists, ids), start=1):
+    for rank, (doc, meta, dist, cid, key) in enumerate(zip(docs, metas, dists, ids, keys), start=1):
         citations.append(citation_from_chroma(rank, doc, meta, dist, preview_chars, chunk_id=cid))
+        citations[-1].sort_key = key
 
     return citations
 
@@ -208,10 +217,10 @@ def deduplicate_citations(citations: list[Citation]) -> list[Citation]:
     seen: dict[str, Citation] = {}
     for c in citations:
         key = c.chunk_id or c.raw_metadata.get("content_hash") or c.text
-        if key not in seen or c.distance < seen[key].distance:
+        if key not in seen or order_key(c) < order_key(seen[key]):
             seen[key] = c
 
-    deduped = sorted(seen.values(), key=lambda x: x.distance)
+    deduped = sorted(seen.values(), key=order_key)
     for i, c in enumerate(deduped, start=1):
         c.rank = i
     return deduped
@@ -243,7 +252,7 @@ def suppress_near_duplicates(
     kept_shingles: list[set[str]] = []
     per_doc: dict[str, int] = {}
     over_cap: list[Citation] = []
-    for c in sorted(citations, key=lambda x: x.distance):
+    for c in sorted(citations, key=order_key):
         if len(kept) == k:
             break
         s = _shingles(c.text or c.text_preview)
@@ -262,7 +271,7 @@ def suppress_near_duplicates(
         if not any(len(s & o) / len(s | o) >= threshold for o in kept_shingles):
             kept.append(c)
             kept_shingles.append(s)
-    kept.sort(key=lambda x: x.distance)
+    kept.sort(key=order_key)
     for i, c in enumerate(kept, start=1):
         c.rank = i
     return kept

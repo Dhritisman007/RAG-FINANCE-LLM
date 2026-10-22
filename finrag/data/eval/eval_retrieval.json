@@ -14,11 +14,11 @@
    "precision": 0.9166666666666666
   },
   "technical": {
-   "n": 26,
+   "n": 33,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9202898550724639,
-   "precision": 0.7391304347826086
+   "mrr": 0.9367816091954023,
+   "precision": 0.7931034482758621
   },
   "portfolio": {
    "n": 11,
@@ -28,11 +28,11 @@
    "precision": 0.9444444444444444
   },
   "ALL": {
-   "n": 59,
+   "n": 66,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9433962264150944,
-   "precision": 0.8443396226415094
+   "mrr": 0.9491525423728814,
+   "precision": 0.8601694915254238
   }
  },
  "results": [
@@ -698,8 +698,8 @@
    "retrieved": [
     "[1] t1 inflation (0.324)",
     "[2] t2 JPM 10-K filed 2026-02-13 (0.340)",
-    "[3] t2 BAC 10-Q filed 2026-07-31 (0.353)",
-    "[4] t3 Arbitrage theory without a num\u00e9raire (0.357)"
+    "[3] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.344)",
+    "[4] t2 Larsen & Toubro (LT) Annual Report FY2025-26 (0.345)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -715,7 +715,7 @@
     "[1] t2 JPM 10-K filed 2026-02-13 (0.342)",
     "[2] t2 V 10-K filed 2025-11-06 (0.367)",
     "[3] t1 401(k) plan (0.373)",
-    "[4] t2 JPM 10-Q filed 2025-11-04 (0.382)"
+    "[4] t2 Bajaj Finance (BAJFINANCE) Annual Report FY2025-26 (0.376)"
    ],
    "hit": null,
    "rr": null,
@@ -976,6 +976,118 @@
    "hit": true,
    "rr": 1.0,
    "precision": 1.0
+  },
+  {
+   "id": "q60",
+   "query": "What were Reliance Industries' consolidated revenues and net profit in FY 2025-26?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 Reliance Industries (RELIANCE) Annual Report FY2025-26 (0.215)",
+    "[2] t2 Reliance Industries (RELIANCE) Annual Report FY2025-26 (0.224)",
+    "[3] t2 Reliance Industries (RELIANCE) Annual Report FY2025-26 (0.288)",
+    "[4] t2 Reliance Industries (RELIANCE) Annual Report FY2025-26 (0.278)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q61",
+   "query": "What was TCS's consolidated revenue from operations for FY 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.234)",
+    "[2] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.323)",
+    "[3] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.314)",
+    "[4] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.319)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q62",
+   "query": "What were Infosys revenues and net profit in fiscal 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 Infosys (INFY) Annual Report FY2025-26 (0.288)",
+    "[2] t2 Infosys (INFY) Annual Report FY2025-26 (0.318)",
+    "[3] t2 Infosys (INFY) Annual Report FY2025-26 (0.266)",
+    "[4] t2 Infosys (INFY) Annual Report FY2025-26 (0.302)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q63",
+   "query": "What were HDFC Bank's total deposits at the end of FY 2025-26?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.292)",
+    "[2] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.287)",
+    "[3] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.285)",
+    "[4] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.310)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q64",
+   "query": "What risks does Maruti Suzuki highlight in its annual report?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 Maruti Suzuki India (MARUTI) Annual Report FY2025-26 (0.241)",
+    "[2] t2 Maruti Suzuki India (MARUTI) Annual Report FY2025-26 (0.244)",
+    "[3] t2 Maruti Suzuki India (MARUTI) Annual Report FY2025-26 (0.240)",
+    "[4] t2 Maruti Suzuki India (MARUTI) Annual Report FY2025-26 (0.242)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q65",
+   "query": "How does Asian Paints describe demand in the decorative paints business?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": true,
+   "retrieved": [
+    "[1] t2 Asian Paints (ASIANPAINT) Annual Report FY2025-26 (0.218)",
+    "[2] t2 Asian Paints (ASIANPAINT) Annual Report FY2025-26 (0.244)",
+    "[3] t2 Asian Paints (ASIANPAINT) Annual Report FY2025-26 (0.253)",
+    "[4] t2 Asian Paints (ASIANPAINT) Annual Report FY2025-26 (0.216)"
+   ],
+   "hit": true,
+   "rr": 1.0,
+   "precision": 1.0
+  },
+  {
+   "id": "q66",
+   "query": "What were Wipro's revenues in FY 2026?",
+   "route": "technical",
+   "got_route": "technical",
+   "answerable": false,
+   "retrieved": [
+    "[1] t2 GOOGL 10-K filed 2026-02-05 (0.305)",
+    "[2] t2 WMT 10-K filed 2026-03-13 (0.308)",
+    "[3] t2 GOOGL 10-K filed 2026-02-05 (0.313)",
+    "[4] t2 COST 10-K filed 2026-10-07 (0.319)"
+   ],
+   "hit": null,
+   "rr": null,
+   "precision": null
   }
  ]
 }

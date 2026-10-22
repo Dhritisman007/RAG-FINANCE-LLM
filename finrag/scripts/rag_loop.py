@@ -39,9 +39,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 import textwrap
+from collections import Counter
 from pathlib import Path
 
 import chromadb
@@ -58,6 +60,7 @@ from citations import (  # noqa: E402
     suppress_near_duplicates,
     check_citations,
     format_citation_report,
+    order_key,
 )
 from portfolio_store import format_position, get_holding, load_holdings  # noqa: E402
 from router import RetrievalPlan, RouteDecision, forced_route, route_query  # noqa: E402
@@ -114,6 +117,8 @@ def source_label(c: Citation) -> str:
     if c.tier == 1:
         return f'"{c.doc_title}" — {c.source.title()}'
     if c.tier == 2:
+        if "Annual Report FY" in c.doc_title and c.section_heading:  # which part of a long report
+            return f"{c.doc_title} — {c.section_heading}"
         return c.doc_title  # already "AAPL 10-K filed 2025-10-31"
     arxiv = f" arXiv:{c.arxiv_id}" if c.arxiv_id else ""
     return f'"{c.doc_title}"{arxiv}'
@@ -184,6 +189,18 @@ def _matches(meta: dict, where: dict | None) -> bool:
     return meta.get(key) == cond
 
 
+HYBRID_SUFFIXES = (".NS",)  # company tickers searched with hybrid retrieval (NSE annual reports)
+HYBRID_DEPTH = 100   # candidates taken from each ranking before fusing
+RRF_K = 60           # standard reciprocal-rank-fusion constant
+BM25_K1, BM25_B = 1.5, 0.75
+_STOPWORDS = set("a an and are as at be by did do does for from had has have how in is it its of on or "
+                 "the their this to was were what when which who why will with end fy".split())
+
+
+def _keyword_tokens(text: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 1 and w not in _STOPWORDS]
+
+
 class ExactIndex:
     """Exact cosine search with Chroma's query() result shape (ids/documents/metadatas/distances)."""
 
@@ -195,6 +212,7 @@ class ExactIndex:
         matrix = np.asarray(stored["embeddings"], dtype=np.float32)
         self.matrix = matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
         self._masks: dict[str, np.ndarray] = {}
+        self._bm25: dict[str, tuple] = {}
 
     def _mask(self, where: dict | None) -> np.ndarray:
         key = json.dumps(where, sort_keys=True)
@@ -215,6 +233,80 @@ class ExactIndex:
             "metadatas": [[self.metadatas[i] for i in picked]],
             "distances": [[float(1.0 - s) for s in sims[order]]],  # Chroma's cosine distance
         }
+
+
+    # ── Hybrid search (Day 18) ──────────────────────────────────────────────
+    # In company filings the words carry the meaning ("consolidated revenues",
+    # "total deposits"); the small embedding model ranked the passage with the
+    # figure 7th–17th, below subsidiaries' tables. Fusing a keyword (BM25) ranking
+    # with the dense one put it in the top 4 for 4 of 5 test figures.
+    def _bm25_index(self, where: dict | None) -> tuple:
+        key = json.dumps(where, sort_keys=True)
+        if key not in self._bm25:
+            rows = np.flatnonzero(self._mask(where))
+            tfs = [Counter(_keyword_tokens(self.documents[i])) for i in rows]
+            lengths = np.array([sum(tf.values()) for tf in tfs], dtype=np.float32)
+            df = Counter(w for tf in tfs for w in tf)
+            self._bm25[key] = (rows, tfs, lengths, df, float(lengths.mean()) if len(rows) else 1.0)
+        return self._bm25[key]
+
+    def hybrid_query(self, query_text: str, query_embeddings: list[list[float]], n_results: int,
+                     where: dict | None = None, depth: int = HYBRID_DEPTH) -> dict:
+        """Reciprocal-rank fusion of the exact dense ranking and a BM25 keyword ranking."""
+        rows, tfs, lengths, df, avg_len = self._bm25_index(where)
+        q = np.asarray(query_embeddings[0], dtype=np.float32)
+        q = q / np.linalg.norm(q)
+        sims = self.matrix[rows] @ q
+        dense_order = np.lexsort((rows, -sims))
+        terms = set(_keyword_tokens(query_text))
+        n = len(rows)
+        bm25 = np.zeros(n, dtype=np.float32)
+        for w in terms:
+            if df[w]:
+                idf = math.log(1 + (n - df[w] + 0.5) / (df[w] + 0.5))
+                tf = np.array([t[w] for t in tfs], dtype=np.float32)
+                bm25 += idf * tf * (BM25_K1 + 1) / (tf + BM25_K1 * (1 - BM25_B + BM25_B * lengths / avg_len))
+        keyword_order = np.lexsort((rows, -bm25))
+        fused: dict[int, float] = {}
+        for order in (dense_order[:depth], keyword_order[:depth] if terms else []):
+            for rank, pos in enumerate(order):
+                fused[int(pos)] = fused.get(int(pos), 0.0) + 1.0 / (RRF_K + rank)
+        picked = sorted(fused, key=lambda pos: (-fused[pos], rows[pos]))[:n_results]
+        distances = [float(1.0 - sims[pos]) for pos in picked]
+        return {
+            "ids": [[self.ids[rows[p]] for p in picked]],
+            "documents": [[self.documents[rows[p]] for p in picked]],
+            "metadatas": [[self.metadatas[rows[p]] for p in picked]],
+            "distances": [distances],
+            # i-th fused result gets the i-th smallest distance: keeps fused order, distance scale
+            "sort_keys": [sorted(distances)],
+        }
+
+
+_GENERIC_NAME_WORDS = {"limited", "ltd", "private", "pvt", "company", "inc", "llc", "gmbh", "the", "and"}
+
+
+def _without_unasked_subsidiaries(res: dict, query: str, k: int) -> dict:
+    """
+    Drop a subsidiary's own statements ("Subsidiary: Jio Platforms Limited") unless the
+    question names it. Even labelled, a 7B model quoted Jio's revenue as Reliance's; asking
+    about "Jio" or "Reliance Retail" still gets them.
+    """
+    q = query.lower()
+    keep = []
+    for i, meta in enumerate(res["metadatas"][0]):
+        heading = meta.get("section_heading") or ""
+        if "Subsidiary:" in heading:
+            name = heading.split("Subsidiary:", 1)[1].split(" (")[0]
+            words = [w for w in re.findall(r"[a-z]{3,}", name.lower()) if w not in _GENERIC_NAME_WORDS]
+            parent = (meta.get("doc_title") or "").lower().split()[0] if meta.get("doc_title") else ""
+            if not any(w in q for w in words if w != parent):
+                continue
+        keep.append(i)
+    keep = keep[:k]
+    out = {key: [[vals[0][i] for i in keep]] for key, vals in res.items()}
+    out["sort_keys"] = [sorted(out["distances"][0])]
+    return out
 
 
 _indexes: dict[int, ExactIndex] = {}
@@ -250,6 +342,12 @@ def retrieve(
 
     if ticker is not None:
         where = {"$and": [{"tier": 2}, {"company_ticker": ticker}]}
+        # Indian annual reports: dense + keyword. Measured on the golden set, hybrid search
+        # lifted annual-report figures into the top 4 but cost SEC filings MRR (0.94 -> 0.90:
+        # quarterly 10-Q tables repeat "revenues" and outranked the 10-K), so SEC stays dense.
+        if ticker.endswith(HYBRID_SUFFIXES):
+            res = exact_index(collection).hybrid_query(query, [query_embedding], n_results=k * 2, where=where)
+            return _without_unasked_subsidiaries(res, query, k)
     elif tier is not None:
         where = {"tier": tier}
     elif tiers:
@@ -345,7 +443,7 @@ def get_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
 # ── Core RAG step ────────────────────────────────────────────────────────────
 
 def _rerank(citations: list[Citation]) -> list[Citation]:
-    citations = sorted(citations, key=lambda c: c.distance)
+    citations = sorted(citations, key=order_key)
     for i, c in enumerate(citations, start=1):
         c.rank = i
     return citations
