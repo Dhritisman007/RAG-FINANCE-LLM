@@ -1,6 +1,8 @@
-# FinRAG — Financial Knowledge RAG Agent
+# PortIQ (FinRAG) — Financial Knowledge RAG Agent
 
-A fully local Retrieval-Augmented Generation (RAG) pipeline over a three-tier financial corpus — plain-language explainers, SEC filings (10-K / 10-Q) and arXiv market-microstructure papers — answered by a local LLM (Ollama, or Apple's MLX as the alternative), with a live portfolio tracker for Indian (NSE/BSE) and US stocks in ₹ and portfolio-aware queries over your own holdings.
+**PortIQ** — *Upload. Ask. Get Insights.* — is the app's name; FinRAG is the retrieval pipeline underneath (scripts, store and evaluation keep that name).
+
+A fully local Retrieval-Augmented Generation (RAG) pipeline over a three-tier financial corpus — plain-language explainers, company documents (US SEC 10-K / 10-Q filings and Indian annual reports) and arXiv market-microstructure papers — answered by a local LLM (Ollama, or Apple's MLX as the alternative), with a live portfolio tracker for Indian (NSE/BSE) and US stocks in ₹ and portfolio-aware queries over your own holdings.
 
 Built day-by-day as a structured learning project — each script corresponds to one pipeline stage.
 
@@ -30,6 +32,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 14 | Local price data + valuation | `prices.py` | ✅ Done — whole-market download, no tickers ever sent |
 | 15 | Corpus expansion: 25 companies | `corpus_manifest.yaml`, `router.py` | ✅ Done — 75 SEC filings, 16,946 passages |
 | 16 | Tier 1 gaps + filing refresh | `scrape_tier1.py`, `refresh_filings.py` | ✅ Done — 47 explainers; refresh found a missed JPM 10-Q |
+| 18 | Indian annual reports + dashboard UI | `scrape_tier2_india.py`, `router.py`, `app.py` | ✅ Done — 15 NSE companies (FY2025-26), two-pane research terminal |
 | 17 | Live portfolio (NSE/BSE, ₹) + MLX backend | `app.py`, `prices.py`, `portfolio_store.py`, `llm_backends.py` | ✅ Done — add stocks in the UI, live prices every 60 s, MLX fallback when Ollama is down |
 
 ---
@@ -339,6 +342,33 @@ python scripts/prices.py                   # ₹ valuation
 
 **Leaner prompts.** Technical and portfolio retrieval went from k=6/5 to k=4 (hit@k still 100%, MRR 0.94, precision up), and technical/portfolio answers aim for about 200 words, which cuts both prefill and decode time.
 
+### Day 18 — Indian annual reports and a research-terminal UI
+**Annual reports.** `scripts/scrape_tier2_india.py` adds the latest (FY2025-26) annual report of 15 NSE large caps across sectors — RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, BHARTIARTL, ITC, HINDUNILVR, LT, BAJFINANCE, MARUTI, SUNPHARMA, TATASTEEL, ASIANPAINT (`config/corpus_manifest.yaml`, `tier2_india`):
+- Reports come from NSE's public annual-report listing, requested with an honest User-Agent (BSE's API refuses scripted requests, and it isn't worked around). PDFs are cached in `data/pdf_cache/india/` (git-ignored, ~290 MB) and extracted with `pypdf`.
+- **Sections from running headers.** Each page is labelled from its running header (or, for reports like Asian Paints', its "to the Consolidated Financial Statements … (Contd.)" footer). Kept: the integrated report, Board's report, MD&A, corporate governance and the **consolidated** statements. Skipped: the AGM notice, the BRSR / sustainability report and the **standalone** statements — parent-only figures a model could quote as the company's results. A skipped section only continues while its own header does, so a notice printed before the integrated report can't swallow it.
+- **Rupee repair.** Report fonts map ₹ to `I`, `H`, `C`, `K` or a backtick; it is restored only right before an amount in crore/lakh and in unit headers ("(₹ in crore)").
+- Same schema as the SEC filings (tier 2, `company_ticker` = `RELIANCE.NS`, title "Reliance Industries (RELIANCE) Annual Report FY2025-26", sections labelled with page numbers), so chunking, enrichment, retrieval and citation checking are unchanged. 16.8M characters after filtering.
+- **Routing.** The router knows the 15 companies by symbol ("TCS", "INFY") and by name ("Infosys", "HDFC Bank", "L&T"). "Reliance" counts only when capitalised (lowercase "reliance" is an ordinary word). Known limitation: an uppercase "ITC" always means the company, even as "input tax credit". A BSE holding (`TCS.BO`) uses its NSE company's report.
+
+**UI.** The app is now a two-pane research terminal instead of one long column:
+- **Top bar:** NSE open/closed, the local model in use, corpus size, and a ⚙ Settings menu (model, route, citation check). The sidebar is gone.
+- **Left — Portfolio:** KPI cards (Invested, Current value, Day's P&L, Total P&L), then tabs: **Holdings** (P&L coloured), **Allocation** (donut by value + return-on-cost bars) and **Stock view** (1-year price chart with your average buy price drawn on it; 52-week range, 1/3/12-month returns, volatility, max drawdown; one-click questions — key risks, revenue & margins, outlook — sent to the assistant). ＋ Add and Edit open a popover and a table editor.
+- **Right — Research assistant:** a scrolling chat with suggested questions and the input underneath.
+- Dark theme in `.streamlit/config.toml`, system fonts only (no web-font request). The stock statistics describe past prices; nothing is forecast.
+- **PortIQ brand:** logo mark, "Port**IQ**" wordmark with the blue→violet gradient, tagline "Upload. Ask. Get Insights.", indigo accent. `assets/portiq_mark.svg` is an SVG *recreation* of the logo; drop the original in as `assets/portiq_logo.svg` or `.png` and the app uses it instead (embedded as a data URI — no network request). KPI cards show whole rupees (paise stay in the table).
+
+**Getting annual-report numbers right.** Retrieval found the right report every time, but answers quoted the wrong figures. Diagnosed and fixed step by step, measuring each change:
+- **Subsidiaries' statements.** Reliance prints Jio Platforms' and Reliance Retail's summary statements inside its consolidated section, and the model quoted Jio's revenue (₹1,46,885 crore) as Reliance's. Those pages are now labelled "Subsidiary: Jio Platforms Limited", and for a question that doesn't name the subsidiary they are left out of the context (asking about "Jio" or "Reliance Retail" still gets them — both route to Reliance's report).
+- **Hybrid search for annual reports.** The small embedding model ranked the passage holding the asked-for figure 7th–17th within a company's 450–1,200 passages. Fusing a keyword (BM25) ranking with the dense one (reciprocal-rank fusion) lifted it into the top 4 for 4 of 5 test figures. A cross-encoder reranker was tried and made it worse (3 of 5), so it isn't used. On SEC filings hybrid search *cost* MRR (0.94 → 0.90: quarterly 10-Q tables repeat "revenues" and outranked the 10-K), so it applies to annual reports only — SEC results are identical to before.
+- **Prompt rules** (only when an annual-report passage is in the context): amounts in ₹ crore with Indian grouping, prefer CONSOLIDATED figures and say so, current year is the first column, a subsidiary's statement isn't the company's total. Annual-report passages also show their section to the model ("— Board's Report", "— Consolidated Financial Statements").
+- **Extraction fixes:** Board's reports that open "The Board of Directors hereby submits…" (Infosys), the "(In ` crore" unit header, and AGM-notice items ("Item No. 6 –") printed after the statements.
+- **Remaining limit:** in tables with Standalone and Consolidated columns side by side, the 7B model still takes the first (standalone) column — Infosys ₹1,48,819 crore instead of ₹1,78,650 crore — and it rounds ₹31,05,250.47 crore to ₹31,05,251. This is model capability, which is what the model comparison below is for.
+- **Golden label corrected:** Reliance's "net profit" is ₹95,754 crore for the year *or* ₹80,775 crore attributable to owners (the other ₹14,979 crore is non-controlling interest); both are accepted.
+
+**Results.** Retrieval on all 66 golden questions: route accuracy 100%, hit@k 100%, MRR 0.95, precision 86% — all six answerable Indian questions rank their company's report first. Answers (qwen2.5-7b on MLX, 36-question comparison set — every required-figure and should-refuse question plus a concept/portfolio/technical sample): 10/16 required figures as scored (11/16 with the corrected Reliance label — re-score pending), 85% of citations correct, 0.03 invented numbers per answer, 7/7 out-of-corpus questions refused, no answerable question refused, 39 s per answer.
+
+**Model comparison (in progress).** Ollama is being replaced, and the chosen model has to serve a hosted website, so Hugging Face open models are being compared on the same 36 questions. Candidate: **Qwen3-8B** (Apache 2.0, `mlx-community/Qwen3-8B-4bit` locally, thinking mode off). On an 8 GB Mac it only fits with the attention cache in 8 bits and MLX's buffer cache disabled (the GPU gets ~5.7 GB and the weights take 4.6 GB; two runs ran out of Metal memory). That limit is local only — on a 24 GB server GPU it runs unmodified. Deployment plan if it wins: Qwen3-8B served by **vLLM** (continuous batching — many users per GPU) on a Hugging Face Inference Endpoint or similar, with the app made multi-user first (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -353,6 +383,7 @@ python tests/test_prices.py      # no tickers in the price request, parsing, man
 python tests/test_refresh.py     # only filings missing from disk are fetched; nothing is deleted
 python tests/test_portfolio_store.py  # holdings validation, atomic save, add/merge lots
 python tests/test_llm_backends.py     # Ollama/MLX switch and fallback, MLX streaming (no servers needed)
+python tests/test_india_reports.py    # annual-report sections kept/skipped, rupee repair, NSE listing
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -388,7 +419,7 @@ python tests/test_llm_backends.py     # Ollama/MLX switch and fallback, MLX stre
 4. **Mis-citations are reported, not corrected** — rarer with qwen2.5:7b (0.11 per answer), but the answer text keeps the wrong number.
 5. **Small Tier 1 chunks** — Investopedia sections are short and the chunker doesn't merge across headings (median 124 tokens).
 6. **Tier 1 text includes trailing references/category tags** from each article; one Tier 3 chunk is a PDF artifact (a run of 13k `●` characters).
-7. **No Indian company filings** — the corpus's company documents are US SEC filings, so questions about an Indian holding are answered from the explainers plus your position only. Adding Indian annual reports (BSE/NSE filings) is the natural next corpus expansion.
+7. **Indian coverage is 15 companies** — other Indian holdings are answered from the explainers plus your position only. Annual reports are yearly, so there are no quarterly results yet (NSE's quarterly filings are the next step).
 
 ---
 
@@ -406,8 +437,11 @@ python scripts/prices.py --update   # optional: prices for "how is my portfolio 
 ```bash
 pip install mlx-lm
 HF_HOME="/Volumes/Crucial X9/hf-cache" python -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/Qwen2.5-7B-Instruct-4bit')"
-scripts/start_mlx_server.sh
+scripts/start_mlx_server.sh              # qwen2.5-7b (default)
+scripts/start_mlx_server.sh qwen3-8b     # Qwen3-8B, thinking off (download mlx-community/Qwen3-8B-4bit the same way)
 ```
+
+One model per server (two 4–5 GB models can't share 8 GB); the served model is written to `data/mlx_serving.txt`, the UI offers exactly that one, and asking for another fails with a clear "restart with …" message instead of loading a second model. The server runs one request at a time with no prompt cache and 512-token prefill steps; for Qwen3 it also stores the attention cache in 8 bits and disables MLX's buffer cache — the defaults ran out of Metal memory on this 8 GB Mac.
 
 The script sets `MLX_MPI_LIBNAME` so MLX doesn't load Anaconda's MPICH library (it expects Open MPI and aborts). On the exFAT drive macOS leaves `._*` files in the model cache, which crash the Hugging Face cache scan behind `/v1/models`; FinRAG checks `/health` instead, and `find "/Volumes/Crucial X9/hf-cache" -name "._*" -delete` cleans them.
 
@@ -455,4 +489,12 @@ python scripts/rag_loop.py --interactive
 - [x] Cut invented examples in concept answers from 6/22 to 1/22 (Day 16)
 - [x] Live portfolio panel: add stocks in the UI, NSE/BSE in ₹, 60 s refresh (Day 17)
 - [x] MLX backend as an Ollama alternative, with automatic fallback (Day 17)
-- [ ] Indian annual reports in the corpus
+- [x] Indian annual reports in the corpus — 15 NSE companies (Day 18)
+- [x] Two-pane research-terminal UI (Day 18)
+- [x] Getting annual-report figures right: subsidiary labels and filter, hybrid search for annual reports, annual-report prompt rules (Day 18)
+- [x] PortIQ branding (Day 18)
+- [ ] **Next:** finish the Qwen2.5-7B vs Qwen3-8B comparison and re-score the baseline with the corrected Reliance label; pick the model
+- [ ] Make the LLM backend accept any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL
+- [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
+- [ ] Replace the SVG logo recreation with the original PortIQ artwork
+- [ ] Indian quarterly results
