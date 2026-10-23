@@ -16,8 +16,11 @@ import contextlib
 import html
 import io
 import itertools
+import json
 import re
+import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -27,11 +30,15 @@ import llm_backends as backends  # noqa: E402
 import prices  # noqa: E402
 import prompts  # noqa: E402
 import insights  # noqa: E402
+import portfolio_db  # noqa: E402
+from brokers.credentials import get_secret  # noqa: E402
+from brokers.csv_adapter import guess_mapping, parse_rows, read_headers  # noqa: E402
+from brokers.base import MalformedResponse  # noqa: E402
 import stock_list  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
-from portfolio_store import (HOLDINGS_PATH, SOURCE_LABELS, add_holding, format_position, load_holdings,  # noqa: E402
-                             load_manual_holdings, save_holdings)
+from portfolio_store import (HOLDINGS_PATH, add_holding, format_position, load_holdings,  # noqa: E402
+                             load_manual_holdings, save_holdings, source_label)
 
 # Brand: PortIQ — "Upload. Ask. Get Insights." The mark in assets/ is an SVG recreation;
 # a saved original (assets/portiq_logo.png or .svg) is used instead when present.
@@ -399,7 +406,8 @@ def portfolio_frame(holdings: list[dict], quotes: dict[str, dict]):
         q = quotes.get(prices.normalize_ticker(h["ticker"]))
         src = h.get("source", "manual")
         row = {"Stock": symbol, "Exch": exchange,
-               "Source": "Manual" if src == "manual" else f"{SOURCE_LABELS.get(src, src)} · {str(h.get('as_of', ''))[:16]}",
+               # short so the column stays narrow; full source + as-of are in Import → Synced sources and in answers
+               "Source": "Manual" if src == "manual" else src[4:] if src.startswith("csv:") else source_label(src),
                "Qty": h["quantity"], "Avg": h["avg_cost"], "LTP": None,
                "Day %": None, "Invested ₹": None, "Current ₹": None, "P&L ₹": None, "P&L %": None, "cur": cur,
                "ticker": h["ticker"]}
@@ -593,8 +601,232 @@ def insights_view(holdings: list[dict], df, tot: dict) -> None:
                 "forecast or a recommendation.</p>", unsafe_allow_html=True)
 
 
+# ── Import & sync (Day 21) ───────────────────────────────────────────────────
+# Absolute paths: Streamlit may be started from another directory (`streamlit run finrag/app.py`),
+# and the sync runs in a subprocess with its own working directory.
+APP_DIR = Path(__file__).resolve().parent
+SYNC_SCRIPT = APP_DIR / "scripts" / "portfolio_sync.py"
+IMPORTS_DIR = APP_DIR / "data" / "portfolio" / "imports"      # git-ignored
+MAPPINGS_DIR = APP_DIR / "config" / "broker_mappings"         # *.local.json git-ignored
+NOT_IN_FILE = "(not in this file)"
+BROKERS = {
+    "upstox": {"label": "Upstox", "env": ["UPSTOX_ACCESS_TOKEN"], "optional": [],
+               "setup": "1. Create an app on the Upstox developer portal and generate an **access token** "
+                        "(it expires at 3:30 AM each day).\n2. Put it in `finrag/.env` as `UPSTOX_ACCESS_TOKEN=…` "
+                        "(copy `.env.example`).\n3. Come back here and press **Sync now**."},
+    "dhan": {"label": "Dhan", "env": ["DHAN_ACCESS_TOKEN"], "optional": ["DHAN_CLIENT_ID"],
+             "setup": "1. On web.dhan.co open **Access DhanHQ APIs** and generate an access token (valid 24 hours).\n"
+                      "2. Put it in `finrag/.env` as `DHAN_ACCESS_TOKEN=…`, and your client ID as `DHAN_CLIENT_ID=…` "
+                      "(needed for prices).\n3. Come back here and press **Sync now**."},
+    "groww": {"label": "Groww", "env": ["GROWW_ACCESS_TOKEN"], "optional": [],
+              "setup": "1. On groww.in open **Profile → Trading APIs** and generate an access token (it expires at "
+                       "6:00 AM each day).\n2. Put it in `finrag/.env` as `GROWW_ACCESS_TOKEN=…`.\n"
+                       "3. Come back here and press **Sync now**."},
+}
+
+
+def run_sync_cli(*args: str):
+    """
+    Run portfolio_sync.py in its own process and read its --json output. A sync limits the network
+    to one broker host for the whole process — in a separate process that can't touch the app's own
+    live prices. Credentials stay in .env; nothing secret is passed on the command line.
+    """
+    try:
+        out = subprocess.run([sys.executable, str(SYNC_SCRIPT), *args, "--json"], capture_output=True, text=True,
+                             timeout=180, cwd=APP_DIR)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error_type": "Timeout", "message": "the sync took longer than 3 minutes"}
+    lines = [line for line in out.stdout.strip().splitlines() if line.strip()]
+    try:
+        return json.loads(lines[-1])
+    except (IndexError, ValueError):
+        return {"ok": False, "error_type": "SyncError", "message": (out.stderr or out.stdout).strip()[-400:]}
+
+
+def import_copies(label: str) -> list[Path]:
+    """This import's stored uploads, oldest first — exact label only, so 'zerodha' never matches 'zerodha-holdings'."""
+    pattern = re.compile(rf"{re.escape(label)}-\d{{8}}-\d{{6}}\.csv")
+    return sorted(p for p in IMPORTS_DIR.glob(f"{label}-*.csv") if pattern.fullmatch(p.name))
+
+
+def _decode(raw: bytes) -> str:
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return raw.decode("latin-1")
+
+
+def csv_import_ui() -> None:
+    up = st.file_uploader("Broker export (CSV)", type=["csv"],
+                          help="Most brokers let you download your holdings as CSV or Excel — save it as CSV. "
+                               "The file stays on this machine (data/portfolio/imports/, git-ignored).")
+    if not up:
+        st.caption("Upload a holdings export to preview it. Nothing is imported until you press Import.")
+        return
+    raw = up.getvalue()
+    text = _decode(raw)
+    default = re.sub(r"[^a-z0-9]+", "-", Path(up.name).stem.lower()).strip("-")[:24] or "import"
+    c1, c2 = st.columns([2, 1])
+    label = re.sub(r"[^a-z0-9-]+", "-", c1.text_input("Name this import", value=default, max_chars=24,
+                                                       help="Keeps exports from different brokers apart, e.g. "
+                                                            "zerodha. Re-importing the same name replaces it.")
+                   .lower()).strip("-") or "import"
+    saved_path = MAPPINGS_DIR / f"{label}.local.json"
+    saved = json.loads(saved_path.read_text()) if saved_path.exists() else {}
+    skip = int(c2.number_input("Lines before the header", 0, 50, value=int(saved.get("skip_lines", 0)),
+                               help="Some exports start with a title or account details above the column names."))
+    headers = read_headers(text, skip)
+    if not headers:
+        st.error("No column names found — check 'Lines before the header'.")
+        return
+    guess = guess_mapping(headers)
+    if saved:  # the columns chosen last time for this import name, where they still exist
+        guess.update({f: col for f, col in saved.get("columns", {}).items() if col in headers})
+    st.markdown("**Which column is which?** — pre-filled from the file's headers; change anything that's wrong.")
+    options = [NOT_IN_FILE] + headers
+    pick = {}
+    cols = st.columns(3)
+    for i, (field_name, title) in enumerate([("symbol", "Symbol *"), ("quantity", "Quantity *"),
+                                             ("avg_cost", "Average buy price *"), ("exchange", "Exchange"),
+                                             ("isin", "ISIN")]):
+        current = guess.get(field_name)
+        pick[field_name] = cols[i % 3].selectbox(title, options, index=options.index(current) if current in options else 0,
+                                                 key=f"map_{label}_{field_name}")
+    default_exchange = cols[2].selectbox("Exchange if not in the file", ["NSE", "BSE", "US"],
+                                         index=["NSE", "BSE", "US"].index(saved.get("defaults", {}).get("exchange", "NSE")),
+                                         key=f"map_{label}_exch")
+    missing = [f for f in ("symbol", "quantity", "avg_cost") if pick[f] == NOT_IN_FILE]
+    if missing:
+        st.warning("Choose the column for: " + ", ".join(missing))
+        return
+    mapping = {"name": label, "columns": {f: c for f, c in pick.items() if c != NOT_IN_FILE},
+               "defaults": {"exchange": default_exchange, "currency": "USD" if default_exchange == "US" else "INR"},
+               "skip_lines": skip, "delimiter": ","}
+    try:
+        report = parse_rows(text, mapping)
+    except MalformedResponse as e:
+        st.error(str(e))
+        return
+    st.markdown(f"**{len(report.holdings)} holding(s) will be imported**")
+    if report.holdings:
+        st.dataframe([{"Symbol": h.symbol, "Exchange": h.exchange, "Qty": h.quantity, "Avg cost": round(h.avg_cost, 2),
+                       "Priced as": h.ticker} for h in report.holdings], hide_index=True, width="stretch",
+                     height=min(260, 38 + 35 * len(report.holdings)))
+    for n, why in report.merged:
+        st.caption(f"Line {n}: merged — {why}")
+    if report.skipped:
+        with st.expander(f"⚠ {len(report.skipped)} row(s) will be skipped — see why", expanded=True):
+            st.markdown("\n".join(f"- line {n}: {html.escape(why)}" for n, why in report.skipped))
+    previous = next((s for s in portfolio_db.latest_snapshots() if s["source"] == f"csv:{label}"), None)
+    if previous:
+        st.caption(f"Replaces your previous '{label}' import ({previous['holdings_count']} holdings, "
+                   f"{previous['fetched_at']}). Other sources are untouched.")
+    if st.button(f"Import {len(report.holdings)} holding(s)", type="primary", disabled=not report.holdings,
+                 key=f"import_{label}"):
+        IMPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        MAPPINGS_DIR.mkdir(parents=True, exist_ok=True)
+        file_path = IMPORTS_DIR / f"{label}-{datetime.now():%Y%m%d-%H%M%S}.csv"
+        file_path.write_bytes(raw)
+        saved_path.write_text(json.dumps(mapping, indent=2))
+        res = run_sync_cli("--source", "csv", "--file", str(file_path), "--mapping", str(saved_path), "--label", label)
+        if res.get("ok"):
+            for old in import_copies(label)[:-3]:  # keep this import's last 3 uploads
+                old.unlink()
+            st.session_state.live_quotes = None
+            st.session_state.price_note = f"Imported {res['holdings_count']} holding(s) as '{label}'"
+            st.rerun()
+        else:
+            st.error(f"Import failed ({res.get('error_type')}): {res.get('message')}")
+
+
+def brokers_ui() -> None:
+    st.caption("Read-only: PortIQ only reads your holdings and prices, using your own tokens from finrag/.env. "
+               "A sync contacts only that broker; tokens are never shown, logged or stored in the database.")
+    snaps = {s["source"]: s for s in portfolio_db.latest_snapshots()}
+    for name, b in BROKERS.items():
+        configured = all(get_secret(v) for v in b["env"])  # reads .env locally — no network call
+        last = portfolio_db.last_sync(portfolio_db.DB_PATH, name)
+        snap = snaps.get(name)
+        with st.container(border=True):
+            c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="center")
+            state = "🔑 token in .env" if configured else "⚪ not set up"
+            c1.markdown(f"**{b['label']}** · {state}")
+            lines = [f"Snapshot: {snap['holdings_count']} holdings, as of {snap['fetched_at']}" if snap else "No snapshot yet"]
+            if last:
+                lines.append(f"Last sync: {last['status']}{' — ' + last['error_type'] if last['error_type'] else ''} "
+                             f"({last['started_at']})")
+            c1.caption(" · ".join(lines))
+            if not configured:
+                with c1.expander("How to connect"):
+                    st.markdown(b["setup"])
+                continue
+            missing_optional = [v for v in b["optional"] if not get_secret(v)]
+            if missing_optional:
+                c1.caption(f"Prices need {', '.join(missing_optional)} in .env — holdings sync without it.")
+            if c2.button("Check", key=f"check_{name}", width="stretch", help="Is the token still accepted?"):
+                rows = run_sync_cli("--status", "--source", name)
+                st.session_state[f"auth_{name}"] = rows[0]["auth"] if isinstance(rows, list) and rows else \
+                    f"unknown ({rows.get('message', '') if isinstance(rows, dict) else ''})"
+            if c3.button("Sync now", key=f"sync_{name}", type="primary", width="stretch"):
+                with st.spinner(f"Reading your {b['label']} holdings…"):
+                    res = run_sync_cli("--source", name)
+                if res.get("ok"):
+                    st.session_state.live_quotes = None
+                    st.session_state.price_note = (f"{b['label']}: {res['holdings_count']} holding(s) synced · "
+                                                   f"prices {res['prices_status']}")
+                    st.rerun()
+                elif res.get("error_type") in ("AuthExpired", "CredentialsMissing"):
+                    st.warning(f"🔑 {res.get('message')}")
+                else:
+                    st.error(f"Sync failed ({res.get('error_type')}): {res.get('message')} — your last snapshot is unchanged.")
+            auth = st.session_state.get(f"auth_{name}")
+            if auth:
+                (st.success if auth == "ok" else st.warning)(f"Connection check: {auth}"
+                                                             + (" — generate a new token and update .env"
+                                                                if auth == "expired" else ""))
+
+
+def sources_ui() -> None:
+    manual = load_manual_holdings()
+    st.markdown(f"**Your holdings file** · {len(manual)} holding(s) — change them with **Edit** or **＋ Add**.")
+    snaps = portfolio_db.latest_snapshots()
+    if not snaps:
+        st.caption("No imported or synced sources yet.")
+        return
+    for s in snaps:
+        with st.container(border=True):
+            c1, c2 = st.columns([3, 1], vertical_alignment="center")
+            c1.markdown(f"**{source_label(s['source'])}** · {s['holdings_count']} holding(s) · as of {s['fetched_at']}")
+            c1.caption("Prices: live from Yahoo Finance, like your other holdings (exports carry no live prices)"
+                       if s["source"].startswith("csv") else f"Prices from {source_label(s['source'])}: {s['prices_status']}")
+            if c2.button("Remove", key=f"remove_{s['source']}", width="stretch",
+                         help="Remove this source's holdings from PortIQ, with PortIQ's stored copy of an uploaded "
+                              "file (your original file and broker account are untouched)"):
+                res = run_sync_cli("--remove", s["source"])
+                if res.get("ok") is False:
+                    st.error(f"Couldn't remove it ({res.get('error_type')}): {res.get('message')}")
+                    return
+                if s["source"].startswith("csv:"):
+                    for copy in import_copies(s["source"][4:]):
+                        copy.unlink()
+                st.session_state.live_quotes = None
+                st.session_state.price_note = f"Removed {source_label(s['source'])}"
+                st.rerun()
+
+
+@st.dialog("Import & sync holdings", width="large")
+def import_sync_dialog() -> None:
+    upload_tab, brokers_tab, sources_tab = st.tabs(["Upload CSV", "Brokers", "Synced sources"])
+    with upload_tab:
+        csv_import_ui()
+    with brokers_tab:
+        brokers_ui()
+    with sources_tab:
+        sources_ui()
+
+
 def portfolio_pane(pending) -> None:
-    head = st.columns([2.2, 1, 1, 1], vertical_alignment="center")
+    head = st.columns([1.7, 0.9, 0.9, 0.8, 1.05], vertical_alignment="center")
     head[0].markdown('<p class="pane-title">Portfolio</p>', unsafe_allow_html=True)
     live = head[1].toggle("Live", value=True, key="live",
                           help=f"Refresh prices from Yahoo Finance every {LIVE_EVERY_SEC} s. Yahoo sees your "
@@ -626,13 +858,15 @@ def portfolio_pane(pending) -> None:
                     st.rerun()
     if head[3].button("Edit", width="stretch", help="Change or delete holdings"):
         edit_holdings_dialog()
+    if head[4].button("⇅ Import", width="stretch", help="Upload a broker CSV, or sync Upstox / Dhan / Groww"):
+        import_sync_dialog()
     if st.session_state.get("price_note"):
         st.toast(st.session_state.pop("price_note"))
 
     holdings = load_holdings()
     if not holdings:
-        st.info("No holdings yet — use **＋ Add** to add your first stock (NSE symbols like RELIANCE, TCS, HDFCBANK). "
-                "Your holdings stay on this machine.")
+        st.info("No holdings yet — use **＋ Add** to add a stock, or **⇅ Import** to upload a broker CSV or sync "
+                "Upstox / Dhan / Groww. Your holdings stay on this machine.")
         return
 
     # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
