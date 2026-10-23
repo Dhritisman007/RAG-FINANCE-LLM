@@ -166,6 +166,23 @@ def test_history_and_stats() -> None:
     print("PASS: price history, 52-week range, returns, volatility and max drawdown")
 
 
+def test_histories_one_request() -> None:
+    import pandas as pd
+    asked = []
+
+    def fake_download(tickers, **kwargs):
+        asked.append(list(tickers))
+        idx = pd.bdate_range("2026-01-01", periods=3)
+        cols = pd.MultiIndex.from_product([["Close"], ["TCS.NS", "^NSEI", "GONE"]])
+        return pd.DataFrame([[3500, 25000, float("nan")], [3510, 25100, float("nan")], [3490, 24900, float("nan")]],
+                            index=idx, columns=cols)
+
+    h = prices.yahoo_histories(["tcs.ns", "^NSEI", "GONE", "TCS.NS"], download=fake_download)
+    assert asked == [["GONE", "TCS.NS", "^NSEI"]]                  # one request, de-duplicated, index kept as is
+    assert h["TCS.NS"][0] == ("2026-01-01", 3500.0) and len(h["^NSEI"]) == 3 and "GONE" not in h
+    print("PASS: several histories (holdings + index benchmarks) in one request")
+
+
 if __name__ == "__main__":
     test_fetch_never_sends_tickers()
     test_endpoint_change_fails_loudly()
@@ -174,4 +191,5 @@ if __name__ == "__main__":
     test_indian_listings_and_rupees()
     test_yahoo_prices_and_source_precedence()
     test_history_and_stats()
+    test_histories_one_request()
     print("\nAll price tests passed.")

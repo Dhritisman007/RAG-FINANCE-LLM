@@ -210,6 +210,26 @@ def yahoo_history(ticker: str, period: str = "1y", download=None) -> list[tuple[
     return [(d.date().isoformat(), float(v)) for d, v in close.items()]
 
 
+def yahoo_histories(tickers: list[str], period: str = "1y", download=None) -> dict[str, list[tuple[str, float]]]:
+    """Daily closes for several tickers in ONE request: {ticker: [(YYYY-MM-DD, close), ...]}.
+    Index symbols like ^NSEI pass through unchanged. Yahoo sees these tickers."""
+    wanted = sorted({t if t.startswith("^") else normalize_ticker(t) for t in tickers})
+    if not wanted:
+        return {}
+    if download is None:
+        import yfinance as yf
+        download = yf.download
+    data = download(wanted, period=period, interval="1d", progress=False, auto_adjust=False, threads=False)
+    close = data["Close"]
+    out = {}
+    for t in wanted:
+        if t in close:
+            series = close[t].dropna()
+            if len(series):
+                out[t] = [(d.date().isoformat(), float(v)) for d, v in series.items()]
+    return out
+
+
 def price_stats(history: list[tuple[str, float]]) -> dict:
     """
     Descriptive statistics of a price history — what happened, not a forecast:
