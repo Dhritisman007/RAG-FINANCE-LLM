@@ -196,6 +196,13 @@ def _matches(meta: dict, where: dict | None) -> bool:
     return meta.get(key) == cond
 
 
+def annual_titles(metadatas: list[dict], ticker: str) -> list[str]:
+    """Titles of a company's annual filings (10-K) in the store. Indian annual reports return []:
+    they are all annual already, so nothing needs filtering."""
+    return sorted({m["doc_title"] for m in metadatas
+                   if m.get("company_ticker") == ticker and " 10-K " in f" {m.get('doc_title', '')} "})
+
+
 HYBRID_SUFFIXES = (".NS",)  # company tickers searched with hybrid retrieval (NSE annual reports)
 HYBRID_DEPTH = 100   # candidates taken from each ranking before fusing
 RRF_K = 60           # standard reciprocal-rank-fusion constant
@@ -332,6 +339,7 @@ def retrieve(
     tier: int | None = None,
     ticker: str | None = None,
     tiers: list[int] | None = None,
+    annual_only: bool = False,
 ) -> dict:
     """
     Embed the query and retrieve the exact top-k chunks (see ExactIndex).
@@ -349,6 +357,10 @@ def retrieve(
 
     if ticker is not None:
         where = {"$and": [{"tier": 2}, {"company_ticker": ticker}]}
+        if annual_only:  # an annual question: the company's 10-K(s), when it has any
+            annual = annual_titles(exact_index(collection).metadatas, ticker)
+            if annual:
+                where = {"$and": [{"tier": 2}, {"company_ticker": ticker}, {"doc_title": {"$in": annual}}]}
         # Indian annual reports: dense + keyword. Measured on the golden set, hybrid search
         # lifted annual-report figures into the top 4 but cost SEC filings MRR (0.94 -> 0.90:
         # quarterly 10-Q tables repeat "revenues" and outranked the 10-K), so SEC stays dense.
@@ -471,9 +483,12 @@ def retrieve_for_plan(query: str, collection: chromadb.Collection, plan: Retriev
 
     if plan.tickers:  # Tier 2 filings of specific companies, k distinct passages each
         print(f"🔍 Retrieving top-{plan.k} SEC filing chunks per company: {', '.join(plan.tickers)}…")
+        if plan.annual_only and any(annual_titles(exact_index(collection).metadatas, t) for t in plan.tickers):
+            print("↪ Annual question — reading the annual filings (10-K) only.")
         found: list[Citation] = []
         for t in plan.tickers:
-            found += citations_from_chroma_results(retrieve(query, collection, k=fetch, ticker=t), preview_chars=150)
+            found += citations_from_chroma_results(retrieve(query, collection, k=fetch, ticker=t,
+                                                            annual_only=plan.annual_only), preview_chars=150)
         citations = suppress_near_duplicates(deduplicate_citations(found), k=plan.k * len(plan.tickers))
         if not citations:
             print("[WARN] No filing chunks for those companies — falling back to all tiers.")

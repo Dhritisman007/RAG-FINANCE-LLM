@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from rag_loop import ExactIndex, _matches  # noqa: E402
+from rag_loop import ExactIndex, _matches, annual_titles  # noqa: E402
 
 
 class FakeCollection:
@@ -71,8 +71,21 @@ def test_hybrid_keyword_fusion() -> None:
     print("PASS: hybrid search fuses keyword and dense rankings; distances stay true, order survives sorting")
 
 
+def test_annual_titles() -> None:
+    metas = [{"company_ticker": "NVDA", "doc_title": "NVDA 10-K filed 2026-02-25"},
+             {"company_ticker": "NVDA", "doc_title": "NVDA 10-Q filed 2026-05-28"},
+             {"company_ticker": "NVDA", "doc_title": "NVDA 10-K filed 2026-02-25"},
+             {"company_ticker": "AAPL", "doc_title": "AAPL 10-K filed 2025-10-31"},
+             {"company_ticker": "TCS.NS", "doc_title": "Tata Consultancy Services (TCS) Annual Report FY2025-26"}]
+    assert annual_titles(metas, "NVDA") == ["NVDA 10-K filed 2026-02-25"]
+    assert annual_titles(metas, "TCS.NS") == []          # annual reports are annual already: no filter
+    assert annual_titles(metas, "MSFT") == []
+    print("PASS: a company's 10-K titles are found for annual questions")
+
+
 if __name__ == "__main__":
     test_exact_ranking_distances_and_ties()
     test_where_filters()
     test_hybrid_keyword_fusion()
+    test_annual_titles()
     print("\nAll exact-index tests passed.")

@@ -161,6 +161,7 @@ class RetrievalPlan:
     concept_k: int = 0               # extra Tier 1 passages (portfolio "what is X" questions),
                                      # kept only if within distance_threshold
     max_per_doc: int | None = None   # cap passages per document (source diversity)
+    annual_only: bool = False        # an annual question: search the companies' 10-K filings only
 
 
 @dataclass
@@ -183,6 +184,7 @@ class RouteDecision:
         tiers = "all" if p.tiers is None else "+".join(map(str, p.tiers))
         where = f", tickers={'+'.join(p.tickers)}" if p.tickers else ""
         concept = f", +{p.concept_k} tier-1 concept" if p.concept_k else ""
+        concept += ", annual filings only" if p.annual_only else ""
         return (f"route={self.route}{extra} confidence={self.confidence:.2f} | "
                 f"tiers={tiers} k={p.k}{where}{concept} | signals: {signals}")
 
@@ -211,20 +213,37 @@ PORTFOLIO_K = 4
 TECHNICAL_OVERFETCH = 5
 
 
+# Day 19: for an annual question a 10-Q's year-to-date table competes with the 10-K —
+# "Nvidia's revenue for fiscal 2026" was answered with a 10-Q figure ($177,837M, not the
+# 10-K's $215,938M). Annual questions read the 10-K; questions about a quarter, a half or
+# year-to-date keep all filings (a fourth quarter is often only in the 10-K).
+ANNUAL_RE = re.compile(r"\b(?:fiscal(?:\s+year)?\s*'?\d{2,4}|fy\s*'?\d{2,4}|full[- ]year|annual(?:ly)?|"
+                       r"for the year|year ended|(?:last|this|previous|past) (?:fiscal )?year|10-k|"
+                       r"(?:in|for|of|during) (?:fiscal )?(?:19|20)\d\d)\b", re.I)
+PART_OF_YEAR_RE = re.compile(r"\bquarter(?:ly)?\b|\bq[1-4]\b|\b(?:three|six|nine) months\b|\b(?:first|second) half\b|"
+                             r"\bhalf[- ]year\b|\byear[- ]to[- ]date\b|\bytd\b|\b10-q\b", re.I)
+
+
+def wants_annual(query: str) -> bool:
+    """A question about a whole (fiscal) year, not part of one."""
+    return bool(ANNUAL_RE.search(query)) and not PART_OF_YEAR_RE.search(query)
+
+
 def _plan(route: str, held: list[str], companies: list[str], query: str) -> RetrievalPlan:
     if route == "concept":
         return RetrievalPlan(tiers=[1], k=CONCEPT_K, overfetch=3,
                              distance_threshold=CONCEPT_DISTANCE_THRESHOLD, fallback_tiers=None)
     if route == "technical":
         if companies:  # a named company -> its filings
-            return RetrievalPlan(tiers=[2], k=TECHNICAL_K, overfetch=3, tickers=companies)
+            return RetrievalPlan(tiers=[2], k=TECHNICAL_K, overfetch=3, tickers=companies,
+                                 annual_only=wants_annual(query))
         return RetrievalPlan(tiers=[2, 3], k=TECHNICAL_K, overfetch=TECHNICAL_OVERFETCH, max_per_doc=TECHNICAL_MAX_PER_DOC)
     # portfolio
     concept_k = 2 if DEFINITION_RE.search(query) else 0
     with_filings = [filing_key(t) for t in held if filing_key(t) in CORPUS_COMPANIES]  # filings / annual reports on disk
     if with_filings:
         return RetrievalPlan(tiers=[2], k=PORTFOLIO_K, overfetch=3, tickers=with_filings, concept_k=concept_k,
-                             distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD)
+                             distance_threshold=PORTFOLIO_CONCEPT_THRESHOLD, annual_only=wants_annual(query))
     # "my portfolio" with no specific ticker (or only holdings without filings in the
     # corpus): the positions + Tier 1 material only
     # if it genuinely covers the question. No fallback — for "how is my portfolio

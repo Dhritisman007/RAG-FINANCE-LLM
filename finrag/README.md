@@ -387,7 +387,11 @@ Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answ
 - The MLX server keeps the last prompt's cache, so the ~600 tokens of fixed instructions aren't re-read (a few seconds per question).
 - Tried and **rejected**: trimming long passages to the lines matching the question. It cut prompts by up to 55% but dropped the very row with the answer when the question said "revenues" and the table said "Revenue" (Reliance, Infosys) — a missing figure is worse than a slower answer.
 - In the UI: the model is warmed up when the app opens (an idle model took ~20 s extra to start), repeated questions are answered instantly, and progress names the documents being read. On this Mac heavy swapping (other apps open) can still make an answer take a minute; on a GPU server the same pipeline answers in seconds.
-- Relative periods ("last year", "latest quarter") get a note to use the most recent period in the sources and name it — Nvidia "last year" was answered as fiscal 2025 instead of 2026. **Still open:** for an annual question the model can quote a year-to-date figure from a 10-Q (Nvidia $177,837 million instead of the 10-K's $215,938 million); preferring the 10-K / annual report for annual questions is the next fix. Golden q39 relabelled: NVIDIA has been in the corpus since Day 15, so "last year" is answerable (fiscal 2026).
+- Relative periods ("last year", "latest quarter") get a note to use the most recent period in the sources and name it — Nvidia "last year" was answered as fiscal 2025 instead of 2026. For an annual question the model could quote a year-to-date figure from a 10-Q (Nvidia $177,837 million instead of the 10-K's $215,938 million) — fixed next (below). Golden q39 relabelled: NVIDIA has been in the corpus since Day 15, so "last year" is answerable (fiscal 2026).
+
+**Annual questions read the 10-K.** The router flags a question about a whole year ("fiscal year 2026", "in 2025", "last year", "annual", "10-K") — but not one about a quarter, half-year or year-to-date — and retrieval then searches only that company's 10-K filings (all filings if it has none; Indian annual reports are annual already). Measured:
+- Retrieval on all 66 questions: MRR 0.95 → 0.96, precision 86% → **92%**; every annual question now gets 10-K passages only (Caterpillar's 10-K moved from 3rd to 1st). No question got worse.
+- Answers on the 36-question set: **figures correct 11/17 → 14/17** (Nvidia ×2, NextEra, Caterpillar fixed), out-of-corpus 6/6 refused, no wrongful refusals, citations 84%, 25 s per answer. One new slip: Tesla's $94,827 million was converted to "$94.827 billion" — flagged by the number check ("not found in the sources"), so the answer card shows ⚠. Still open: Infosys (standalone column) and HDFC Bank (rounded ₹31,05,250.47 crore).
 
 **A UI a customer can trust.**
 - Every answer shows what was verified — "✓ 3 of 3 statements match their sources", "✓ All figures found in the sources" (or ⚠ with the details) — plus the documents used and the time taken; a "not covered" answer is marked as such ("it didn't guess").
@@ -540,7 +544,8 @@ python scripts/rag_loop.py --interactive
 - [x] LLM backend accepts any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL, remote only with explicit opt-in (Day 19)
 - [x] Type-ahead stock search when adding a holding (Day 19)
 - [x] Faster answers (39 s → 28 s on the Mac), verifiable answer cards, Insights tab, How it works (Day 19)
-- [ ] Prefer the 10-K / annual report for annual questions (10-Q year-to-date figures get quoted as the full year)
+- [x] Annual questions read the 10-K — figures correct 11/17 → 14/17 (Day 19)
+- [ ] Indian Standalone|Consolidated tables (Infosys) and rounding (HDFC Bank)
 - [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
 - [ ] Replace the SVG logo recreation with the original PortIQ artwork

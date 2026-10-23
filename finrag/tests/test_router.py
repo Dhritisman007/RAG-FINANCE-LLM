@@ -191,6 +191,24 @@ def test_indian_company_detection() -> None:
     print("PASS: 15 Indian companies by symbol or name; lowercase 'reliance' is just a word")
 
 
+def test_annual_questions_read_the_10k() -> None:
+    from router import wants_annual
+    annual = ["What were Tesla's total revenues in 2025?", "What was NVIDIA's revenue for fiscal year 2026?",
+              "What was Nvidia's revenue last year?", "Apple's full-year net sales", "Coca-Cola annual revenue",
+              "What was NextEra Energy's net income attributable to NEE in 2025?", "MSFT FY26 revenue"]
+    not_annual = ["What was ExxonMobil's revenue in the third quarter of 2026?", "Apple Q2 2026 sales",
+                  "Revenue for the six months ended June 2026", "Year-to-date revenue at Costco",
+                  "What risks does Tesla disclose?", "How does a limit order book work?",
+                  "Netflix revenue in the fourth quarter of 2026"]
+    for q in annual:
+        assert wants_annual(q), q
+    for q in not_annual:
+        assert not wants_annual(q), q
+    assert route_query("What were Tesla's total revenues in 2025?", HOLDINGS).plan.annual_only
+    assert not route_query("What risks does Tesla disclose in its 10-Q?", HOLDINGS).plan.annual_only
+    print("PASS: annual questions read the 10-K; quarter / half-year / year-to-date / undated ones keep all filings")
+
+
 if __name__ == "__main__":
     ok = test_labelled_accuracy()
     test_mixed_queries_report_secondary_signals()
@@ -200,6 +218,7 @@ if __name__ == "__main__":
     test_expanded_company_detection()
     test_indian_holdings()
     test_indian_company_detection()
+    test_annual_questions_read_the_10k()
     if not ok:
         sys.exit("\nRouter accuracy test FAILED")
     print("\nAll router tests passed.")
