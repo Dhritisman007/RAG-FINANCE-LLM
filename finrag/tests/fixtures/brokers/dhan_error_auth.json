@@ -1,0 +1,2 @@
+{"errorType": "Invalid_Authentication", "errorCode": "DH-901", "errorMessage": "Client ID or user generated access token is invalid or expired.",
+ "_note": "errorCode and errorMessage are from the docs' annexure; the errorType text is assumed"}

@@ -1,0 +1,2 @@
+{"data": {"NSE_EQ": {"11536": {"last_price": 3245.6}}}, "status": "success",
+ "_note": "only TCS priced on purpose: HDFC tests the 'partial prices' path"}

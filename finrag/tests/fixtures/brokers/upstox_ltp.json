@@ -1,0 +1,3 @@
+{"status": "success", "data": {
+  "NSE_EQ:YESBANK": {"last_price": 17.15, "instrument_token": "NSE_EQ|INE528G01035", "ltq": 10, "volume": 1200000, "cp": 17.1},
+  "NSE_EQ:RELIANCE": {"last_price": 1190.4, "instrument_token": "NSE_EQ|INE002A01018", "ltq": 5, "volume": 900000, "cp": 1180.0}}}

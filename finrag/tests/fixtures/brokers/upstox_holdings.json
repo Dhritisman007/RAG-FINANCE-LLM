@@ -1,0 +1,9 @@
+{"status": "success", "data": [
+  {"isin": "INE528G01035", "cnc_used_quantity": 0, "collateral_type": "WC", "company_name": "YES BANK LTD.", "haircut": 0.2,
+   "product": "D", "quantity": 36, "trading_symbol": "YESBANK", "last_price": 17.05, "close_price": 17.1, "pnl": -61.2,
+   "day_change": 0, "day_change_percentage": 0, "instrument_token": "NSE_EQ|INE528G01035", "average_price": 18.75,
+   "collateral_quantity": 0, "collateral_update_quantity": 0, "t1_quantity": 0, "exchange": "NSE"},
+  {"isin": "INE002A01018", "cnc_used_quantity": 0, "collateral_type": "WC", "company_name": "RELIANCE INDUSTRIES LTD",
+   "haircut": 0.2, "product": "D", "quantity": 10, "trading_symbol": "RELIANCE", "last_price": 1184.5, "close_price": 1180.0,
+   "pnl": -655.0, "day_change": 4.5, "day_change_percentage": 0.38, "instrument_token": "NSE_EQ|INE002A01018",
+   "average_price": 1250.0, "collateral_quantity": 0, "collateral_update_quantity": 0, "t1_quantity": 0, "exchange": "NSE"}]}

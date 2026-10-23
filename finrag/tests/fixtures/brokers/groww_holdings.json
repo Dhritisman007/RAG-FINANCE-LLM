@@ -1,0 +1,7 @@
+{"status": "SUCCESS", "payload": {"holdings": [
+  {"isin": "INE545U01014", "trading_symbol": "RELIANCE", "quantity": 10, "average_price": 100, "pledge_quantity": 2,
+   "demat_locked_quantity": 1, "groww_locked_quantity": 1.5, "repledge_quantity": 0.5, "t1_quantity": 3,
+   "demat_free_quantity": 5, "corporate_action_additional_quantity": 1, "active_demat_transfer_quantity": 1},
+  {"isin": "INE009A01021", "trading_symbol": "INFY", "quantity": 4, "average_price": 1500.5, "pledge_quantity": 0,
+   "demat_locked_quantity": 0, "groww_locked_quantity": 0, "repledge_quantity": 0, "t1_quantity": 0,
+   "demat_free_quantity": 4, "corporate_action_additional_quantity": 0, "active_demat_transfer_quantity": 0}]}}

@@ -1,0 +1,4 @@
+[{"exchange": "ALL", "tradingSymbol": "HDFC", "securityId": "1330", "isin": "INE001A01036", "totalQty": 1000, "dpQty": 1000,
+  "t1Qty": 0, "availableQty": 1000, "collateralQty": 0, "avgCostPrice": 2655.0},
+ {"exchange": "ALL", "tradingSymbol": "TCS", "securityId": "11536", "isin": "INE467B01029", "totalQty": 5, "dpQty": 5,
+  "t1Qty": 0, "availableQty": 5, "collateralQty": 0, "avgCostPrice": 3600.0}]

@@ -1,0 +1,2 @@
+{"errorType": "Rate_Limit", "errorCode": "DH-904", "errorMessage": "Too many requests on server from single user breaching rate limits. Try throttling API calls.",
+ "_note": "errorType text assumed"}

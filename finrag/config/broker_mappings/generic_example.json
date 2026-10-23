@@ -1,0 +1,14 @@
+{
+  "name": "generic",
+  "note": "Generic example, not a specific broker's format: no broker export layout was verified from official documentation. Copy this file, set each column to your export's header, and keep the copy out of git (*.local.json is ignored).",
+  "columns": {
+    "symbol": "Symbol",
+    "quantity": "Quantity",
+    "avg_cost": "Average Price",
+    "exchange": "Exchange",
+    "isin": "ISIN"
+  },
+  "defaults": {"exchange": "NSE", "currency": "INR"},
+  "skip_lines": 0,
+  "delimiter": ","
+}
