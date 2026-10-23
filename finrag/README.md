@@ -382,6 +382,19 @@ Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answ
 
 **Stock search when adding.** "＋ Add" now has a type-ahead dropdown: typing "relian" lists *RELIANCE — Reliance Industries Limited · NSE*, Reliance Power, Reliance Infrastructure… (matching symbol or company name). The list (`data/reference/stocks.csv`, 13,396 rows, committed so it works offline) holds every NSE equity and ETF and US companies from the SEC's list (largest first), each with the Yahoo ticker the price feed uses — so a picked stock always gets prices. Anything not listed can still be typed (NSE by default; `TCS.BO` for BSE). Refresh with `python scripts/stock_list.py --update` — whole lists are downloaded, nothing about your holdings is sent.
 
+**Faster answers (measured).** On the 8 GB Mac, search takes 0.1–0.3 s and the citation check ~1 s; the time is the model *reading* the ~2,500-token prompt (~120–150 tokens/s, 20–25 s) and *writing* (~12 words/s). Changes, each measured on the same 36 questions:
+- Answers are shorter and lead with the answer (~120 words), but say "not covered" first when the sources don't answer — and never swap in a nearby period or figure. **39 s → 28 s per answer**, figures correct 10/17 → 11/17, out-of-corpus questions still all refused (6/6), no answerable question refused (was 1/30), citations 85% → 83% (within run-to-run noise). The first wording ("lead with the answer") made the model answer a question it should have refused, so it was revised before keeping it.
+- The MLX server keeps the last prompt's cache, so the ~600 tokens of fixed instructions aren't re-read (a few seconds per question).
+- Tried and **rejected**: trimming long passages to the lines matching the question. It cut prompts by up to 55% but dropped the very row with the answer when the question said "revenues" and the table said "Revenue" (Reliance, Infosys) — a missing figure is worse than a slower answer.
+- In the UI: the model is warmed up when the app opens (an idle model took ~20 s extra to start), repeated questions are answered instantly, and progress names the documents being read. On this Mac heavy swapping (other apps open) can still make an answer take a minute; on a GPU server the same pipeline answers in seconds.
+- Relative periods ("last year", "latest quarter") get a note to use the most recent period in the sources and name it — Nvidia "last year" was answered as fiscal 2025 instead of 2026. **Still open:** for an annual question the model can quote a year-to-date figure from a 10-Q (Nvidia $177,837 million instead of the 10-K's $215,938 million); preferring the 10-K / annual report for annual questions is the next fix. Golden q39 relabelled: NVIDIA has been in the corpus since Day 15, so "last year" is answerable (fiscal 2026).
+
+**A UI a customer can trust.**
+- Every answer shows what was verified — "✓ 3 of 3 statements match their sources", "✓ All figures found in the sources" (or ⚠ with the details) — plus the documents used and the time taken; a "not covered" answer is marked as such ("it didn't guess").
+- Sources are cards (📘 annual report, 🧾 SEC filing, 📖 explainer, 📄 paper — with section, page and link), and the cited passages are one click away. Routing jargon moved behind Settings.
+- "ⓘ How it works": where answers come from (document counts read from the corpus), how they're checked and what the check can't catch, what is computed by code, privacy, and that PortIQ is not a SEBI-registered adviser. A disclaimer sits under the question box.
+- **Insights** tab (first): plain-English observations, the 1-year return of today's holdings vs Nifty 50 and S&P 500, volatility, worst drop, largest holding, and a growth-of-₹100 chart — all computed by code (`scripts/insights.py`, tested), describing the past, never advising.
+
 **Hosting groundwork.** The backend now talks to any OpenAI-compatible server by URL (vLLM, Hugging Face Inference Endpoints — see Setup), tested end to end against a live OpenAI-compatible server. A server that isn't on the same machine is refused unless `PORTIQ_ALLOW_REMOTE_LLM=1`, and the UI then shows "☁ <host>" with a plain statement of what is sent there. Before a public launch the app still needs to become multi-user (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
 
 ## Tests
@@ -400,6 +413,7 @@ python tests/test_portfolio_store.py  # holdings validation, atomic save, add/me
 python tests/test_llm_backends.py     # Ollama/MLX/API switch and fallback, remote opt-in, streaming, think-block removal (no servers needed)
 python tests/test_india_reports.py    # annual-report sections kept/skipped, rupee repair, NSE listing
 python tests/test_stock_list.py       # stock-list parsing, Yahoo tickers, typed symbols, refusing tiny downloads
+python tests/test_insights.py         # allocation, concentration, holding periods, past-year performance, wording
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -525,6 +539,8 @@ python scripts/rag_loop.py --interactive
 - [x] Qwen2.5-7B vs Qwen3-8B comparison — Qwen3 is not a clear upgrade; Qwen2.5-7B stays the default (Day 19)
 - [x] LLM backend accepts any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL, remote only with explicit opt-in (Day 19)
 - [x] Type-ahead stock search when adding a holding (Day 19)
+- [x] Faster answers (39 s → 28 s on the Mac), verifiable answer cards, Insights tab, How it works (Day 19)
+- [ ] Prefer the 10-K / annual report for annual questions (10-Q year-to-date figures get quoted as the full year)
 - [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
 - [ ] Replace the SVG logo recreation with the original PortIQ artwork
