@@ -9,6 +9,9 @@
 # fetched from the network at runtime (download once — see README).
 MODEL_ALIAS="${1:-qwen2.5-7b}"
 EXTRA=""
+# Prompt cache: every FinRAG prompt starts with the same ~600 tokens of instructions for its
+# route; keeping the last prompt's cache lets the next question skip re-reading them.
+PROMPT_CACHE=1
 CACHE_LIMIT=""   # MLX buffer-cache limit in bytes; empty = MLX default
 case "$MODEL_ALIAS" in
   qwen2.5-7b) REPO="mlx-community/Qwen2.5-7B-Instruct-4bit"; TEMPLATE_ARGS='{}' ;;
@@ -20,7 +23,7 @@ case "$MODEL_ALIAS" in
               EXTRA="--kv-bits 8 --quantized-kv-start 0"
               # The GPU gets ~5.7 GB on an 8 GB Mac and the weights take 4.6 GB: MLX's cache of
               # freed buffers filled the rest after ~5 answers. Disable it (slightly slower).
-              CACHE_LIMIT=0 ;;
+              CACHE_LIMIT=0; PROMPT_CACHE=0 ;;  # no room for a cached prompt either
   *) echo "unknown model '$MODEL_ALIAS' (qwen2.5-7b | qwen3-8b)" >&2; exit 2 ;;
 esac
 FINRAG="$(cd "$(dirname "$0")/.." && pwd)"
@@ -31,7 +34,7 @@ export HF_HUB_OFFLINE=1
 export HF_HUB_DISABLE_TELEMETRY=1
 # Single-machine use: stop MLX loading Anaconda's MPICH (it expects Open MPI and aborts).
 export MLX_MPI_LIBNAME=libmpi_none.dylib
-# 8 GB Macs: one request at a time, no prompt cache (FinRAG never repeats a prompt), and prefill in 512-token steps
+# 8 GB Macs: one request at a time, at most one cached prompt, and prefill in 512-token steps
 # keep peak GPU memory down (the defaults ran out of Metal memory on a long prompt).
 # mlx_lm.server has no cache-limit option, so a one-line launcher sets it before starting.
 exec /opt/anaconda3/bin/python3 -c "import sys, mlx.core as mx
@@ -39,4 +42,4 @@ if '$CACHE_LIMIT': mx.set_cache_limit(int('$CACHE_LIMIT'))
 sys.argv = ['mlx_lm.server'] + sys.argv[1:]
 from mlx_lm.server import main; main()" \
   --model "$REPO" --host 127.0.0.1 --port 8080 --chat-template-args "$TEMPLATE_ARGS" \
-  --decode-concurrency 1 --prompt-concurrency 1 --prompt-cache-size 0 --prefill-step-size 512 $EXTRA
+  --decode-concurrency 1 --prompt-concurrency 1 --prompt-cache-size $PROMPT_CACHE --prefill-step-size 512 $EXTRA

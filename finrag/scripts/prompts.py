@@ -13,6 +13,7 @@ restating or computing any position numbers.
 """
 from __future__ import annotations
 
+import re
 from typing import Callable
 
 from citations import Citation
@@ -29,7 +30,7 @@ Grounding rules (required):
 CONCEPT_STYLE = """\
 You are a friendly finance tutor explaining a concept to a beginner.
 Style:
-- Plain language and short: aim for about 150 words.
+- Plain language and short: start with a one-sentence definition, about 120 words in all.
 - Define any jargon in simple words the first time you use it.
 - Examples: use one ONLY if a worked example appears in the context — copy its numbers exactly and cite it [N]. If the context has no worked example, explain without one.
 - Do NOT write illustrations like "For example, if you earn $50,000…" or "if a stock costs $50 in one market…" with your own numbers. Every number in your answer must be copied from the context."""
@@ -44,7 +45,9 @@ FINAL_REMINDERS = {
 TECHNICAL_STYLE = """\
 You are a precise quantitative finance analyst answering a technical question.
 Style:
-- Focused: about 200 words, unless the question asks for a full list.
+- If the context answers the question, start with the direct answer in one sentence, then at most three short supporting points.
+- If it doesn't — a different company, period, or line item than the one asked about — say so first. Never substitute a nearby period (e.g. Q1 for Q3) or a related figure.
+- About 120 words, unless the question asks for a full list.
 - Be exact. Copy formulas, variable definitions and table values verbatim from the context.
 - Never round, convert or re-derive numbers that appear in the context; quote them as written, with their units and periods (e.g. "fiscal 2025", "in millions").
 - State the assumptions, conditions or scope the source attaches to a result (model, sample period, company, filing).
@@ -54,7 +57,7 @@ PORTFOLIO_STYLE = """\
 You are a careful assistant explaining how source material relates to the user's own holdings.
 The user's position details are shown to them separately, exactly as recorded, and an "educational, not investment advice" note is added automatically.
 Style:
-- Focused: about 200 words.
+- If the sources answer the question, start with the direct answer, then the supporting points; if they don't, say so first. About 120 words.
 - Do NOT restate, recompute or estimate any position numbers (shares, average cost, cost basis, current value, gains or returns). Refer to the holding only as "your <TICKER> position".
 - Explain the relevant filing-based risks or context, each with its [N] citation.
 - When quoting figures from a filing table, copy them verbatim with the table's unit and period, and name the line item they belong to.
@@ -81,6 +84,19 @@ Indian annual reports in the context:
 
 def has_annual_report(citations: list[Citation]) -> bool:
     return any("Annual Report FY" in (c.doc_title or "") for c in citations)
+
+
+# Day 19: "What was Nvidia's revenue last year?" was answered with a fiscal-2025 figure
+# when the filings' latest year is fiscal 2026. Relative periods get an explicit note.
+RELATIVE_PERIOD_RE = re.compile(r"\b(?:last|this|previous|past|latest|most recent|current)\s+"
+                                r"(?:fiscal\s+)?(?:year|quarter|fy|annual report|results?)\b", re.I)
+RELATIVE_PERIOD_NOTE = ("Note: \"{phrase}\" means the most recent such period that appears in the context. If the "
+                        "context shows several periods, use the latest one and name it (e.g. \"fiscal 2026\").")
+
+
+def relative_period_note(query: str) -> str:
+    m = RELATIVE_PERIOD_RE.search(query)
+    return RELATIVE_PERIOD_NOTE.format(phrase=m.group(0)) if m else ""
 
 
 STYLES = {"concept": CONCEPT_STYLE, "technical": TECHNICAL_STYLE, "portfolio": PORTFOLIO_STYLE}
@@ -115,6 +131,7 @@ def build_prompt(
         + f"{portfolio_str}"
         f"=== Context ===\n{context_str}\n\n"
         f"=== Question ===\n{query}\n\n"
+        + (f"{relative_period_note(query)}\n\n" if relative_period_note(query) else "")
         + (f"{FINAL_REMINDERS[route]}\n\n" if route in FINAL_REMINDERS else "")
         + f"=== Answer ===\n"
     )

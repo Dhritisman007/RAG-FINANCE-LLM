@@ -133,8 +133,18 @@ def test_concept_reminder_sits_right_before_the_answer() -> None:
     print("PASS: the concept prompt ends with the no-made-up-examples reminder; other routes don't")
 
 
+def test_relative_period_note() -> None:
+    import prompts as pr
+    assert 'means the most recent such period' in pr.relative_period_note("What was Nvidia's revenue last year?")
+    assert '"latest quarter"' in pr.relative_period_note("How did TCS do in the latest quarter?")
+    for q in ["What were Apple's net sales in fiscal 2025?", "What is a SIP?", "Revenue in the third quarter of 2026?"]:
+        assert pr.relative_period_note(q) == "", q          # explicit periods and concepts: no note
+    print("PASS: relative periods ('last year', 'latest quarter') get a use-the-latest-period note; explicit ones don't")
+
+
 if __name__ == "__main__":
     test_every_template_has_grounding_and_style_rules()
+    test_relative_period_note()
     test_labels_match_printed_source_order()
     test_portfolio_positions_only_in_portfolio_prompt()
     test_empty_context_and_default_route()
