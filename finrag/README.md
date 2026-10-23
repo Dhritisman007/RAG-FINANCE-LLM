@@ -367,7 +367,20 @@ python scripts/prices.py                   # ₹ valuation
 
 **Results.** Retrieval on all 66 golden questions: route accuracy 100%, hit@k 100%, MRR 0.95, precision 86% — all six answerable Indian questions rank their company's report first. Answers (qwen2.5-7b on MLX, 36-question comparison set — every required-figure and should-refuse question plus a concept/portfolio/technical sample): 10/16 required figures as scored (11/16 with the corrected Reliance label — re-score pending), 85% of citations correct, 0.03 invented numbers per answer, 7/7 out-of-corpus questions refused, no answerable question refused, 39 s per answer.
 
-**Model comparison (in progress).** Ollama is being replaced, and the chosen model has to serve a hosted website, so Hugging Face open models are being compared on the same 36 questions. Candidate: **Qwen3-8B** (Apache 2.0, `mlx-community/Qwen3-8B-4bit` locally, thinking mode off). On an 8 GB Mac it only fits with the attention cache in 8 bits and MLX's buffer cache disabled (the GPU gets ~5.7 GB and the weights take 4.6 GB; two runs ran out of Metal memory). That limit is local only — on a 24 GB server GPU it runs unmodified. Deployment plan if it wins: Qwen3-8B served by **vLLM** (continuous batching — many users per GPU) on a Hugging Face Inference Endpoint or similar, with the app made multi-user first (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
+**Model comparison: Qwen2.5-7B vs Qwen3-8B.** Ollama is being replaced, and the model has to serve a hosted website, so two Hugging Face open models (both Apache 2.0) were compared on the same 36 questions (every required-figure and should-refuse question plus a concept/portfolio/technical sample), same retrieval, both 4-bit on MLX:
+
+| | Qwen2.5-7B-Instruct | Qwen3-8B (thinking off) |
+|---|---|---|
+| Required figures correct | 11/16 (US 9/12, India 2/4) | **12/16** (US 10/12, India 2/4) |
+| Refused out-of-corpus questions | **7/7** | 5/7 — two confidently wrong numbers |
+| Refused answerable questions | **0/29** | 1/29 |
+| Citations correct | 51/60 (85%) | **65/74 (88%)** |
+| Invented numbers | 1 | 1 |
+| Seconds per answer (8 GB M1) | **39** | 50 (needs memory workarounds) |
+
+Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answered "Nvidia's revenue last year" with a wrong figure and gave ExxonMobil's **Q1** revenue as "Q3 2026" (not filed yet), where Qwen2.5 said the sources don't cover it. It also mislabelled Costco's total revenue as net sales. For a finance product a confident wrong number is the worst failure, so **Qwen3-8B is not a clear upgrade**; Qwen2.5-7B stays the default. Neither fixes the Indian Standalone|Consolidated table problem (both 2/4). A 24 GB server GPU can run a 14B model (Qwen2.5-14B-Instruct / Qwen3-14B in 8-bit), which can't be tested on this Mac — evaluate it there with the same harness (`evaluate.py --answers --model api:<model> --only <ids>`) before choosing the production model. Results: `data/eval/eval_answers_mlx-qwen2.5-7b_rescored.json`, `data/eval/eval_answers_mlx-qwen3-8b_subset.json`.
+
+**Hosting groundwork.** The backend now talks to any OpenAI-compatible server by URL (vLLM, Hugging Face Inference Endpoints — see Setup), tested end to end against a live OpenAI-compatible server. A server that isn't on the same machine is refused unless `PORTIQ_ALLOW_REMOTE_LLM=1`, and the UI then shows "☁ <host>" with a plain statement of what is sent there. Before a public launch the app still needs to become multi-user (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
 
 ## Tests
 
@@ -382,7 +395,7 @@ python tests/test_exact_index.py # exact search ranking, distances, filters
 python tests/test_prices.py      # no tickers in the price request, parsing, manual overrides, valuation math
 python tests/test_refresh.py     # only filings missing from disk are fetched; nothing is deleted
 python tests/test_portfolio_store.py  # holdings validation, atomic save, add/merge lots
-python tests/test_llm_backends.py     # Ollama/MLX switch and fallback, MLX streaming (no servers needed)
+python tests/test_llm_backends.py     # Ollama/MLX/API switch and fallback, remote opt-in, streaming, think-block removal (no servers needed)
 python tests/test_india_reports.py    # annual-report sections kept/skipped, rupee repair, NSE listing
 ```
 
@@ -445,6 +458,19 @@ One model per server (two 4–5 GB models can't share 8 GB); the served model is
 
 The script sets `MLX_MPI_LIBNAME` so MLX doesn't load Anaconda's MPICH library (it expects Open MPI and aborts). On the exFAT drive macOS leaves `._*` files in the model cache, which crash the Hugging Face cache scan behind `/v1/models`; FinRAG checks `/health` instead, and `find "/Volumes/Crucial X9/hf-cache" -name "._*" -delete` cleans them.
 
+**Optional: any OpenAI-compatible model server (for hosting)** — vLLM, a Hugging Face Inference Endpoint, or anything else that speaks the OpenAI chat API. Configure it with environment variables; the model then appears as `api:<model>`:
+
+```bash
+# On an NVIDIA GPU server (24 GB, e.g. L4 / A10G): serve Qwen3-8B with vLLM
+pip install vllm
+vllm serve Qwen/Qwen3-8B --max-model-len 8192
+# Point PortIQ at it (same machine: no opt-in needed)
+export PORTIQ_LLM_URL=http://127.0.0.1:8000/v1
+export PORTIQ_LLM_MODEL=Qwen/Qwen3-8B
+```
+
+For a server that is **not** on the same machine (e.g. `https://<name>.endpoints.huggingface.cloud/v1` with `PORTIQ_LLM_API_KEY=<HF token>`), PortIQ refuses to use it until `PORTIQ_ALLOW_REMOTE_LLM=1` is set too — questions, retrieved passages and the details of holdings you ask about are sent there, and the UI then says so (top bar shows "☁ <host>"). Qwen3's thinking mode is switched off per request (`chat_template_kwargs`), a 503 from a scaled-to-zero endpoint is reported as "starting up", and the API server is offered without probing it (a sleeping endpoint would otherwise look down). Fallback order when the requested model isn't available: Ollama → MLX → API.
+
 ### Troubleshooting: "no models" after a restart
 Ollama's models live on the external drive (Ollama → Settings → Model location). If the Mac restarts and Ollama launches before the drive mounts, it logs `models path not accessible, using default` and serves an empty default folder — `ollama list` shows nothing and FinRAG can't answer. Quit and reopen Ollama (or restart its server) once the drive is mounted.
 
@@ -493,8 +519,9 @@ python scripts/rag_loop.py --interactive
 - [x] Two-pane research-terminal UI (Day 18)
 - [x] Getting annual-report figures right: subsidiary labels and filter, hybrid search for annual reports, annual-report prompt rules (Day 18)
 - [x] PortIQ branding (Day 18)
-- [ ] **Next:** finish the Qwen2.5-7B vs Qwen3-8B comparison and re-score the baseline with the corrected Reliance label; pick the model
-- [ ] Make the LLM backend accept any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL
+- [x] Qwen2.5-7B vs Qwen3-8B comparison — Qwen3 is not a clear upgrade; Qwen2.5-7B stays the default (Day 19)
+- [x] LLM backend accepts any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL, remote only with explicit opt-in (Day 19)
+- [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
 - [ ] Replace the SVG logo recreation with the original PortIQ artwork
 - [ ] Indian quarterly results
