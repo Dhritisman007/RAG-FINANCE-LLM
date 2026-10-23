@@ -114,7 +114,7 @@ def build_collection(embedder=None) -> chromadb.Collection:
         dupes = [i for i, n in Counter(ids).items() if n > 1]
         raise ValueError(f"{len(dupes)} chunk_ids are not unique (e.g. {dupes[:3]}) — fix chunk_documents.py")
 
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    client = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=chromadb.Settings(anonymized_telemetry=False))
     # fresh collection each run — re-running this script should fully rebuild,
     # not silently accumulate stale/duplicate entries from prior runs
     try:
@@ -156,7 +156,7 @@ def update_source(source: str, embedder=None) -> chromadb.Collection:
     chunks = [c for c in load_chunks() if c.get("source") == source and not c.get("is_duplicate", False)]
     if not chunks:
         raise ValueError(f"no chunks with source={source!r} in {CHUNKS_PATH}")
-    collection = chromadb.PersistentClient(path=str(CHROMA_DIR)).get_collection(COLLECTION_NAME)
+    collection = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=chromadb.Settings(anonymized_telemetry=False)).get_collection(COLLECTION_NAME)
     before = collection.count()
     collection.delete(where={"source": source})
     print(f"Removed {before - collection.count()} old '{source}' chunks; embedding {len(chunks)}")
@@ -171,7 +171,7 @@ def test_query(query: str, embedder=None, n_results: int = 5) -> None:
     if embedder is None:
         embedder = BGEEmbedder()
 
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    client = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=chromadb.Settings(anonymized_telemetry=False))
     collection = client.get_collection(COLLECTION_NAME)
 
     query_embedding = embedder.embed_query(query)

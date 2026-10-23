@@ -34,3 +34,15 @@ data/pdf_cache/
 
 # Which model the local MLX server is serving (written by scripts/start_mlx_server.sh)
 data/mlx_serving.txt
+
+# Portfolio ingestion (broker sync) — never commit real positions or credentials
+.env.*
+!.env.example
+data/portfolio/*.db
+data/portfolio/*.db-journal
+data/portfolio/*.db-wal
+data/portfolio/*.csv
+data/portfolio/imports/
+*.local.json
+config/broker_mappings/*
+!config/broker_mappings/generic_example.json
