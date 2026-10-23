@@ -410,6 +410,7 @@ Holdings can now come from a broker export (CSV) or a broker's read-only API use
 - `BrokerAdapter` (`fetch_holdings`, `fetch_prices`, `auth_status`) with typed errors — `AuthExpired` / `CredentialsMissing` (re-authenticate) vs `RateLimited` / `BrokerUnavailable` (try later) vs `UnsupportedOperation` vs `MalformedResponse` — and a registry (`get_adapter`, `list_adapters`).
 - Every broker endpoint and field name was taken from the brokers' official docs (Upstox, Dhan, Groww — Oct 2026); what the docs don't state is a TODO in each adapter's header.
 - `scripts/portfolio_sync.py` writes an atomic SQLite snapshot (`data/portfolio/portfolio.db`); the router, prompts, UI and valuation read it through the same `load_holdings()` as before, and every synced position says where and when it came from ("— from Upstox, as of 2026-10-23T14:05:11").
+- In-app **⇅ Import** dialog (upload + column guesses + preview, per-broker Check / Sync now, synced sources with Remove) driving the same CLI in a subprocess; several named CSV imports can coexist (`csv:<name>`).
 - Found and fixed on the way: loading the embedding model at question time contacted huggingface.co (a sentence-transformers update check). It now loads offline from the cache; `tests/test_security.py` proves answering makes no outbound connection.
 
 ## Tests
@@ -431,7 +432,7 @@ python tests/test_stock_list.py       # stock-list parsing, Yahoo tickers, typed
 python tests/test_insights.py         # allocation, concentration, holding periods, past-year performance, wording
 python tests/test_build_update.py     # --only-source replaces one source's passages and leaves the rest
 python tests/test_brokers.py          # adapter contract: parsing, expired token, backoff, malformed payloads, CSV validation
-python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of
+python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of, CLI --json/--label/--remove, column guesses
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 ```
 
@@ -519,6 +520,13 @@ For a server that is **not** on the same machine (e.g. `https://<name>.endpoints
 
 "Fixture-tested" means against the official docs' example responses with a mocked HTTP layer — no broker sandbox exposes holdings, and no live account was available. Details the docs don't state are TODOs in each adapter (e.g. the HTTP status Dhan and Groww send with an expired token; whether Upstox's `quantity` includes `t1_quantity`; Groww holdings have no exchange field, so they're priced on NSE).
 
+**In the app: ⇅ Import** (portfolio header) opens one dialog with three tabs:
+- **Upload CSV** — pick your broker's holdings export and name the import. PortIQ guesses which column is the symbol, quantity and average price from common header names (you confirm or change each), previews exactly what will be imported, and lists every row it will skip with the reason. Importing again under the same name replaces that import; other imports and your own holdings file are untouched. The column choices are saved (`config/broker_mappings/<name>.local.json`) so the next export of the same layout imports in one click; the uploaded file is kept in `data/portfolio/imports/` (last 3 per import, git-ignored).
+- **Brokers** — per broker: whether a token is in `.env` (checked locally, without a network call), the current snapshot and last sync result, **Check** (is the token still accepted?) and **Sync now**. An expired token says so and keeps showing the last snapshot. With no token, "How to connect" shows the steps below.
+- **Synced sources** — every import and broker snapshot with its holdings count and as-of time, and **Remove** (deletes that source's snapshots and PortIQ's stored copy of the upload; your original file and broker account are untouched).
+
+Imports and syncs run `scripts/portfolio_sync.py` in a separate process, so the sync's broker-host-only network limit never applies to the app's live prices.
+
 **Bring your own credentials.** Copy `.env.example` to `.env` (git-ignored) and fill in only the brokers you use. Tokens are read from `.env` only — never from the command line, never logged, never stored in the database.
 - **Upstox:** create an app on the Upstox developer portal and generate an access token (OAuth flow, or from the app page). It expires at 3:30 AM the next day → `UPSTOX_ACCESS_TOKEN`. The 1-year read-only Analytics Token can also read Portfolio APIs, but only from a whitelisted static IP.
 - **Dhan:** web.dhan.co → "Access DhanHQ APIs" → generate a token (valid 24 h) → `DHAN_ACCESS_TOKEN`; your client ID → `DHAN_CLIENT_ID` (needed for prices).
@@ -529,7 +537,10 @@ python scripts/portfolio_sync.py --source csv --file data/portfolio/imports/expo
 python scripts/portfolio_sync.py --source upstox --dry-run   # fetch and show, write nothing
 python scripts/portfolio_sync.py --source upstox
 python scripts/portfolio_sync.py --status                     # auth state + snapshot age per source
+python scripts/portfolio_sync.py --source csv --file export.csv --mapping m.local.json --label zerodha   # a named import, kept beside others
+python scripts/portfolio_sync.py --remove csv:zerodha           # delete one source's snapshots
 ```
+Add `--json` to any of these for one machine-readable line (what the app reads); the exit code is 0 on success and 1 on a failed sync.
 
 For a CSV, copy `config/broker_mappings/generic_example.json` to a `*.local.json` file and set each column to your export's header. Only a generic example ships: no broker's export layout was verified from official documentation. Every row that isn't imported is listed with its line and reason (negative quantity, non-numeric price, bad symbol or exchange, blank row); repeated lots of one stock are merged and reported.
 
