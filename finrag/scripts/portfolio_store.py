@@ -27,14 +27,15 @@ ROOT = Path(__file__).parent.parent
 HOLDINGS_PATH = ROOT / "data" / "portfolio" / "holdings.csv"
 
 
-SOURCE_LABELS = {"manual": "your holdings file", "csv": "CSV import", "upstox": "Upstox", "dhan": "Dhan",
-                 "groww": "Groww"}
+SOURCE_LABELS = {"manual": "your holdings file", "csv": "CSV import", "cas": "CAS statement", "upstox": "Upstox",
+                 "dhan": "Dhan", "groww": "Groww"}
 
 
 def source_label(source: str) -> str:
-    """'upstox' -> 'Upstox'; 'csv:zerodha' -> 'CSV import (zerodha)'."""
-    if source.startswith("csv:"):
-        return f"CSV import ({source[4:]})"
+    """'upstox' -> 'Upstox'; 'csv:zerodha' -> 'CSV import (zerodha)'; 'cas:mom' -> 'CAS statement (mom)'."""
+    kind, _, name = source.partition(":")
+    if name and kind in ("csv", "cas"):
+        return f"{SOURCE_LABELS[kind]} ({name})"
     return SOURCE_LABELS.get(source, source)
 
 
@@ -227,11 +228,13 @@ def _price(x: float, ticker: str) -> str:
 
 def format_position(h: dict) -> str:
     qty = f"{h['quantity']:g}"
-    cost_basis = h["quantity"] * h["avg_cost"]
     bought = f", purchased {h['purchase_date']}" if h["purchase_date"] else ""
     source = h.get("source", "manual")
     origin = (f" — from {source_label(source)}, as of {h['as_of']}"
               if source != "manual" and h.get("as_of") else "")
+    if h["avg_cost"] is None:  # e.g. a CAS statement: quantities only, no purchase price
+        return f"{h['ticker']}: {qty} shares (average cost not known — the source doesn't include it){bought}{origin}"
+    cost_basis = h["quantity"] * h["avg_cost"]
     return (f"{h['ticker']}: {qty} shares @ avg cost {_price(h['avg_cost'], h['ticker'])} "
             f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}{origin}")
 

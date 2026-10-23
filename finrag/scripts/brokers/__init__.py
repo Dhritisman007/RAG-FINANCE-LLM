@@ -1,5 +1,5 @@
 """
-Broker adapters: get_adapter("csv" | "upstox" | "dhan" | "groww", **kwargs) and list_adapters().
+Broker adapters: get_adapter("csv" | "cas" | "upstox" | "dhan" | "groww", **kwargs) and list_adapters().
 See base.py for the contract and README "Portfolio sources" for setup per broker.
 """
 from __future__ import annotations
@@ -7,10 +7,12 @@ from __future__ import annotations
 from importlib import import_module
 
 from .base import (AuthError, AuthExpired, AuthStatus, BrokerAdapter, BrokerError, BrokerUnavailable,  # noqa: F401
-                   CredentialsMissing, Holding, MalformedResponse, Price, RateLimited, UnsupportedOperation)
+                   CredentialsMissing, Holding, IncorrectPassword, MalformedResponse, Price, RateLimited,
+                   UnsupportedOperation)
 
 _REGISTRY = {
     "csv": ("brokers.csv_adapter", "CsvAdapter"),
+    "cas": ("brokers.cas_adapter", "CasAdapter"),
     "upstox": ("brokers.upstox_adapter", "UpstoxAdapter"),
     "dhan": ("brokers.dhan_adapter", "DhanAdapter"),
     "groww": ("brokers.groww_adapter", "GrowwAdapter"),

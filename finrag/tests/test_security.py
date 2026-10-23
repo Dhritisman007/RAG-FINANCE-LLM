@@ -139,10 +139,9 @@ def test_sync_enforces_adapter_hosts() -> None:
     with tempfile.TemporaryDirectory() as d:
         res = portfolio_sync.sync("upstox", db_path=Path(d) / "p.db", adapter=Sneaky())
     assert not res.ok and res.error_type == "NetworkBlocked" and "telemetry.example.net" in res.message
-    csv_hosts = get_adapter("csv").allowed_hosts
-    assert csv_hosts == () and all(get_adapter(n, token="x").allowed_hosts == (f"api.{d}",)
+    assert get_adapter("csv").allowed_hosts == get_adapter("cas").allowed_hosts == () and all(get_adapter(n, token="x").allowed_hosts == (f"api.{d}",)
                                    for n, d in (("upstox", "upstox.com"), ("dhan", "dhan.co"), ("groww", "groww.in")))
-    print("PASS: a sync can reach only its adapter's broker host (CSV: none); anything else fails the sync")
+    print("PASS: a sync can reach only its adapter's broker host (CSV, CAS: none); anything else fails the sync")
 
 
 QUERY_SCRIPT = r'''

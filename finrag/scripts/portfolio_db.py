@@ -3,7 +3,8 @@ Portfolio snapshots in SQLite (data/portfolio/portfolio.db, git-ignored).
 
     snapshots(id, source, fetched_at, holdings_count, prices_status)
     holdings(snapshot_id, symbol, exchange, ticker, isin, quantity, avg_cost, currency,
-             last_price, price_as_of)       -- last_price NULL when unavailable, never 0
+             last_price, price_as_of)       -- last_price NULL when unavailable, never 0;
+                                            -- avg_cost NULL when the source has none (CAS)
     sync_log(id, source, started_at, finished_at, status, error_type, message, holdings_count)
 
 A snapshot is written in one transaction, so a failed or interrupted sync leaves
@@ -18,15 +19,17 @@ ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "portfolio" / "portfolio.db"
 KEEP_SNAPSHOTS = 10  # per source
 
-SCHEMA = """
+HOLDINGS_TABLE = """CREATE TABLE IF NOT EXISTS holdings (
+    snapshot_id INTEGER NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL, exchange TEXT NOT NULL, ticker TEXT NOT NULL, isin TEXT,
+    quantity REAL NOT NULL, avg_cost REAL CHECK (avg_cost IS NULL OR avg_cost >= 0), currency TEXT NOT NULL,
+    last_price REAL CHECK (last_price IS NULL OR last_price > 0), price_as_of TEXT)"""
+
+SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT NOT NULL, fetched_at TEXT NOT NULL,
     holdings_count INTEGER NOT NULL, prices_status TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS holdings (
-    snapshot_id INTEGER NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
-    symbol TEXT NOT NULL, exchange TEXT NOT NULL, ticker TEXT NOT NULL, isin TEXT,
-    quantity REAL NOT NULL, avg_cost REAL NOT NULL, currency TEXT NOT NULL,
-    last_price REAL CHECK (last_price IS NULL OR last_price > 0), price_as_of TEXT);
+{HOLDINGS_TABLE};
 CREATE TABLE IF NOT EXISTS sync_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT NOT NULL, started_at TEXT NOT NULL,
     finished_at TEXT, status TEXT NOT NULL, error_type TEXT, message TEXT, holdings_count INTEGER);
@@ -39,7 +42,23 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    if any(c["name"] == "avg_cost" and c["notnull"] for c in conn.execute("PRAGMA table_info(holdings)")):
+        _allow_unknown_cost(conn)
     return conn
+
+
+def _allow_unknown_cost(conn: sqlite3.Connection) -> None:
+    """One-time migration: databases made before CAS import had avg_cost NOT NULL. Rebuild the table, keeping every row."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        conn.execute("ALTER TABLE holdings RENAME TO holdings_old")
+        conn.execute(HOLDINGS_TABLE)
+        conn.execute("INSERT INTO holdings SELECT * FROM holdings_old")
+        conn.execute("DROP TABLE holdings_old")
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def write_snapshot(conn: sqlite3.Connection, source: str, fetched_at: str, holdings, prices: dict,

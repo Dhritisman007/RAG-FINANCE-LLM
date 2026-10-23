@@ -78,9 +78,9 @@ def make(name, *replies, sleeps=None):
 
 
 def test_registry() -> None:
-    assert list_adapters() == ["csv", "upstox", "dhan", "groww"]
+    assert list_adapters() == ["csv", "cas", "upstox", "dhan", "groww"]
     for name in list_adapters():
-        a = get_adapter(name) if name == "csv" else get_adapter(name, env_path=Path("/nonexistent/.env"))
+        a = get_adapter(name) if name in ("csv", "cas") else get_adapter(name, env_path=Path("/nonexistent/.env"))
         assert a.name == name and TOKEN not in repr(a)
     try:
         get_adapter("zerodha")
@@ -88,7 +88,7 @@ def test_registry() -> None:
         assert "unknown portfolio source" in str(e)
     else:
         raise AssertionError
-    print("PASS: registry lists csv, upstox, dhan, groww; unknown names are refused")
+    print("PASS: registry lists csv, cas, upstox, dhan, groww; unknown names are refused")
 
 
 def test_holdings_and_prices_parse() -> None:

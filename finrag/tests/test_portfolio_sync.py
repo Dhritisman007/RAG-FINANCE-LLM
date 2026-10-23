@@ -126,7 +126,7 @@ def test_status_and_agent_integration() -> None:
         spec = SPECS["upstox"]
         portfolio_sync.sync("upstox", db_path=db, adapter=upstox((200, spec["holdings"]), (200, spec["prices"])))
         st = {r["source"]: r for r in portfolio_sync.status(db_path=db, online=False)}
-        assert set(st) == {"csv", "upstox", "dhan", "groww"} and st["upstox"]["snapshot"].startswith("2 holdings")
+        assert set(st) == {"csv", "cas", "upstox", "dhan", "groww"} and st["upstox"]["snapshot"].startswith("2 holdings")
         assert st["upstox"]["last_sync"] == "ok" and st["dhan"]["snapshot"] == "none"
         # the agent reads synced holdings through the same functions as before
         real = portfolio_db.DB_PATH

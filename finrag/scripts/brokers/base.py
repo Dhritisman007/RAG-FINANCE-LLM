@@ -46,6 +46,10 @@ class CredentialsMissing(AuthError):
     """No credentials configured in .env."""
 
 
+class IncorrectPassword(AuthError):
+    """A file's password was wrong (a CAS statement opens with the first holder's PAN)."""
+
+
 class RateLimited(BrokerError):
     """The broker kept rate-limiting after retries with backoff."""
 
@@ -71,7 +75,7 @@ class Holding:
     symbol: str          # the broker's trading symbol, e.g. RELIANCE
     exchange: str        # NSE, BSE, US, …
     quantity: float
-    avg_cost: float
+    avg_cost: float | None  # None when the source doesn't say (a CAS statement has no purchase price)
     currency: str        # INR, USD
     source: str          # adapter name: csv, upstox, dhan, groww
     isin: str | None = None

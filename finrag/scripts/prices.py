@@ -307,7 +307,7 @@ def value_positions(holdings: list[dict], prices: dict[str, dict], today: date |
     fx = prices.get(FX_TICKER, {}).get("price")
     valued = []
     for h in holdings:
-        cost = h["quantity"] * h["avg_cost"]
+        cost = None if h["avg_cost"] is None else h["quantity"] * h["avg_cost"]  # None: the source has no cost
         cur = currency(h["ticker"])
         rate = 1.0 if cur == "INR" else fx
         p = prices.get(normalize_ticker(h["ticker"]))
@@ -320,21 +320,28 @@ def value_positions(holdings: list[dict], prices: dict[str, dict], today: date |
             value = h["quantity"] * p["price"]
             age = (today - date.fromisoformat(p["as_of"][:10])).days
             row.update(price=p["price"], as_of=p["as_of"], source=p["source"], market_value=value,
-                       gain=value - cost, gain_pct=(value - cost) / cost * 100 if cost else None,
+                       gain=None if cost is None else value - cost,
+                       gain_pct=(value - cost) / cost * 100 if cost else None,
                        stale=age > STALE_AFTER_DAYS)
             if rate:
-                row.update(value_inr=value * rate, cost_inr=cost * rate)
+                row.update(value_inr=value * rate, cost_inr=None if cost is None else cost * rate)
         valued.append(row)
     return valued
 
 
 def summarize(valued: list[dict]) -> dict:
-    """Totals in ₹ over the positions that have a price (and, for US holdings, an exchange rate)."""
+    """
+    Totals in ₹ over the positions that have a price (and, for US holdings, an exchange rate).
+    Gain is over the positions whose cost is known too; the others are listed in "no_cost".
+    """
     priced = [v for v in valued if v["value_inr"] is not None]
-    cost = sum(v["cost_inr"] for v in priced)
+    costed = [v for v in priced if v["cost_inr"] is not None]
+    cost = sum(v["cost_inr"] for v in costed)
     value = sum(v["value_inr"] for v in priced)
-    return {"cost_basis": cost, "market_value": value, "gain": value - cost,
-            "gain_pct": (value - cost) / cost * 100 if cost else None,
+    gain = sum(v["value_inr"] for v in costed) - cost
+    return {"cost_basis": cost, "market_value": value, "gain": gain,
+            "gain_pct": gain / cost * 100 if cost else None,
+            "costed": len(costed), "no_cost": [v["ticker"] for v in priced if v["cost_inr"] is None],
             "priced": len(priced), "missing": [v["ticker"] for v in valued if v["missing"]],
             "no_fx": [v["ticker"] for v in valued if not v["missing"] and v["value_inr"] is None],
             "stale": [v["ticker"] for v in priced if v["stale"]],
@@ -350,9 +357,11 @@ def format_valuation(valued: list[dict]) -> list[str]:
             continue
         stale = " ⚠ stale" if v["stale"] else ""
         cur = v["currency"]
+        gain = ("cost not known, so no gain/loss" if v["cost_basis"] is None else
+                f"cost {money(v['cost_basis'], cur)}, {signed_money(v['gain'], cur)}"
+                + (f", {v['gain_pct']:+.1f}%" if v["gain_pct"] is not None else ""))
         lines.append(f"{v['ticker']}: {v['quantity']:g} × {money(v['price'], cur)} = {money(v['market_value'], cur)} "
-                     f"(cost {money(v['cost_basis'], cur)}, {signed_money(v['gain'], cur)}, {v['gain_pct']:+.1f}%) "
-                     f"— price as of {v['as_of']}{stale}{_holding_origin(v)}")
+                     f"({gain}) — price as of {v['as_of']}{stale}{_holding_origin(v)}")
     return lines
 
 
@@ -370,9 +379,17 @@ def summary_sentence(valued: list[dict]) -> str:
     if not s["priced"]:
         return ("There are no prices for your holdings yet — run `python scripts/prices.py --update` "
                 f"(or add them to {MANUAL_PRICES_PATH.name}).")
-    text = (f"Your priced holdings are worth {inr(s['market_value'])} against a cost basis of "
-            f"{inr(s['cost_basis'])}: {signed_money(s['gain'])} ({s['gain_pct']:+.1f}%), "
-            f"using prices as of {s['as_of']}.")
+    pct = f" ({s['gain_pct']:+.1f}%)" if s["gain_pct"] is not None else ""
+    if not s["no_cost"]:
+        text = (f"Your priced holdings are worth {inr(s['market_value'])} against a cost basis of "
+                f"{inr(s['cost_basis'])}: {signed_money(s['gain'])}{pct}, using prices as of {s['as_of']}.")
+    else:  # some costs unknown (e.g. a CAS statement): never set worth against a partial cost basis
+        text = f"Your priced holdings are worth {inr(s['market_value'])}, using prices as of {s['as_of']}."
+        if s["costed"]:
+            text += (f" Those with a known average cost ({inr(s['cost_basis'])} invested) are at "
+                     f"{signed_money(s['gain'])}{pct}.")
+        text += (f" Average cost isn't known for {', '.join(s['no_cost'])}, so "
+                 + ("the gain/loss leaves them out." if s["costed"] else "there is no gain/loss figure."))
     if any(v["currency"] == "USD" and v["value_inr"] is not None for v in valued):
         text += " US holdings are converted to rupees at the latest USD→INR rate."
     if s["missing"]:
