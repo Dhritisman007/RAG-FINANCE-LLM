@@ -4,6 +4,7 @@ Backend-switch tests. No servers needed: the HTTP calls are faked.
     python tests/test_llm_backends.py
 """
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -11,6 +12,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 import llm_backends as backends  # noqa: E402
+
+API_ENV = ("PORTIQ_LLM_URL", "PORTIQ_LLM_MODEL", "PORTIQ_LLM_API_KEY", "PORTIQ_ALLOW_REMOTE_LLM")
+for var in API_ENV:  # tests must not depend on (or use) a real configured server
+    os.environ.pop(var, None)
 
 
 class FakeResponse:
@@ -111,8 +116,91 @@ def test_think_blocks_removed() -> None:
     print("PASS: reasoning blocks are stripped from streamed and complete answers; other text untouched")
 
 
+def test_openai_compatible_api_backend() -> None:
+    sent = []
+
+    def post(url, **kwargs):
+        sent.append((url, kwargs))
+        body = {"choices": [{"message": {"content": "<think>\n</think>\n\nRevenue was ₹2,67,021 crore [1]."}}]}
+        resp = FakeResponse(body)
+        resp.status_code = 200
+        return resp
+
+    real = backends.requests.post
+    try:
+        backends.requests.post = post
+        assert backends.api_config() is None                                       # nothing configured
+        # A server on this machine (vLLM) works without any opt-in
+        os.environ.update(PORTIQ_LLM_URL="http://127.0.0.1:8000/v1/", PORTIQ_LLM_MODEL="Qwen/Qwen3-8B")
+        cfg = backends.api_config()
+        assert cfg["name"] == "api:Qwen/Qwen3-8B" and cfg["local"] and cfg["allowed"]
+        out = backends.api_generate("q", "api:Qwen/Qwen3-8B", 100)
+        assert out == "Revenue was ₹2,67,021 crore [1]."                          # reasoning block stripped
+        url, kw = sent[-1]
+        assert url == "http://127.0.0.1:8000/v1/chat/completions" and "Authorization" not in kw["headers"]
+        assert kw["json"]["model"] == "Qwen/Qwen3-8B" and kw["json"]["chat_template_kwargs"] == {"enable_thinking": False}
+
+        # A remote server is refused unless explicitly allowed — nothing is sent
+        os.environ.update(PORTIQ_LLM_URL="https://abc.endpoints.huggingface.cloud/v1", PORTIQ_LLM_API_KEY="hf_test")
+        n = len(sent)
+        try:
+            backends.api_generate("q", "api:Qwen/Qwen3-8B", 100)
+        except backends.RemoteLLMRefused as e:
+            assert "abc.endpoints.huggingface.cloud" in str(e) and "PORTIQ_ALLOW_REMOTE_LLM=1" in str(e)
+        else:
+            raise AssertionError("a remote server must be refused without PORTIQ_ALLOW_REMOTE_LLM=1")
+        assert len(sent) == n and not backends.api_config()["allowed"]            # nothing was sent
+
+        # Allowed: bearer token sent; a non-Qwen3 model gets no chat-template arguments
+        os.environ.update(PORTIQ_ALLOW_REMOTE_LLM="1", PORTIQ_LLM_MODEL="meta-llama/Llama-3.1-8B-Instruct")
+        backends.api_generate("q", "api:meta-llama/Llama-3.1-8B-Instruct", 100)
+        url, kw = sent[-1]
+        assert url == "https://abc.endpoints.huggingface.cloud/v1/chat/completions"
+        assert kw["headers"]["Authorization"] == "Bearer hf_test" and "chat_template_kwargs" not in kw["json"]
+
+        # Scaled-to-zero endpoint: a clear message instead of a raw 503
+        def waking(url, **kwargs):
+            resp = FakeResponse({})
+            resp.status_code = 503
+            return resp
+        backends.requests.post = waking
+        try:
+            backends.api_generate("q", "api:meta-llama/Llama-3.1-8B-Instruct", 100)
+        except RuntimeError as e:
+            assert "starting up" in str(e)
+        else:
+            raise AssertionError("503 should say the server is starting")
+    finally:
+        backends.requests.post = real
+        for var in API_ENV:
+            os.environ.pop(var, None)
+    print("PASS: OpenAI-compatible server by URL; local allowed, remote refused unless PORTIQ_ALLOW_REMOTE_LLM=1; token, Qwen3 no-think, 503 message")
+
+
+def test_api_fallback_order() -> None:
+    real_get, real_path = backends.requests.get, backends.MLX_SERVING_PATH
+    backends.MLX_SERVING_PATH = Path(tempfile.mkdtemp()) / "none.txt"
+    try:
+        os.environ.update(PORTIQ_LLM_URL="http://localhost:8000/v1", PORTIQ_LLM_MODEL="Qwen/Qwen3-8B")
+        backends.requests.get = fake_get(None, mlx=False)            # deployment: no Ollama, no MLX
+        assert backends.available_models() == ["api:Qwen/Qwen3-8B"]
+        assert backends.resolve("qwen2.5:7b") == "api:Qwen/Qwen3-8B"
+        backends.requests.get = fake_get(None, mlx=True)             # on the Mac, MLX is preferred
+        assert backends.resolve("qwen2.5:7b") == "mlx:qwen2.5-7b"
+        os.environ.update(PORTIQ_LLM_URL="https://example.com/v1")   # remote, not allowed: never offered
+        backends.requests.get = fake_get(None, mlx=False)
+        assert backends.available_models() == [] and backends.resolve("qwen2.5:7b") == "qwen2.5:7b"
+    finally:
+        backends.requests.get, backends.MLX_SERVING_PATH = real_get, real_path
+        for var in API_ENV:
+            os.environ.pop(var, None)
+    print("PASS: fallback order Ollama → MLX → API; a disallowed remote API is never offered")
+
+
 if __name__ == "__main__":
     test_resolve_and_fallback()
     test_mlx_stream_parses_sse()
     test_think_blocks_removed()
+    test_openai_compatible_api_backend()
+    test_api_fallback_order()
     print("\nAll backend tests passed.")

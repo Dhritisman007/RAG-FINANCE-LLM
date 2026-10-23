@@ -96,9 +96,16 @@ class CloudModelError(ValueError):
 
 
 def ensure_local_model(model: str) -> None:
-    """Refuse Ollama cloud models: by name tag, and by the server's own metadata."""
+    """Refuse Ollama cloud models (by name tag and by the server's own metadata) and a remote
+    API server that wasn't explicitly allowed (PORTIQ_ALLOW_REMOTE_LLM=1)."""
     if backends.is_mlx(model):
         return  # MLX runs in-process on this Mac, bound to 127.0.0.1
+    if backends.is_api(model):
+        cfg = backends.api_config()
+        if cfg is None:
+            raise RuntimeError(f"'{model}' needs PORTIQ_LLM_URL and PORTIQ_LLM_MODEL to be set.")
+        backends.check_api_allowed(cfg)
+        return
     if CLOUD_MODEL_RE.search(model):
         raise CloudModelError(f"'{model}' is an Ollama cloud model — prompts would leave this machine. "
                               "FinRAG only runs local models (e.g. llama3.2, qwen2.5:7b).")
@@ -369,10 +376,14 @@ def _check_ollama() -> bool:
 
 
 def stream_tokens(prompt: str, model: str = DEFAULT_MODEL):
-    """Yield answer tokens from the local backend (Ollama, or MLX for "mlx:" models / as fallback)."""
+    """Yield answer tokens from the backend: Ollama, MLX ("mlx:" models) or the API server ("api:")."""
     model = backends.resolve(model)
     if backends.is_mlx(model):
         yield from backends.mlx_stream(prompt, model, MAX_ANSWER_TOKENS)
+        return
+    if backends.is_api(model):
+        ensure_local_model(model)
+        yield from backends.api_stream(prompt, model, MAX_ANSWER_TOKENS)
         return
     import ollama
     ensure_local_model(model)
@@ -411,10 +422,12 @@ def stream_answer(prompt: str, model: str = DEFAULT_MODEL) -> str:
 def generate(prompt: str, model: str = DEFAULT_MODEL, options: dict | None = None) -> str:
     """Silent, non-streaming generation (used by get_answer and evaluate.py)."""
     model = backends.resolve(model)
-    if backends.is_mlx(model):
+    if backends.is_mlx(model) or backends.is_api(model):
         opts = options or {}
-        return backends.mlx_generate(prompt, model, opts.get("num_predict", MAX_ANSWER_TOKENS),
-                                     opts.get("temperature", 0.0))
+        if backends.is_api(model):
+            ensure_local_model(model)
+        run = backends.mlx_generate if backends.is_mlx(model) else backends.api_generate
+        return run(prompt, model, opts.get("num_predict", MAX_ANSWER_TOKENS), opts.get("temperature", 0.0))
     import ollama
     ensure_local_model(model)
     response = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_SEC).generate(model=model, prompt=prompt, stream=False,

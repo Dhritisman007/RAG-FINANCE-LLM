@@ -255,7 +255,7 @@ def main() -> None:
         model = args.model if args.answers else None
         options = {"temperature": 0, "seed": 0, "num_predict": r.MAX_ANSWER_TOKENS}  # deterministic, comparable
     if model and not args.rescore:
-        r.ensure_local_model(model)  # never evaluate (send golden prompts) to a cloud model
+        r.ensure_local_model(model)  # no cloud model, and no remote API server unless PORTIQ_ALLOW_REMOTE_LLM=1
     name = "retrieval" if not model else "answers_" + re.sub(r"[^A-Za-z0-9.]+", "-", model)
     if args.no_diversity:
         name += "_nodiversity"
