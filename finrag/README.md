@@ -8,7 +8,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 
 > All paths and commands below are relative to `finrag/`.
 
-> **Privacy by design:** everything runs on this machine. Embeddings run locally (sentence-transformers), the vector store is local ChromaDB with telemetry disabled, and generation goes only to the Ollama or MLX server on `127.0.0.1` (pinned in code, so `OLLAMA_HOST` can't redirect it). Portfolio data is never sent to any cloud API, and `holdings.csv` is git-ignored. **One deliberate exception:** live prices come from Yahoo Finance, which sees the stock symbols you hold — never your quantities or prices paid.
+> **Privacy by design:** everything runs on this machine. Embeddings run locally (sentence-transformers), the vector store is local ChromaDB with telemetry disabled, and generation goes only to the Ollama or MLX server on `127.0.0.1` (pinned in code, so `OLLAMA_HOST` can't redirect it). Portfolio data is never sent to any cloud API, and `holdings.csv` is git-ignored. **Deliberate exceptions:** live prices come from Yahoo Finance, which sees the stock symbols you hold — never your quantities or prices paid; and an optional broker sync (`portfolio_sync.py`) reads your holdings from your own broker account, contacting only that broker's host. Answering a question makes no outbound connection.
 
 ---
 
@@ -405,6 +405,13 @@ Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answ
 
 **Hosting groundwork.** The backend now talks to any OpenAI-compatible server by URL (vLLM, Hugging Face Inference Endpoints — see Setup), tested end to end against a live OpenAI-compatible server. A server that isn't on the same machine is refused unless `PORTIQ_ALLOW_REMOTE_LLM=1`, and the UI then shows "☁ <host>" with a plain statement of what is sent there. Before a public launch the app still needs to become multi-user (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
 
+### Day 20 — Portfolio sources: CSV import and read-only broker sync
+Holdings can now come from a broker export (CSV) or a broker's read-only API used with **your own credentials**, through one adapter interface (`scripts/brokers/`). See **Portfolio sources** under Setup. Design notes:
+- `BrokerAdapter` (`fetch_holdings`, `fetch_prices`, `auth_status`) with typed errors — `AuthExpired` / `CredentialsMissing` (re-authenticate) vs `RateLimited` / `BrokerUnavailable` (try later) vs `UnsupportedOperation` vs `MalformedResponse` — and a registry (`get_adapter`, `list_adapters`).
+- Every broker endpoint and field name was taken from the brokers' official docs (Upstox, Dhan, Groww — Oct 2026); what the docs don't state is a TODO in each adapter's header.
+- `scripts/portfolio_sync.py` writes an atomic SQLite snapshot (`data/portfolio/portfolio.db`); the router, prompts, UI and valuation read it through the same `load_holdings()` as before, and every synced position says where and when it came from ("— from Upstox, as of 2026-10-23T14:05:11").
+- Found and fixed on the way: loading the embedding model at question time contacted huggingface.co (a sentence-transformers update check). It now loads offline from the cache; `tests/test_security.py` proves answering makes no outbound connection.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -423,6 +430,9 @@ python tests/test_india_reports.py    # annual-report sections kept/skipped, rup
 python tests/test_stock_list.py       # stock-list parsing, Yahoo tickers, typed symbols, refusing tiny downloads
 python tests/test_insights.py         # allocation, concentration, holding periods, past-year performance, wording
 python tests/test_build_update.py     # --only-source replaces one source's passages and leaves the rest
+python tests/test_brokers.py          # adapter contract: parsing, expired token, backoff, malformed payloads, CSV validation
+python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of
+python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -497,6 +507,39 @@ export PORTIQ_LLM_MODEL=Qwen/Qwen3-8B
 
 For a server that is **not** on the same machine (e.g. `https://<name>.endpoints.huggingface.cloud/v1` with `PORTIQ_LLM_API_KEY=<HF token>`), PortIQ refuses to use it until `PORTIQ_ALLOW_REMOTE_LLM=1` is set too — questions, retrieved passages and the details of holdings you ask about are sent there, and the UI then says so (top bar shows "☁ <host>"). Qwen3's thinking mode is switched off per request (`chat_template_kwargs`), a 503 from a scaled-to-zero endpoint is reported as "starting up", and the API server is offered without probing it (a sleeping endpoint would otherwise look down). Fallback order when the requested model isn't available: Ollama → MLX → API.
 
+### Portfolio sources
+
+| Source | Status | Holdings | Prices | Auth |
+|---|---|---|---|---|
+| **CSV / broker export** | ✅ working | any export, via a column-mapping JSON | — (Yahoo / manual prices) | none |
+| **Upstox** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v2/portfolio/long-term-holdings` | `GET /v3/market-quote/ltp` | your access token (expires 3:30 AM daily) |
+| **Dhan** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v2/holdings` | `POST /v2/marketfeed/ltp` (needs client ID) | your access token (24 h) |
+| **Groww** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v1/holdings/user` | `GET /v1/live-data/ltp` | your access token (expires 6:00 AM daily) |
+| **Hosted "Connect broker"** | ⏳ not built — needs broker partner approval | see `docs/hosted-oauth-design.md` | | |
+
+"Fixture-tested" means against the official docs' example responses with a mocked HTTP layer — no broker sandbox exposes holdings, and no live account was available. Details the docs don't state are TODOs in each adapter (e.g. the HTTP status Dhan and Groww send with an expired token; whether Upstox's `quantity` includes `t1_quantity`; Groww holdings have no exchange field, so they're priced on NSE).
+
+**Bring your own credentials.** Copy `.env.example` to `.env` (git-ignored) and fill in only the brokers you use. Tokens are read from `.env` only — never from the command line, never logged, never stored in the database.
+- **Upstox:** create an app on the Upstox developer portal and generate an access token (OAuth flow, or from the app page). It expires at 3:30 AM the next day → `UPSTOX_ACCESS_TOKEN`. The 1-year read-only Analytics Token can also read Portfolio APIs, but only from a whitelisted static IP.
+- **Dhan:** web.dhan.co → "Access DhanHQ APIs" → generate a token (valid 24 h) → `DHAN_ACCESS_TOKEN`; your client ID → `DHAN_CLIENT_ID` (needed for prices).
+- **Groww:** groww.in → Profile → Trading APIs → generate an access token (expires 6:00 AM daily) → `GROWW_ACCESS_TOKEN`.
+
+```bash
+python scripts/portfolio_sync.py --source csv --file data/portfolio/imports/export.csv --mapping config/broker_mappings/my_broker.local.json
+python scripts/portfolio_sync.py --source upstox --dry-run   # fetch and show, write nothing
+python scripts/portfolio_sync.py --source upstox
+python scripts/portfolio_sync.py --status                     # auth state + snapshot age per source
+```
+
+For a CSV, copy `config/broker_mappings/generic_example.json` to a `*.local.json` file and set each column to your export's header. Only a generic example ships: no broker's export layout was verified from official documentation. Every row that isn't imported is listed with its line and reason (negative quantity, non-numeric price, bad symbol or exchange, blank row); repeated lots of one stock are merged and reported.
+
+**Privacy design.**
+- During a sync the process may reach **only that adapter's broker host** (`scripts/net_guard.py` blocks every other resolve/connect); a CSV import makes no network call.
+- Calls are read-only GETs (plus Dhan's price POST, which only reads); no order endpoint is used.
+- When answering a question nothing goes out at all — the models run on 127.0.0.1 (tested).
+- Snapshots stay in `data/portfolio/portfolio.db` (git-ignored); a failed sync never wipes the last good snapshot; an unavailable price is stored as unavailable, never 0; every answer built from a snapshot names its source and as-of time.
+- **Limitation:** one-click hosted "Connect broker" needs each broker's partner approval (Dhan documents a partner consent flow; Upstox multi-user access appears to require onboarding; Groww documents no third-party access). It is designed, not built — `docs/hosted-oauth-design.md`.
+
 ### Troubleshooting: "no models" after a restart
 Ollama's models live on the external drive (Ollama → Settings → Model location). If the Mac restarts and Ollama launches before the drive mounts, it logs `models path not accessible, using default` and serves an empty default folder — `ollama list` shows nothing and FinRAG can't answer. Quit and reopen Ollama (or restart its server) once the drive is mounted.
 
@@ -551,6 +594,9 @@ python scripts/rag_loop.py --interactive
 - [x] Faster answers (39 s → 28 s on the Mac), verifiable answer cards, Insights tab, How it works (Day 19)
 - [x] Annual questions read the 10-K — figures correct 11/17 → 14/17 (Day 19)
 - [x] Indian Standalone|Consolidated tables labelled — figures correct 14/17 → 15/17 (Day 19)
+- [x] Portfolio sources: CSV import + read-only Upstox / Dhan / Groww sync with your own credentials (Day 20)
+- [ ] Run each broker adapter once against a live account (only fixture-tested so far)
+- [ ] Hosted "Connect broker" — needs broker partner approval (design: docs/hosted-oauth-design.md)
 - [ ] Model rounding / unit conversion (HDFC Bank ₹31,05,250.47 → ₹31,05,251; Tesla → "$94.827 billion")
 - [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
