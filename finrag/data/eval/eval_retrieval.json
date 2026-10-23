@@ -1001,9 +1001,9 @@
    "answerable": true,
    "retrieved": [
     "[1] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.234)",
-    "[2] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.323)",
-    "[3] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.314)",
-    "[4] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.319)"
+    "[2] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.314)",
+    "[3] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.326)",
+    "[4] t2 Tata Consultancy Services (TCS) Annual Report FY2025-26 (0.353)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -1016,10 +1016,10 @@
    "got_route": "technical",
    "answerable": true,
    "retrieved": [
-    "[1] t2 Infosys (INFY) Annual Report FY2025-26 (0.288)",
-    "[2] t2 Infosys (INFY) Annual Report FY2025-26 (0.318)",
-    "[3] t2 Infosys (INFY) Annual Report FY2025-26 (0.266)",
-    "[4] t2 Infosys (INFY) Annual Report FY2025-26 (0.302)"
+    "[1] t2 Infosys (INFY) Annual Report FY2025-26 (0.266)",
+    "[2] t2 Infosys (INFY) Annual Report FY2025-26 (0.302)",
+    "[3] t2 Infosys (INFY) Annual Report FY2025-26 (0.330)",
+    "[4] t2 Infosys (INFY) Annual Report FY2025-26 (0.308)"
    ],
    "hit": true,
    "rr": 1.0,

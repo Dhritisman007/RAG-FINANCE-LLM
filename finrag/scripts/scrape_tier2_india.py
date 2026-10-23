@@ -122,6 +122,78 @@ def download_pdf(url: str, dest: Path) -> Path:
     return dest
 
 
+# ── Side-by-side Standalone | Consolidated tables (Day 19) ─────────────────
+# PDF text flattens them into rows of bare numbers ("Revenue from operations 1,48,819
+# 1,36,592 9.0 1,78,650 1,62,990 9.6") and a 7B model quoted the first, standalone,
+# column as Infosys' revenue. Every such row is rewritten with its values labelled.
+# The standalone block's columns always precede the consolidated block's (or the
+# reverse, per the header), so a row with 2m values splits into halves; a period line
+# ("FY2026 FY2025 Growth FY2026 FY2025 Growth") names each value. Rows with an odd
+# count are left as they are rather than guessed.
+DUAL_HEADER_RE = re.compile(r"\b(standalone|consolidated)\b(?:(?!\band\b).)*\b(consolidated|standalone)\s*$", re.I)
+CELL = r"\(?-?[\d,]*\d(?:\.\d+)?%?\)?|[-–—]"
+ROW_RE = re.compile(rf"^(?P<label>.*?[A-Za-z)\].:].*?)\s+(?P<cells>(?:(?:{CELL})\s+)+(?:{CELL}))\s*$")
+PERIOD_TOKEN_RE = re.compile(r"FY\s?\d{4}(?:-\d{2})?|FY\s?\d{2}\b|\b(?:19|20)\d{2}-\d{2}\b|\b(?:19|20)\d{2}\b|\(%\)|"
+                             r"\bGrowth\b|\bYoY\b|\bchange\b", re.I)
+# Inside a table row "29, 211" is one number with a stray space from the PDF (Infosys'
+# standalone profit); in prose ("in 2026, 220 clients") it isn't, so this applies to rows only.
+SPLIT_NUMBER_RE = re.compile(r"(\d), (\d{2,3}(?:,\d{2,3})*(?:\.\d+)?)(?=\s|$)")
+TABLE_SPAN = 40     # lines after a header that can belong to its table
+TABLE_GAP = 6       # consecutive non-row lines that end a table once rows have started
+
+
+def _period_labels(line: str) -> list[str] | None:
+    """Column labels if the line is (almost) only period/growth tokens, e.g. '2026 2025 (%) 2026 2025 (%)'."""
+    tokens = PERIOD_TOKEN_RE.findall(line)
+    rest = PERIOD_TOKEN_RE.sub("", line).strip(" ,|")
+    if len(tokens) >= 2 and len(rest) <= 3:
+        return ["YoY %" if tok.strip() == "(%)" else re.sub(r"\s+", " ", tok.strip()) for tok in tokens]
+    return None
+
+
+def label_dual_tables(lines: list[str]) -> list[str]:
+    """Rewrite rows of Standalone|Consolidated tables with labelled values (see above)."""
+    out = list(lines)
+    i = 0
+    while i < len(out):
+        m = DUAL_HEADER_RE.search(out[i])
+        if not m:
+            i += 1
+            continue
+        first, second = m.group(1).title(), m.group(2).title()
+        if first == second:
+            i += 1
+            continue
+        labels, gap, started = None, 0, False
+        j = i + 1
+        while j < len(out) and j <= i + TABLE_SPAN and gap < TABLE_GAP:
+            if DUAL_HEADER_RE.search(out[j]) or out[j].startswith("## "):
+                break
+            if labels is None and (lab := _period_labels(out[j])):
+                labels = lab
+                j += 1
+                continue
+            row = ROW_RE.match(SPLIT_NUMBER_RE.sub(r"\1,\2", out[j]))
+            cells = row.group("cells").split() if row else []
+            if row and len(cells) >= 2 and len(cells) % 2 == 0:
+                half = len(cells) // 2
+                cols = labels if labels and len(labels) == len(cells) else None
+                if labels and cols is None:  # a row without its growth cells: the period labels still apply
+                    periods = [lab for lab in labels if lab.lower() not in ("yoy %", "growth", "yoy", "change")]
+                    cols = periods if len(periods) == len(cells) else None
+
+                def block(vals, offset):
+                    return ", ".join(f"{cols[offset + k]} {v}" for k, v in enumerate(vals)) if cols else " ".join(vals)
+                out[j] = (f"{row.group('label').rstrip(' :')} — {first}: {block(cells[:half], 0)}; "
+                          f"{second}: {block(cells[half:], half)}")
+                started, gap = True, 0
+            elif started:
+                gap += 1
+            j += 1
+        i = j
+    return out
+
+
 def clean_text(text: str) -> str:
     text = RUPEE_UNIT_RE.sub(lambda m: f"(₹ in {m.group(1).lower()}", text)
     text = RUPEE_AMOUNT_RE.sub("₹", text)
@@ -181,7 +253,7 @@ def build_document(pages: list[str], parent: str = "") -> tuple[str, Counter]:
         subsidiary = subsidiary_name(lines, parent) if parent and section == "Consolidated Financial Statements" else None
         heading = f"{section} — Subsidiary: {subsidiary}" if subsidiary else section
         out.append(f"## {heading} ({label})")
-        out.append(clean_text("\n".join(body)))
+        out.append(clean_text("\n".join(label_dual_tables(body))))
     return "\n\n".join(out), stats
 
 

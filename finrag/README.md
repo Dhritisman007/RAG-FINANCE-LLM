@@ -393,6 +393,10 @@ Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answ
 - Retrieval on all 66 questions: MRR 0.95 → 0.96, precision 86% → **92%**; every annual question now gets 10-K passages only (Caterpillar's 10-K moved from 3rd to 1st). No question got worse.
 - Answers on the 36-question set: **figures correct 11/17 → 14/17** (Nvidia ×2, NextEra, Caterpillar fixed), out-of-corpus 6/6 refused, no wrongful refusals, citations 84%, 25 s per answer. One new slip: Tesla's $94,827 million was converted to "$94.827 billion" — flagged by the number check ("not found in the sources"), so the answer card shows ⚠. Still open: Infosys (standalone column) and HDFC Bank (rounded ₹31,05,250.47 crore).
 
+**Standalone | Consolidated tables labelled.** PDF text flattens these side-by-side tables into rows of bare numbers ("Revenue from operations 1,48,819 1,36,592 9.0 1,78,650 1,62,990 9.6"), and the model quoted the first, standalone column as Infosys' revenue. The extractor now finds each table's header ("Standalone Consolidated", either order; prose like "the Standalone and Consolidated Financial Statements" is ignored), splits every row with an even number of values into the two blocks (the standalone block's columns always precede the consolidated block's), and names each value when the table has a period line: *"Revenue from operations — Standalone: 2026 1,48,819, 2025 1,36,592, YoY % 9.0; Consolidated: 2026 1,78,650, 2025 1,62,990, YoY % 9.6"*. Odd rows are left as they are, not guessed. Inside these rows a number broken by the PDF ("29, 211") is rejoined — which is also why the number check had called Infosys' standalone profit "not in the sources". 231 rows across 8 reports are labelled.
+- `build_vectorstore.py --only-source nse_annual_report` replaces just the annual reports' passages (10,748) instead of re-embedding all 28,000 — after checking that all 19,512 other passages came out byte-identical from re-chunking.
+- Result: Infosys answered with the consolidated figures (₹1,78,650 crore, ₹29,440 crore); Indian figures 3/4; on the 36-question set **figures correct 15/17**, citations 86%, out-of-corpus 6/6 refused, no wrongful refusals, retrieval unchanged (MRR 0.96, precision 92%). Left: Tesla's "$94.827 billion" conversion (flagged on the answer) and HDFC Bank's rounding.
+
 **A UI a customer can trust.**
 - Every answer shows what was verified — "✓ 3 of 3 statements match their sources", "✓ All figures found in the sources" (or ⚠ with the details) — plus the documents used and the time taken; a "not covered" answer is marked as such ("it didn't guess").
 - Sources are cards (📘 annual report, 🧾 SEC filing, 📖 explainer, 📄 paper — with section, page and link), and the cited passages are one click away. Routing jargon moved behind Settings.
@@ -418,6 +422,7 @@ python tests/test_llm_backends.py     # Ollama/MLX/API switch and fallback, remo
 python tests/test_india_reports.py    # annual-report sections kept/skipped, rupee repair, NSE listing
 python tests/test_stock_list.py       # stock-list parsing, Yahoo tickers, typed symbols, refusing tiny downloads
 python tests/test_insights.py         # allocation, concentration, holding periods, past-year performance, wording
+python tests/test_build_update.py     # --only-source replaces one source's passages and leaves the rest
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -545,7 +550,8 @@ python scripts/rag_loop.py --interactive
 - [x] Type-ahead stock search when adding a holding (Day 19)
 - [x] Faster answers (39 s → 28 s on the Mac), verifiable answer cards, Insights tab, How it works (Day 19)
 - [x] Annual questions read the 10-K — figures correct 11/17 → 14/17 (Day 19)
-- [ ] Indian Standalone|Consolidated tables (Infosys) and rounding (HDFC Bank)
+- [x] Indian Standalone|Consolidated tables labelled — figures correct 14/17 → 15/17 (Day 19)
+- [ ] Model rounding / unit conversion (HDFC Bank ₹31,05,250.47 → ₹31,05,251; Tesla → "$94.827 billion")
 - [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
 - [ ] Replace the SVG logo recreation with the original PortIQ artwork

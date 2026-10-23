@@ -126,22 +126,41 @@ def build_collection(embedder=None) -> chromadb.Collection:
         configuration={"hnsw": HNSW_CONFIG},
     )
 
+    _add_chunks(collection, chunks, embedder)
+    print(f"\nCollection '{COLLECTION_NAME}' now has {collection.count()} chunks.")
+    return collection
+
+
+def _add_chunks(collection: chromadb.Collection, chunks: list[dict], embedder) -> None:
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i:i + BATCH_SIZE]
         texts = [c["text"] for c in batch]
-        ids = [c["chunk_id"] for c in batch]
-        metadatas = [clean_metadata(c) for c in batch]
-
-        embeddings = embedder.embed_documents(texts)
-
         collection.add(
-            ids=ids,
-            embeddings=embeddings,
+            ids=[c["chunk_id"] for c in batch],
+            embeddings=embedder.embed_documents(texts),
             documents=texts,
-            metadatas=metadatas,
+            metadatas=[clean_metadata(c) for c in batch],
         )
         print(f"  Inserted batch {i // BATCH_SIZE + 1} ({len(batch)} chunks)")
 
+
+def update_source(source: str, embedder=None) -> chromadb.Collection:
+    """
+    Replace one source's chunks (e.g. "nse_annual_report" after re-extracting the annual
+    reports) in the existing collection, without re-embedding everything else — about
+    a third of the time of a full rebuild. Run chunk_documents.py and enrich_metadata.py
+    first; other sources' chunk ids are unchanged by re-chunking, so they stay valid.
+    """
+    if embedder is None:
+        embedder = BGEEmbedder()
+    chunks = [c for c in load_chunks() if c.get("source") == source and not c.get("is_duplicate", False)]
+    if not chunks:
+        raise ValueError(f"no chunks with source={source!r} in {CHUNKS_PATH}")
+    collection = chromadb.PersistentClient(path=str(CHROMA_DIR)).get_collection(COLLECTION_NAME)
+    before = collection.count()
+    collection.delete(where={"source": source})
+    print(f"Removed {before - collection.count()} old '{source}' chunks; embedding {len(chunks)}")
+    _add_chunks(collection, chunks, embedder)
     print(f"\nCollection '{COLLECTION_NAME}' now has {collection.count()} chunks.")
     return collection
 
@@ -167,8 +186,13 @@ def test_query(query: str, embedder=None, n_results: int = 5) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test-query", type=str, default=None, help="Run a test retrieval query after building")
+    parser.add_argument("--only-source", type=str, default=None,
+                        help="Replace just this source's chunks, e.g. nse_annual_report (no full rebuild)")
     args = parser.parse_args()
 
-    build_collection()
+    if args.only_source:
+        update_source(args.only_source)
+    else:
+        build_collection()
     if args.test_query:
         test_query(args.test_query)

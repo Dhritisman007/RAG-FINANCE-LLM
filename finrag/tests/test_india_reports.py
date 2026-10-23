@@ -102,9 +102,31 @@ def test_subsidiary_and_board_pages() -> None:
     print("PASS: subsidiaries' statements labelled by name (tabs normalised); parent pages and Board's report recognised")
 
 
+def test_dual_tables_labelled() -> None:
+    lines = ["Particulars", "Standalone Consolidated", "For the year ended", "March 31,", "YoY", "growth",
+             "2026 2025 (%) 2026 2025 (%)",
+             "Revenue from operations 1,48,819 1,36,592 9.0 1,78,650 1,62,990 9.6",
+             "Profit for the year 29, 211 25,568 29,440 26,713",          # stray space inside 29,211; no growth cells
+             "Total 1,15,200 77.4% 1,05,712 77.4% 1,41,272 79.1% 1,28,566 78.9%",   # no matching labels: halves only
+             "Odd row 1 2 3",                                             # odd count: left as is
+             "The Standalone and Consolidated Financial Statements were audited in 2026, 220 days after year end"]
+    out = india.label_dual_tables(lines)
+    assert out[7] == ("Revenue from operations — Standalone: 2026 1,48,819, 2025 1,36,592, YoY % 9.0; "
+                      "Consolidated: 2026 1,78,650, 2025 1,62,990, YoY % 9.6")
+    assert out[8] == "Profit for the year — Standalone: 2026 29,211, 2025 25,568; Consolidated: 2026 29,440, 2025 26,713"
+    assert out[9] == ("Total — Standalone: 1,15,200 77.4% 1,05,712 77.4%; Consolidated: 1,41,272 79.1% 1,28,566 78.9%")
+    assert out[10] == "Odd row 1 2 3" and out[11] == lines[11]              # prose untouched ("2026, 220" too)
+    rev = india.label_dual_tables(["Consolidated Standalone", "FY2026 FY2026", "EBITDA 2,07,911 78,085"])
+    assert rev[2] == "EBITDA — Consolidated: FY2026 2,07,911; Standalone: FY2026 78,085"   # header order respected
+    prose = ["The Standalone and Consolidated", "Financial Statements 12 34"]
+    assert india.label_dual_tables(prose) == prose
+    print("PASS: Standalone|Consolidated rows labelled per value (any column order); odd rows and prose untouched")
+
+
 if __name__ == "__main__":
     test_rupee_symbol_repair()
     test_sections_kept_and_skipped()
     test_slug_and_title()
     test_subsidiary_and_board_pages()
+    test_dual_tables_labelled()
     print("\nAll India report tests passed.")
