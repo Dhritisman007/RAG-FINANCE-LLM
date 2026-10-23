@@ -31,6 +31,13 @@ SOURCE_LABELS = {"manual": "your holdings file", "csv": "CSV import", "upstox": 
                  "groww": "Groww"}
 
 
+def source_label(source: str) -> str:
+    """'upstox' -> 'Upstox'; 'csv:zerodha' -> 'CSV import (zerodha)'."""
+    if source.startswith("csv:"):
+        return f"CSV import ({source[4:]})"
+    return SOURCE_LABELS.get(source, source)
+
+
 def load_holdings(path: Path | None = None, snapshots_db: Path | None = None) -> list[dict]:
     """
     All holdings: the manual file plus the latest synced snapshot of every source
@@ -223,7 +230,7 @@ def format_position(h: dict) -> str:
     cost_basis = h["quantity"] * h["avg_cost"]
     bought = f", purchased {h['purchase_date']}" if h["purchase_date"] else ""
     source = h.get("source", "manual")
-    origin = (f" — from {SOURCE_LABELS.get(source, source)}, as of {h['as_of']}"
+    origin = (f" — from {source_label(source)}, as of {h['as_of']}"
               if source != "manual" and h.get("as_of") else "")
     return (f"{h['ticker']}: {qty} shares @ avg cost {_price(h['avg_cost'], h['ticker'])} "
             f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}{origin}")

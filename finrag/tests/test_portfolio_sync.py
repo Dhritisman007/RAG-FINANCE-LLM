@@ -150,10 +150,49 @@ def test_status_and_agent_integration() -> None:
     print("PASS: --status shows auth and snapshot age; the router, prompts and valuation read synced holdings with source + as-of")
 
 
+def test_cli_json_labels_and_remove() -> None:
+    """What the app's Import dialog runs: labelled CSV imports side by side, --json, --remove, --status."""
+    import json
+    import subprocess
+    script = ROOT / "scripts" / "portfolio_sync.py"
+    with tempfile.TemporaryDirectory() as d:
+        db = Path(d) / "p.db"
+        run = lambda *a: subprocess.run([sys.executable, str(script), *a, "--json", "--db", str(db)],
+                                        capture_output=True, text=True, cwd=ROOT, timeout=120)
+        for label in ("zerodha", "icici"):
+            out = run("--source", "csv", "--file", str(FIX / "sample_export.csv"), "--mapping", str(MAPPING), "--label", label)
+            res = json.loads(out.stdout.strip().splitlines()[-1])
+            assert out.returncode == 0 and res["ok"] and res["source"] == f"csv:{label}" and res["holdings_count"] == 3
+        assert sorted(s["source"] for s in portfolio_db.latest_snapshots(db)) == ["csv:icici", "csv:zerodha"]
+        rows = json.loads(run("--status").stdout)
+        assert {r["source"] for r in rows} >= {"csv:zerodha", "csv:icici", "upstox"}
+        assert json.loads(run("--remove", "csv:icici").stdout) == {"removed": 1, "source": "csv:icici"}
+        assert [s["source"] for s in portfolio_db.latest_snapshots(db)] == ["csv:zerodha"]
+        line = portfolio_store.format_position(portfolio_store.load_snapshot_holdings(db)[0])
+        assert "from CSV import (zerodha), as of" in line
+        bad = run("--source", "csv", "--file", str(Path(d) / "missing.csv"), "--mapping", str(MAPPING))
+        assert bad.returncode == 1 and json.loads(bad.stdout)["error_type"] == "CredentialsMissing"
+    print("PASS: CLI --json for the app; labelled CSV imports coexist; --remove deletes one source; --status lists them")
+
+
+def test_column_guessing() -> None:
+    from brokers.csv_adapter import guess_mapping, read_headers
+    assert guess_mapping(["Instrument", "Qty.", "Avg. cost", "LTP"]) == {
+        "symbol": "Instrument", "quantity": "Qty.", "avg_cost": "Avg. cost", "exchange": None, "isin": None, "currency": None}
+    g = guess_mapping(["ISIN", "Stock Symbol", "Quantity Available", "Average Buy Price", "Exchange"])
+    assert (g["symbol"], g["quantity"], g["avg_cost"], g["exchange"], g["isin"]) == (
+        "Stock Symbol", "Quantity Available", "Average Buy Price", "Exchange", "ISIN")
+    assert guess_mapping(["Foo", "Bar"])["symbol"] is None                   # no guess rather than a wrong one
+    assert read_headers("Account: 123\nSymbol,Qty\nTCS,5", skip_lines=1) == ["Symbol", "Qty"]
+    print("PASS: column guesses pre-fill the import screen from common header names (none when unsure)")
+
+
 if __name__ == "__main__":
     test_csv_sync_writes_snapshot_and_answers_cite_it()
     test_failed_sync_keeps_last_good_snapshot()
     test_partial_prices_are_null_never_zero()
     test_dry_run_and_atomic_rollback()
     test_status_and_agent_integration()
+    test_cli_json_labels_and_remove()
+    test_column_guessing()
     print("\nAll portfolio sync tests passed.")

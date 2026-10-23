@@ -71,6 +71,20 @@ def log_sync(conn: sqlite3.Connection, source: str, started_at: str, finished_at
                  "VALUES (?,?,?,?,?,?,?)", (source, started_at, finished_at, status, error_type, message, holdings_count))
 
 
+def delete_source(path: Path, source: str) -> int:
+    """Remove every snapshot of one source (its holdings go with them); sync_log is kept. Returns the count."""
+    if not path.exists():
+        return 0
+    conn = connect(path)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        n = conn.execute("DELETE FROM snapshots WHERE source = ?", (source,)).rowcount
+        conn.execute("COMMIT")
+        return n
+    finally:
+        conn.close()
+
+
 def latest_snapshots(path: Path = DB_PATH) -> list[dict]:
     """The newest snapshot of every source: [{source, fetched_at, prices_status, holdings: [row dicts]}]."""
     if not path.exists():

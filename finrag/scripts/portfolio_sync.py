@@ -17,8 +17,9 @@ Rules:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -46,8 +47,12 @@ def _now() -> str:
 
 
 def sync(source: str, dry_run: bool = False, db_path: Path = portfolio_db.DB_PATH, adapter=None,
-         **adapter_kwargs) -> SyncResult:
+         label: str | None = None, **adapter_kwargs) -> SyncResult:
+    """Sync one source. A CSV import can carry a label ("zerodha") so several exports coexist
+    as separate snapshots ("csv:zerodha"); brokers are always stored under their own name."""
     adapter = adapter or get_adapter(source, **adapter_kwargs)
+    if label and source == "csv":
+        source = f"csv:{label}"
     started = _now()
     with outbound_only(adapter.allowed_hosts):
         try:
@@ -87,11 +92,11 @@ def sync(source: str, dry_run: bool = False, db_path: Path = portfolio_db.DB_PAT
     return result
 
 
-def status(db_path: Path = portfolio_db.DB_PATH, online: bool = True) -> list[dict]:
+def status(db_path: Path = portfolio_db.DB_PATH, online: bool = True, sources: list[str] | None = None) -> list[dict]:
     """Per source: auth state (online check for brokers with credentials) and snapshot age."""
     snaps = {s["source"]: s for s in portfolio_db.latest_snapshots(db_path)}
     rows = []
-    for name in list_adapters():
+    for name in sources or list_adapters():
         adapter = get_adapter(name)
         if name == "csv":
             auth = "n/a (file import)"
@@ -114,6 +119,12 @@ def status(db_path: Path = portfolio_db.DB_PATH, online: bool = True) -> list[di
                      "snapshot": f"{snap['holdings_count']} holdings, {age} ({snap['fetched_at']})" if snap else "none",
                      "last_sync": f"{last['status']}{' — ' + last['error_type'] if last and last['error_type'] else ''}"
                                   if last else "never"})
+    if not sources:  # labelled CSV imports ("csv:zerodha") are snapshot sources without their own adapter
+        for name, snap in snaps.items():
+            if name.startswith("csv:"):
+                rows.append({"source": name, "auth": "n/a (file import)",
+                             "snapshot": f"{snap['holdings_count']} holdings ({snap['fetched_at']})",
+                             "last_sync": (portfolio_db.last_sync(db_path, name) or {}).get("status", "never")})
     return rows
 
 
@@ -124,15 +135,30 @@ def main() -> None:
     parser.add_argument("--mapping", help="Column-mapping JSON (csv source)")
     parser.add_argument("--dry-run", action="store_true", help="Fetch and show, write nothing")
     parser.add_argument("--status", action="store_true", help="Auth state and snapshot age per source")
+    parser.add_argument("--label", help="Name for a CSV import (e.g. zerodha): keeps several exports apart")
+    parser.add_argument("--remove", metavar="SOURCE", help="Delete a source's snapshots (e.g. upstox, csv:zerodha)")
+    parser.add_argument("--json", action="store_true", help="Machine-readable output (used by the app)")
+    parser.add_argument("--db", type=Path, default=portfolio_db.DB_PATH, help=argparse.SUPPRESS)  # tests
     args = parser.parse_args()
+    if args.remove:
+        n = portfolio_db.delete_source(args.db, args.remove)
+        print(json.dumps({"removed": n, "source": args.remove}) if args.json else f"Removed {n} snapshot(s) of {args.remove}")
+        return
     if args.status:
-        for row in status():
+        rows = status(args.db, sources=[args.source] if args.source else None)
+        if args.json:
+            print(json.dumps(rows))
+            return
+        for row in rows:
             print(f"{row['source']:7}  auth: {row['auth']:18}  snapshot: {row['snapshot']}  last sync: {row['last_sync']}")
         return
     if not args.source:
         parser.error("--source is required (or use --status)")
     kwargs = {"file": args.file, "mapping": args.mapping} if args.source == "csv" else {}
-    result = sync(args.source, dry_run=args.dry_run, **kwargs)
+    result = sync(args.source, dry_run=args.dry_run, db_path=args.db, label=args.label, **kwargs)
+    if args.json:
+        print(json.dumps(asdict(result)))
+        sys.exit(0 if result.ok else 1)
     if result.report:
         print(result.report)
     if result.ok:

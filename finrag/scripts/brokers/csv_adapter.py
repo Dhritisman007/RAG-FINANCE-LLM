@@ -126,6 +126,45 @@ def parse_rows(text: str, mapping: dict) -> ImportReport:
     return report
 
 
+# Header names brokers commonly use for each field (lower-case, without punctuation) — used only
+# to PRE-FILL the column choices in the import screen; the user confirms or changes them.
+HEADER_HINTS = {
+    "symbol": ["symbol", "trading symbol", "tradingsymbol", "instrument", "scrip", "scrip name", "stock",
+               "stock symbol", "ticker", "security", "company", "name"],
+    "quantity": ["quantity", "qty", "quantity available", "available qty", "total qty", "shares", "units",
+                 "holding qty", "holdings", "net qty"],
+    "avg_cost": ["average price", "avg price", "avg cost", "average cost", "avg buy price", "average buy price",
+                 "buy avg", "buy average", "avg trading price", "cost price", "purchase price"],
+    "exchange": ["exchange", "exch", "exchange segment"],
+    "isin": ["isin", "isin code"],
+    "currency": ["currency", "ccy"],
+}
+
+
+def _norm_header(h: str) -> str:
+    return re.sub(r"[^a-z0-9 ]", "", h.lower()).strip()
+
+
+def guess_mapping(headers: list[str]) -> dict[str, str | None]:
+    """Best guess of which header holds each field (exact hint first, then a hint the header starts with)."""
+    normed = {h: _norm_header(h) for h in headers}
+    used: set[str] = set()
+    guess: dict[str, str | None] = {}
+    for field_name, hints in HEADER_HINTS.items():
+        pick = next((h for hint in hints for h, n in normed.items() if n == hint and h not in used), None)
+        if pick is None:
+            pick = next((h for hint in hints for h, n in normed.items() if n.startswith(hint) and h not in used), None)
+        guess[field_name] = pick
+        if pick:
+            used.add(pick)
+    return guess
+
+
+def read_headers(text: str, skip_lines: int = 0, delimiter: str = ",") -> list[str]:
+    first = next(csv.reader(io.StringIO("\n".join(text.splitlines()[skip_lines:])), delimiter=delimiter), [])
+    return [h.strip() for h in first if h.strip()]
+
+
 class CsvAdapter(BrokerAdapter):
     name = "csv"
     allowed_hosts = ()  # a file import never touches the network
