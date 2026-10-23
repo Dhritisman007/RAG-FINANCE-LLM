@@ -157,13 +157,18 @@ def get_embedder():
     if _embedder is None:
         from sentence_transformers import SentenceTransformer
         from build_vectorstore import EMBED_DEVICE
+        import huggingface_hub.constants as hub_constants
         # Offline first: loading the cached model must not phone the Hugging Face Hub at question
-        # time (sentence-transformers checks for updates otherwise). Online only on a first run,
-        # when the model isn't cached yet.
+        # time. local_files_only stops the update check, but huggingface_hub (1.x) still fetches an
+        # "agent registry" from huggingface.co once a day while building request headers; only its
+        # offline mode stops that. Online only on a first run, when the model isn't cached yet.
+        was_offline, hub_constants.HF_HUB_OFFLINE = hub_constants.HF_HUB_OFFLINE, True
         try:
             model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE, local_files_only=True)
         except OSError:
+            hub_constants.HF_HUB_OFFLINE = was_offline
             model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE)
+            hub_constants.HF_HUB_OFFLINE = True  # downloaded once; stay offline from here on
 
         class _Embedder:
             def embed_query(self, text: str) -> list[float]:
