@@ -34,6 +34,8 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 16 | Tier 1 gaps + filing refresh | `scrape_tier1.py`, `refresh_filings.py` | ✅ Done — 47 explainers; refresh found a missed JPM 10-Q |
 | 18 | Indian annual reports + dashboard UI | `scrape_tier2_india.py`, `router.py`, `app.py` | ✅ Done — 15 NSE companies (FY2025-26), two-pane research terminal |
 | 17 | Live portfolio (NSE/BSE, ₹) + MLX backend | `app.py`, `prices.py`, `portfolio_store.py`, `llm_backends.py` | ✅ Done — add stocks in the UI, live prices every 60 s, MLX fallback when Ollama is down |
+| 20 | Portfolio sources: CSV import + read-only broker sync | `scripts/brokers/`, `portfolio_sync.py`, `app.py` | ✅ Done — Upstox / Dhan / Groww fixture-tested, not yet on a live account |
+| 21 | CAS statement import (all brokers) | `brokers/cas_adapter.py`, `app.py` | ✅ Done — not yet tried on a real statement |
 
 ---
 
@@ -413,6 +415,14 @@ Holdings can now come from a broker export (CSV) or a broker's read-only API use
 - In-app **⇅ Import** dialog (upload + column guesses + preview, per-broker Check / Sync now, synced sources with Remove) driving the same CLI in a subprocess; several named CSV imports can coexist (`csv:<name>`).
 - Found and fixed on the way: loading the embedding model at question time contacted huggingface.co (a sentence-transformers update check). It now loads offline from the cache; `tests/test_security.py` proves answering makes no outbound connection.
 
+### Day 21 — CAS statement import (every broker, no approval needed)
+Most brokers can't be connected from another app (Groww documents no way at all), but every investor's shares sit at a depository — NSDL or CDSL — which e-mails a **Consolidated Account Statement (CAS)** each month covering every demat account under their PAN. **⇅ Import → CAS statement** reads that PDF (see **Portfolio sources** under Setup). Design notes:
+- Parsed on this machine by [casparser](https://github.com/codereverser/casparser) (MIT); its only network code is an explicit "update the ISIN database" command, never called. `tests/test_cas.py` runs parsing under the network guard.
+- A CAS identifies shares by ISIN; casparser's bundled ISIN database gives the NSE symbol (2,362 NSE equities). ETFs, BSE-only shares, mutual funds, bonds and NPS are listed as skipped with the reason — nothing is dropped silently.
+- **A CAS has no purchase price.** `avg_cost` can now be unknown (NULL) end to end: such holdings are valued, but Invested, P&L and answers leave them out and say so — never counted as zero. The import screen lets you type average prices, and pre-fills them from your previous import of the same statement.
+- Privacy: the password (your PAN) goes to the import process through stdin, never on a command line, and is never logged or stored; the PDF exists only in a private temp folder while it is read; only holdings are kept — not your name, PAN, address, contact details or account numbers (tested).
+- Found and fixed on the way: empty cells in the holdings table showed Streamlit's "None" instead of "—" (Streamlit ignores formatters for empty numbers), now plain text.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -434,6 +444,7 @@ python tests/test_build_update.py     # --only-source replaces one source's pass
 python tests/test_brokers.py          # adapter contract: parsing, expired token, backoff, malformed payloads, CSV validation
 python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of, CLI --json/--label/--remove, column guesses
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
+python tests/test_cas.py              # CAS → holdings, no personal data stored, wrong password / not a CAS, stdin password, DB migration, unknown costs
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -512,6 +523,7 @@ For a server that is **not** on the same machine (e.g. `https://<name>.endpoints
 
 | Source | Status | Holdings | Prices | Auth |
 |---|---|---|---|---|
+| **CAS statement** (NSDL / CDSL) | ✅ working; tested with casparser's data model and an encrypted test PDF — not yet with a real statement | every demat account under your PAN, all brokers, in one PDF | statement-date prices as a fallback (live prices from Yahoo) | the PDF password (your PAN) |
 | **CSV / broker export** | ✅ working | any export, via a column-mapping JSON | — (Yahoo / manual prices) | none |
 | **Upstox** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v2/portfolio/long-term-holdings` | `GET /v3/market-quote/ltp` | your access token (expires 3:30 AM daily) |
 | **Dhan** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v2/holdings` | `POST /v2/marketfeed/ltp` (needs client ID) | your access token (24 h) |
@@ -520,7 +532,8 @@ For a server that is **not** on the same machine (e.g. `https://<name>.endpoints
 
 "Fixture-tested" means against the official docs' example responses with a mocked HTTP layer — no broker sandbox exposes holdings, and no live account was available. Details the docs don't state are TODOs in each adapter (e.g. the HTTP status Dhan and Groww send with an expired token; whether Upstox's `quantity` includes `t1_quantity`; Groww holdings have no exchange field, so they're priced on NSE).
 
-**In the app: ⇅ Import** (portfolio header) opens one dialog with three tabs:
+**In the app: ⇅ Import** (portfolio header) opens one dialog with four tabs:
+- **CAS statement** — upload the monthly e-CAS PDF from NSDL or CDSL and type its password (the first holder's PAN in capital letters). You see every holding found, merged across demat accounts, with what was skipped and why. A CAS doesn't include what you paid, so you can type your average buy price per holding (pre-filled from your last import); holdings left blank are valued but kept out of Invested and P&L. Lost the e-mail? NSDL's and CDSL's websites let you download past statements. Several people's statements can be kept apart with "Whose statement?".
 - **Upload CSV** — pick your broker's holdings export and name the import. PortIQ guesses which column is the symbol, quantity and average price from common header names (you confirm or change each), previews exactly what will be imported, and lists every row it will skip with the reason. Importing again under the same name replaces that import; other imports and your own holdings file are untouched. The column choices are saved (`config/broker_mappings/<name>.local.json`) so the next export of the same layout imports in one click; the uploaded file is kept in `data/portfolio/imports/` (last 3 per import, git-ignored).
 - **Brokers** — per broker: whether a token is in `.env` (checked locally, without a network call), the current snapshot and last sync result, **Check** (is the token still accepted?) and **Sync now**. An expired token says so and keeps showing the last snapshot. With no token, "How to connect" shows the steps below.
 - **Synced sources** — every import and broker snapshot with its holdings count and as-of time, and **Remove** (deletes that source's snapshots and PortIQ's stored copy of the upload; your original file and broker account are untouched).
@@ -539,6 +552,7 @@ python scripts/portfolio_sync.py --source upstox
 python scripts/portfolio_sync.py --status                     # auth state + snapshot age per source
 python scripts/portfolio_sync.py --source csv --file export.csv --mapping m.local.json --label zerodha   # a named import, kept beside others
 python scripts/portfolio_sync.py --remove csv:zerodha           # delete one source's snapshots
+python scripts/portfolio_sync.py --source cas --file CAS.pdf --costs costs.json   # asks for the PDF password; --password-stdin reads it from stdin
 ```
 Add `--json` to any of these for one machine-readable line (what the app reads); the exit code is 0 on success and 1 on a failed sync.
 
