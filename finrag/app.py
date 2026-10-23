@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent / "scripts"))
 import llm_backends as backends  # noqa: E402
 import prices  # noqa: E402
 import prompts  # noqa: E402
+import stock_list  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
 from portfolio_store import HOLDINGS_PATH, format_position, load_holdings, add_holding, save_holdings  # noqa: E402
@@ -341,6 +342,14 @@ def allocation_charts(df) -> None:
     right.plotly_chart(bars, width="stretch", config={"displayModeBar": False})
 
 
+@st.cache_data(show_spinner=False)
+def stock_options() -> tuple[list[str], dict[str, str]]:
+    """Dropdown labels for the add-stock search (NSE first, then US by size) and label -> ticker."""
+    rows = stock_list.load_stocks()
+    labels = [stock_list.label(r) for r in rows]
+    return labels, dict(zip(labels, (r["ticker"] for r in rows)))
+
+
 @st.cache_data(ttl=900, show_spinner=False)
 def cached_history(ticker: str) -> list[tuple[str, float]]:
     return prices.yahoo_history(ticker, "1y")
@@ -405,23 +414,28 @@ def portfolio_pane(pending) -> None:
                                "stock symbols — never your quantities or prices paid.")
     with head[2].popover("＋ Add", width="stretch"):
         with st.form("add_stock", clear_on_submit=True, border=False):
-            symbol = st.text_input("Stock symbol", placeholder="e.g. RELIANCE, TCS, HDFCBANK", max_chars=16)
+            labels, by_label = stock_options()
+            # Typing filters the list as you go (symbol or company name); something not in the
+            # list can still be entered — NSE by default, or with a suffix like TCS.BO for BSE.
+            choice = st.selectbox("Stock", labels, index=None, accept_new_options=True,
+                                  placeholder="Type a symbol or company — e.g. RELIANCE, Infosys",
+                                  help="NSE stocks and ETFs, and US companies. Not listed? Type the symbol "
+                                       "(NSE by default; add .BO for BSE, e.g. TCS.BO).")
             c1, c2 = st.columns(2)
-            exchange = c1.selectbox("Exchange", ["NSE", "BSE", "US"])
-            qty = c2.number_input("Quantity", min_value=0.0, value=None, step=1.0, format="%g")
-            c3, c4 = st.columns(2)
-            cost = c3.number_input("Avg buy price", min_value=0.0, value=None, step=1.0, format="%.2f",
+            qty = c1.number_input("Quantity", min_value=0.0, value=None, step=1.0, format="%g")
+            cost = c2.number_input("Avg buy price", min_value=0.0, value=None, step=1.0, format="%.2f",
                                    help="Per share — ₹ for NSE/BSE, $ for US")
-            bought = c4.date_input("Bought on", value=None, format="DD/MM/YYYY")
+            bought = st.date_input("Bought on (optional)", value=None, format="DD/MM/YYYY")
             if st.form_submit_button("Add to portfolio", type="primary", width="stretch"):
-                ticker = prices.with_exchange(symbol, exchange) if symbol.strip() else ""
+                ticker = stock_list.ticker_for(choice, by_label)
                 errors = add_holding({"ticker": ticker, "quantity": qty, "avg_cost": cost,
                                       "purchase_date": bought.isoformat() if bought else ""})
                 for e in errors:
                     st.error(e)
                 if not errors:
                     st.session_state.live_quotes = None  # fetch the new stock's price now
-                    st.toast(f"Added {prices.display_symbol(ticker)[0]} ({exchange})")
+                    symbol, exchange = prices.display_symbol(ticker)
+                    st.toast(f"Added {symbol} ({exchange})")
                     st.rerun()
     if head[3].button("Edit", width="stretch", help="Change or delete holdings"):
         edit_holdings_dialog()

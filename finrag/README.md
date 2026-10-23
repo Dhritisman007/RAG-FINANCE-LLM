@@ -380,6 +380,8 @@ python scripts/prices.py                   # ₹ valuation
 
 Qwen3 got NVIDIA's and NextEra's figures right where Qwen2.5 didn't, but it answered "Nvidia's revenue last year" with a wrong figure and gave ExxonMobil's **Q1** revenue as "Q3 2026" (not filed yet), where Qwen2.5 said the sources don't cover it. It also mislabelled Costco's total revenue as net sales. For a finance product a confident wrong number is the worst failure, so **Qwen3-8B is not a clear upgrade**; Qwen2.5-7B stays the default. Neither fixes the Indian Standalone|Consolidated table problem (both 2/4). A 24 GB server GPU can run a 14B model (Qwen2.5-14B-Instruct / Qwen3-14B in 8-bit), which can't be tested on this Mac — evaluate it there with the same harness (`evaluate.py --answers --model api:<model> --only <ids>`) before choosing the production model. Results: `data/eval/eval_answers_mlx-qwen2.5-7b_rescored.json`, `data/eval/eval_answers_mlx-qwen3-8b_subset.json`.
 
+**Stock search when adding.** "＋ Add" now has a type-ahead dropdown: typing "relian" lists *RELIANCE — Reliance Industries Limited · NSE*, Reliance Power, Reliance Infrastructure… (matching symbol or company name). The list (`data/reference/stocks.csv`, 13,396 rows, committed so it works offline) holds every NSE equity and ETF and US companies from the SEC's list (largest first), each with the Yahoo ticker the price feed uses — so a picked stock always gets prices. Anything not listed can still be typed (NSE by default; `TCS.BO` for BSE). Refresh with `python scripts/stock_list.py --update` — whole lists are downloaded, nothing about your holdings is sent.
+
 **Hosting groundwork.** The backend now talks to any OpenAI-compatible server by URL (vLLM, Hugging Face Inference Endpoints — see Setup), tested end to end against a live OpenAI-compatible server. A server that isn't on the same machine is refused unless `PORTIQ_ALLOW_REMOTE_LLM=1`, and the UI then shows "☁ <host>" with a plain statement of what is sent there. Before a public launch the app still needs to become multi-user (accounts + per-user holdings; today there is one `holdings.csv` and the app refuses to bind beyond 127.0.0.1).
 
 ## Tests
@@ -397,6 +399,7 @@ python tests/test_refresh.py     # only filings missing from disk are fetched; n
 python tests/test_portfolio_store.py  # holdings validation, atomic save, add/merge lots
 python tests/test_llm_backends.py     # Ollama/MLX/API switch and fallback, remote opt-in, streaming, think-block removal (no servers needed)
 python tests/test_india_reports.py    # annual-report sections kept/skipped, rupee repair, NSE listing
+python tests/test_stock_list.py       # stock-list parsing, Yahoo tickers, typed symbols, refusing tiny downloads
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -521,6 +524,7 @@ python scripts/rag_loop.py --interactive
 - [x] PortIQ branding (Day 18)
 - [x] Qwen2.5-7B vs Qwen3-8B comparison — Qwen3 is not a clear upgrade; Qwen2.5-7B stays the default (Day 19)
 - [x] LLM backend accepts any OpenAI-compatible server (vLLM / Hugging Face endpoint) by URL, remote only with explicit opt-in (Day 19)
+- [x] Type-ahead stock search when adding a holding (Day 19)
 - [ ] Evaluate a 14B model on a rented 24 GB GPU with the same harness before choosing the production model
 - [ ] Multi-user app before hosting: accounts, per-user holdings, a server-safe privacy policy
 - [ ] Replace the SVG logo recreation with the original PortIQ artwork
