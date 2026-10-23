@@ -13,6 +13,7 @@ Run from finrag/:
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import html
 import io
 import itertools
@@ -20,6 +21,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -33,7 +35,7 @@ import insights  # noqa: E402
 import portfolio_db  # noqa: E402
 from brokers.credentials import get_secret  # noqa: E402
 from brokers.csv_adapter import guess_mapping, parse_rows, read_headers  # noqa: E402
-from brokers.base import MalformedResponse  # noqa: E402
+from brokers.base import BrokerError, MalformedResponse  # noqa: E402
 import stock_list  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
@@ -398,7 +400,8 @@ def portfolio_frame(holdings: list[dict], quotes: dict[str, dict]):
     """Per-holding table (numbers in ₹ for totals) plus ₹ totals — all arithmetic here, never by the model."""
     import pandas as pd
     fx = (quotes.get(prices.FX_TICKER) or {}).get("price")
-    rows, tot = [], {"value": 0.0, "cost": 0.0, "day": 0.0, "prev": 0.0, "missing": [], "no_fx": []}
+    rows, tot = [], {"value": 0.0, "cost": 0.0, "value_costed": 0.0, "costed": 0, "day": 0.0, "prev": 0.0,
+                     "missing": [], "no_fx": [], "no_cost": []}
     for h in holdings:
         symbol, exchange = prices.display_symbol(h["ticker"])
         cur = prices.currency(h["ticker"])
@@ -407,22 +410,28 @@ def portfolio_frame(holdings: list[dict], quotes: dict[str, dict]):
         src = h.get("source", "manual")
         row = {"Stock": symbol, "Exch": exchange,
                # short so the column stays narrow; full source + as-of are in Import → Synced sources and in answers
-               "Source": "Manual" if src == "manual" else src[4:] if src.startswith("csv:") else source_label(src),
+               "Source": short_source(src),
                "Qty": h["quantity"], "Avg": h["avg_cost"], "LTP": None,
                "Day %": None, "Invested ₹": None, "Current ₹": None, "P&L ₹": None, "P&L %": None, "cur": cur,
                "ticker": h["ticker"]}
         if q is None or rate is None:
             (tot["missing"] if q is None else tot["no_fx"]).append(symbol)
         else:
-            cost, value = h["quantity"] * h["avg_cost"] * rate, h["quantity"] * q["price"] * rate
+            value = h["quantity"] * q["price"] * rate
+            cost = None if h["avg_cost"] is None else h["quantity"] * h["avg_cost"] * rate  # None: e.g. from a CAS
             prev = q.get("prev_close")
             tot["value"] += value
-            tot["cost"] += cost
+            if cost is None:
+                tot["no_cost"].append(symbol)
+            else:
+                tot["cost"] += cost
+                tot["value_costed"] += value
+                tot["costed"] += 1
             if prev:
                 tot["day"] += h["quantity"] * (q["price"] - prev) * rate
                 tot["prev"] += h["quantity"] * prev * rate
             row.update({"LTP": q["price"], "Day %": (q["price"] / prev - 1) * 100 if prev else None,
-                        "Invested ₹": cost, "Current ₹": value, "P&L ₹": value - cost,
+                        "Invested ₹": cost, "Current ₹": value, "P&L ₹": None if cost is None else value - cost,
                         "P&L %": (value - cost) / cost * 100 if cost else None})
         rows.append(row)
     tot["fx"] = fx if any(prices.currency(h["ticker"]) == "USD" for h in holdings) else None
@@ -434,23 +443,26 @@ def holdings_table(df) -> None:
         v = row[col]
         return "—" if v is None or v != v else prices.money(v, row["cur"])
 
-    view = df.copy()
-    view["Avg"] = [money_native(r, "Avg") for _, r in df.iterrows()]
-    view["LTP"] = [money_native(r, "LTP") for _, r in df.iterrows()]
-    view = view.drop(columns=["cur", "ticker", "Exch"])  # US stocks are the ones priced in $
-
     def colour(v):
         return "" if v is None or v != v else f"color: {UP if v >= 0 else DOWN}"
 
-    def inr_or_dash(v):
-        return "—" if v is None or v != v else prices.inr(v)
+    def dash_or(fmt):
+        return lambda v: "—" if v is None or v != v else fmt(v)
 
-    styled = (view.style
-              .format({"Qty": "{:g}", "Day %": lambda v: "—" if v != v or v is None else f"{v:+.2f}%",
-                       "P&L %": lambda v: "—" if v != v or v is None else f"{v:+.2f}%",
-                       "Invested ₹": inr_or_dash, "Current ₹": inr_or_dash,
-                       "P&L ₹": lambda v: "—" if v != v or v is None else prices.signed_money(v)})
-              .map(colour, subset=["Day %", "P&L ₹", "P&L %"]))
+    # Display text, not numbers: Streamlit draws an empty number as "None" whatever a Styler formatter returns,
+    # and holdings without a price or an average cost (e.g. from a CAS) have empty cells.
+    view = df.copy()
+    view["Avg"] = [money_native(r, "Avg") for _, r in df.iterrows()]
+    view["LTP"] = [money_native(r, "LTP") for _, r in df.iterrows()]
+    for col, fmt in (("Day %", lambda v: f"{v:+.2f}%"), ("P&L %", lambda v: f"{v:+.2f}%"), ("Invested ₹", prices.inr),
+                     ("Current ₹", prices.inr), ("P&L ₹", prices.signed_money)):
+        view[col] = df[col].map(dash_or(fmt))
+    view = view.drop(columns=["cur", "ticker", "Exch"])  # US stocks are the ones priced in $
+    toned = ("Day %", "P&L ₹", "P&L %")  # coloured from the numbers in df
+
+    styled = (view.style.format({"Qty": "{:g}"})
+              .apply(lambda _: type(view)({c: [colour(v) for v in df[c]] if c in toned else [""] * len(df)
+                                           for c in view.columns}, index=view.index), axis=None))
     st.dataframe(styled, hide_index=True, width="stretch", height=min(420, 38 + 35 * len(view)))
 
 
@@ -511,10 +523,12 @@ def stock_view(holdings: list[dict], pending) -> None:
     fig = go.Figure(go.Scatter(x=dates, y=closes, mode="lines", line=dict(color=colour, width=2),
                                fill="tozeroy", fillcolor="rgba(34,197,94,0.08)" if colour == UP else "rgba(239,68,68,0.08)",
                                hovertemplate="%{x}: " + ("₹" if cur == "INR" else "$") + "%{y:,.2f}<extra></extra>"))
-    fig.add_hline(y=h["avg_cost"], line_dash="dot", line_color="#8b95a7",
-                  annotation_text=f"your avg {prices.money(h['avg_cost'], cur)}", annotation_position="top left",
-                  annotation_font_color="#8b95a7")
-    lo, hi = min(closes + [h["avg_cost"]]), max(closes + [h["avg_cost"]])
+    avg = h["avg_cost"]  # None when the source has no purchase price (CAS)
+    if avg is not None:
+        fig.add_hline(y=avg, line_dash="dot", line_color="#8b95a7",
+                      annotation_text=f"your avg {prices.money(avg, cur)}", annotation_position="top left",
+                      annotation_font_color="#8b95a7")
+    lo, hi = min(closes + ([avg] if avg is not None else [])), max(closes + ([avg] if avg is not None else []))
     fig.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), showlegend=False,
                       yaxis=dict(range=[lo * 0.95, hi * 1.03], gridcolor="#1f2937"), xaxis=dict(showgrid=False),
                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
@@ -526,8 +540,8 @@ def stock_view(holdings: list[dict], pending) -> None:
              ("1 month", pct(s["ret_1m"]), tone(s["ret_1m"])), ("3 months", pct(s["ret_3m"]), tone(s["ret_3m"])),
              ("1 year", pct(s["ret_1y"]), tone(s["ret_1y"])), ("Volatility (ann.)", f"{s['volatility']:.1f}%", ""),
              ("Max drawdown", f"{s['max_drawdown']:.1f}%", "down" if s["max_drawdown"] < 0 else ""),
-             ("Your return", pct((s["last"] / h["avg_cost"] - 1) * 100 if h["avg_cost"] else None),
-              tone(s["last"] - h["avg_cost"]))]
+             ("Your return", pct((s["last"] / avg - 1) * 100 if avg else None),
+              tone(s["last"] - avg) if avg else "")]
     st.markdown('<div class="stats">' + "".join(
         f'<div class="stat"><div class="label">{label}</div><div class="value {cls}">{html.escape(v)}</div></div>'
         for label, v, cls in cells) + "</div>", unsafe_allow_html=True)
@@ -625,15 +639,16 @@ BROKERS = {
 }
 
 
-def run_sync_cli(*args: str):
+def run_sync_cli(*args: str, stdin: str | None = None):
     """
     Run portfolio_sync.py in its own process and read its --json output. A sync limits the network
     to one broker host for the whole process — in a separate process that can't touch the app's own
-    live prices. Credentials stay in .env; nothing secret is passed on the command line.
+    live prices. Credentials stay in .env, and a CAS password goes through stdin: nothing secret is
+    ever on the command line (where other programs on the machine could see it).
     """
     try:
         out = subprocess.run([sys.executable, str(SYNC_SCRIPT), *args, "--json"], capture_output=True, text=True,
-                             timeout=180, cwd=APP_DIR)
+                             timeout=180, cwd=APP_DIR, input=stdin)
     except subprocess.TimeoutExpired:
         return {"ok": False, "error_type": "Timeout", "message": "the sync took longer than 3 minutes"}
     lines = [line for line in out.stdout.strip().splitlines() if line.strip()]
@@ -641,6 +656,18 @@ def run_sync_cli(*args: str):
         return json.loads(lines[-1])
     except (IndexError, ValueError):
         return {"ok": False, "error_type": "SyncError", "message": (out.stderr or out.stdout).strip()[-400:]}
+
+
+def short_source(src: str) -> str:
+    """For the narrow Source column: Manual · zerodha (a named CSV import) · CAS · CAS (mom) · Upstox."""
+    kind, _, name = src.partition(":")
+    if src == "manual":
+        return "Manual"
+    if kind == "csv" and name:
+        return name
+    if kind == "cas":
+        return f"CAS ({name})" if name else "CAS"
+    return source_label(src)
 
 
 def import_copies(label: str) -> list[Path]:
@@ -739,6 +766,94 @@ def csv_import_ui() -> None:
             st.error(f"Import failed ({res.get('error_type')}): {res.get('message')}")
 
 
+def cas_import_ui() -> None:
+    from brokers.cas_adapter import PASSWORD_HINT, holdings_from_cas, read_statement  # PDF library loads only here
+    st.caption("Your **Consolidated Account Statement (CAS)** from NSDL or CDSL lists the shares in every demat "
+               "account under your PAN — whichever brokers you use (Zerodha, Groww, Upstox, …) — in one PDF. It is "
+               "e-mailed to you every month, and NSDL's and CDSL's websites let you download it again. PortIQ reads "
+               "it on this computer and keeps only the holdings — not your name, PAN, address or account numbers.")
+    up = st.file_uploader("CAS statement (PDF)", type=["pdf"], key="cas_upload")
+    if up is None:
+        return
+    c1, c2 = st.columns([1.2, 1])
+    password = c1.text_input("PDF password", type="password", key="cas_password",
+                             help=f"NSDL and CDSL lock the PDF with {PASSWORD_HINT}. It is used only to open the "
+                                  "file — never saved or logged.")
+    label = re.sub(r"[^a-z0-9-]+", "-", c2.text_input(
+        "Whose statement? (optional)", max_chars=24, key="cas_label",
+        help="Only needed if you import several people's statements, e.g. 'mom'.").lower()).strip("-")
+    if not password:
+        st.caption(f"Enter the password to read the statement — {PASSWORD_HINT}.")
+        return
+    raw = up.getvalue()
+    digest = hashlib.sha256(raw).hexdigest()
+    cached = st.session_state.get("cas_read")
+    if not cached or cached[0] != digest:
+        try:
+            with st.spinner("Reading the statement…"):
+                report = holdings_from_cas(read_statement(io.BytesIO(raw), password))
+        except BrokerError as e:
+            msg = str(e).removeprefix("cas: ")
+            st.error(msg[:1].upper() + msg[1:])
+            return
+        st.session_state.cas_read = cached = (digest, report)  # holdings only — the statement itself isn't kept
+    report = cached[1]
+    source = f"cas:{label}" if label else "cas"
+    previous = next((s for s in portfolio_db.latest_snapshots() if s["source"] == source), None)
+    known = {h["isin"]: h["avg_cost"] for h in (previous or {}).get("holdings", [])
+             if h["isin"] and h["avg_cost"] is not None}
+    st.markdown(f"**{len(report.holdings)} holding(s) found** · {report.issuer} statement for {report.period[0]} "
+                f"to {report.period[1]} · {report.accounts} demat account(s)")
+    edited = None
+    if report.holdings:
+        import pandas as pd
+        table = pd.DataFrame([{"Stock": h.symbol, "Shares": h.quantity,
+                               "Statement price": report.prices[h.symbol].last_price if h.symbol in report.prices else None,
+                               "Avg buy price": known.get(h.isin), "ISIN": h.isin} for h in report.holdings])
+        table["Avg buy price"] = table["Avg buy price"].astype(float)  # blank cells, not "None"
+        st.caption("A CAS doesn't say what you paid. Enter your **average buy price** to see P&L for a holding, or "
+                   "leave it blank — the holding is still valued, but left out of Invested and P&L."
+                   + (" Prices from your previous import of this statement are filled in — check them if you bought "
+                      "or sold since." if known else ""))
+        edited = st.data_editor(
+            table, hide_index=True, width="stretch", key=f"cas_costs_{digest[:12]}",
+            disabled=["Stock", "Shares", "Statement price", "ISIN"], height=min(320, 38 + 35 * len(table)),
+            column_config={"Shares": st.column_config.NumberColumn(format="%g"),
+                           "Statement price": st.column_config.NumberColumn(
+                               "Statement price (₹)", format="%.2f",
+                               help=f"Market price on the statement date ({report.statement_date or 'unknown'})"),
+                           "Avg buy price": st.column_config.NumberColumn(
+                               "Avg buy price (₹)", min_value=0.0, format="%.2f",
+                               help="What you paid per share, on average — your broker's holdings page shows it")})
+    for note in report.merged:
+        st.caption(f"Merged — {note}")
+    if report.skipped:
+        with st.expander(f"⚠ {len(report.skipped)} item(s) not imported — see why", expanded=not report.holdings):
+            st.markdown("\n".join(f"- {html.escape(why)}" for why in report.skipped))
+    for why in report.warnings:
+        st.caption(f"⚠ {why}")
+    if previous:
+        st.caption(f"Replaces your previous {source_label(source)} import ({previous['holdings_count']} holdings, "
+                   f"{previous['fetched_at']}). Other sources are untouched.")
+    if edited is not None and st.button(f"Import {len(report.holdings)} holding(s)", type="primary",
+                                        key=f"cas_import_{digest[:12]}"):
+        costs = {row["ISIN"]: float(row["Avg buy price"]) for row in edited.to_dict("records")
+                 if row["Avg buy price"] is not None and row["Avg buy price"] == row["Avg buy price"]}  # skip blank/NaN
+        with tempfile.TemporaryDirectory(prefix="portiq-cas-") as d:  # the PDF exists only while it is read
+            pdf, costs_path = Path(d) / "statement.pdf", Path(d) / "costs.json"
+            pdf.write_bytes(raw)
+            costs_path.write_text(json.dumps(costs))
+            res = run_sync_cli("--source", "cas", "--file", str(pdf), "--costs", str(costs_path), "--password-stdin",
+                               *(["--label", label] if label else []), stdin=password + "\n")
+        if res.get("ok"):
+            st.session_state.pop("cas_read", None)
+            st.session_state.live_quotes = None
+            st.session_state.price_note = f"Imported {res['holdings_count']} holding(s) from your CAS statement"
+            st.rerun()
+        else:
+            st.error(f"Import failed ({res.get('error_type')}): {res.get('message')}")
+
+
 def brokers_ui() -> None:
     st.caption("Read-only: PortIQ only reads your holdings and prices, using your own tokens from finrag/.env. "
                "A sync contacts only that broker; tokens are never shown, logged or stored in the database.")
@@ -797,8 +912,16 @@ def sources_ui() -> None:
         with st.container(border=True):
             c1, c2 = st.columns([3, 1], vertical_alignment="center")
             c1.markdown(f"**{source_label(s['source'])}** · {s['holdings_count']} holding(s) · as of {s['fetched_at']}")
-            c1.caption("Prices: live from Yahoo Finance, like your other holdings (exports carry no live prices)"
-                       if s["source"].startswith("csv") else f"Prices from {source_label(s['source'])}: {s['prices_status']}")
+            if s["source"].startswith("csv"):
+                c1.caption("Prices: live from Yahoo Finance, like your other holdings (exports carry no live prices)")
+            elif s["source"].startswith("cas"):
+                dated = next((h["price_as_of"] for h in s["holdings"] if h["price_as_of"]), None)
+                no_cost = sum(h["avg_cost"] is None for h in s["holdings"])
+                c1.caption("Prices: live from Yahoo Finance"
+                           + (f"; the statement's own prices (as of {dated}) are the fallback" if dated else "")
+                           + (f" · average price unknown for {no_cost} holding(s)" if no_cost else ""))
+            else:
+                c1.caption(f"Prices from {source_label(s['source'])}: {s['prices_status']}")
             if c2.button("Remove", key=f"remove_{s['source']}", width="stretch",
                          help="Remove this source's holdings from PortIQ, with PortIQ's stored copy of an uploaded "
                               "file (your original file and broker account are untouched)"):
@@ -816,7 +939,9 @@ def sources_ui() -> None:
 
 @st.dialog("Import & sync holdings", width="large")
 def import_sync_dialog() -> None:
-    upload_tab, brokers_tab, sources_tab = st.tabs(["Upload CSV", "Brokers", "Synced sources"])
+    cas_tab, upload_tab, brokers_tab, sources_tab = st.tabs(["CAS statement", "Upload CSV", "Brokers", "Synced sources"])
+    with cas_tab:
+        cas_import_ui()
     with upload_tab:
         csv_import_ui()
     with brokers_tab:
@@ -858,15 +983,16 @@ def portfolio_pane(pending) -> None:
                     st.rerun()
     if head[3].button("Edit", width="stretch", help="Change or delete holdings"):
         edit_holdings_dialog()
-    if head[4].button("⇅ Import", width="stretch", help="Upload a broker CSV, or sync Upstox / Dhan / Groww"):
+    if head[4].button("⇅ Import", width="stretch", help="Upload your CAS statement (every broker) or a broker CSV, or sync Upstox / Dhan / Groww"):
         import_sync_dialog()
     if st.session_state.get("price_note"):
         st.toast(st.session_state.pop("price_note"))
 
     holdings = load_holdings()
     if not holdings:
-        st.info("No holdings yet — use **＋ Add** to add a stock, or **⇅ Import** to upload a broker CSV or sync "
-                "Upstox / Dhan / Groww. Your holdings stay on this machine.")
+        st.info("No holdings yet — use **＋ Add** to add a stock, or **⇅ Import** to upload your monthly CAS "
+                "statement (all your brokers in one PDF), a broker CSV, or sync Upstox / Dhan / Groww. "
+                "Your holdings stay on this machine.")
         return
 
     # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
@@ -892,16 +1018,19 @@ def portfolio_pane(pending) -> None:
             quotes = {t: {**p, "prev_close": None} for t, p in prices.load_prices().items()}
             stamp = None
         df, tot = portfolio_frame(holdings, quotes)
-        pnl = tot["value"] - tot["cost"]
+        pnl = tot["value_costed"] - tot["cost"]  # only holdings whose average price is known
         day_pct = tot["day"] / tot["prev"] * 100 if tot["prev"] else None
         pnl_pct = pnl / tot["cost"] * 100 if tot["cost"] else None
+        no_cost = f" · {len(tot['no_cost'])} without avg price" if tot["no_cost"] else ""
         st.markdown('<div class="kpis">'
                     # whole rupees on the cards (paise in the table), as Indian broker apps show it
-                    + kpi("Invested", prices.inr(tot["cost"], 0), f"{len(holdings)} holdings")
+                    + kpi("Invested", prices.inr(tot["cost"], 0) if tot["costed"] else "—",
+                          f"{len(holdings)} holdings{no_cost}")
                     + kpi("Current value", prices.inr(tot["value"], 0), "")
                     + kpi("Day's P&L", prices.signed_money(tot["day"], decimals=0) if tot["prev"] else "—",
                           f"{day_pct:+.2f}%" if day_pct is not None else "", tone(day_pct))
-                    + kpi("Total P&L", prices.signed_money(pnl, decimals=0), f"{pnl_pct:+.2f}%" if pnl_pct is not None else "",
+                    + kpi("Total P&L", prices.signed_money(pnl, decimals=0) if tot["costed"] else "—",
+                          f"{pnl_pct:+.2f}%" if pnl_pct is not None else "",
                           tone(pnl_pct))
                     + "</div>", unsafe_allow_html=True)
         insights_tab, holdings_tab, alloc_tab, stock_tab = st.tabs(["Insights", "Holdings", "Allocation", "Stock view"])
@@ -921,6 +1050,10 @@ def portfolio_pane(pending) -> None:
             note += f" · no price for {', '.join(tot['missing'])} — check the symbol and exchange"
         if tot["no_fx"]:
             note += f" · no USD→INR rate yet for {', '.join(tot['no_fx'])}"
+        if tot["no_cost"]:
+            note += (f" · average price unknown for {', '.join(tot['no_cost'])} — Invested and P&L leave "
+                     f"{'it' if len(tot['no_cost']) == 1 else 'them'} out "
+                     "(enter it by importing the statement again: ⇅ Import → CAS statement)")
         st.markdown(f'<p class="footnote">{html.escape(note)}</p>', unsafe_allow_html=True)
         if error:
             st.warning(f"Price refresh failed: {error}")
