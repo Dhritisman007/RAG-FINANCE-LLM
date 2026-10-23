@@ -11,12 +11,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 import stock_list  # noqa: E402
 
-NSE_EQUITY = ("SYMBOL,NAME OF COMPANY, SERIES, DATE OF LISTING\n"
-              "RELIANCE,Reliance Industries Limited,EQ,29-NOV-1995\n"
-              "M&M,Mahindra & Mahindra Limited,EQ,08-NOV-1995\n"
-              "BAJAJ-AUTO,Bajaj Auto Limited,EQ,26-MAY-2008\n")
-NSE_ETF = ("Symbol,Underlying Asset,SecurityName,DateofListing\n"
-           "NIFTYBEES,Nifty 50,NIPINDETFNIFTYBEES,08-Jan-02\n")
+# Header rows exactly as NSE publishes them (checked Oct 2026), including the ISIN columns
+NSE_EQUITY = ("SYMBOL,NAME OF COMPANY, SERIES, DATE OF LISTING, PAID UP VALUE, MARKET LOT, ISIN NUMBER, FACE VALUE\n"
+              "RELIANCE,Reliance Industries Limited,EQ,29-NOV-1995,10,1,INE002A01018,10\n"
+              "M&M,Mahindra & Mahindra Limited,EQ,03-JAN-1996,5,1,INE101A01026,5\n"
+              "BAJAJ-AUTO,Bajaj Auto Limited,EQ,26-MAY-2008,10,1,INE917I01010,10\n")
+NSE_ETF = ("Symbol,Underlying Asset,SecurityName,DateofListing,MarketLot,ISINNumber,FaceValue,ETF Underlying,"
+           "Underlying Key\n"
+           "NIFTYBEES,Nifty 50,NIPINDETFNIFTYBEES,08-Jan-02,1,INF204KB14I2,1,EQUITY,Nifty 50\n")
 SEC = {"1": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
        "0": {"cik_str": 1045810, "ticker": "NVDA", "title": "NVIDIA CORP"},
        "2": {"cik_str": 1067983, "ticker": "BRK.B", "title": "BERKSHIRE HATHAWAY INC"},
@@ -38,11 +40,14 @@ def test_parsing_and_yahoo_tickers() -> None:
     eq = stock_list.parse_nse_equity(NSE_EQUITY)
     assert [r["ticker"] for r in eq] == ["RELIANCE.NS", "M&M.NS", "BAJAJ-AUTO.NS"]
     assert eq[0]["name"] == "Reliance Industries Limited" and eq[0]["exchange"] == "NSE"
+    assert [r["isin"] for r in eq] == ["INE002A01018", "INE101A01026", "INE917I01010"]   # maps CAS statements
     etf = stock_list.parse_nse_etf(NSE_ETF)
-    assert etf == [{"ticker": "NIFTYBEES.NS", "symbol": "NIFTYBEES", "name": "Nifty 50 ETF", "exchange": "NSE ETF"}]
+    assert etf == [{"ticker": "NIFTYBEES.NS", "symbol": "NIFTYBEES", "name": "Nifty 50 ETF", "exchange": "NSE ETF",
+                    "isin": "INF204KB14I2"}]
     us = stock_list.parse_sec(SEC)
     assert [r["ticker"] for r in us] == ["NVDA", "AAPL", "BRK-B"]   # size order kept, duplicate dropped, BRK.B -> BRK-B
-    print("PASS: NSE equities/ETFs and SEC tickers parsed into Yahoo tickers (RELIANCE.NS, M&M.NS, BRK-B)")
+    assert all(r["isin"] == "" for r in us)
+    print("PASS: NSE equities/ETFs (with ISINs) and SEC tickers parsed into Yahoo tickers (RELIANCE.NS, M&M.NS, BRK-B)")
 
 
 def test_update_writes_list_and_refuses_tiny_downloads() -> None:

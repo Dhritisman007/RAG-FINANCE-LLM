@@ -77,7 +77,7 @@ def encrypted_pdf(path: Path, password: str = PAN) -> Path:
 
 def test_statement_to_holdings() -> None:
     with outbound_only([]):                     # mapping uses the bundled ISIN DB — no network
-        r = holdings_from_cas(statement(), costs={"INE467B01029": 3600.0})
+        r = holdings_from_cas(statement(), costs={"INE467B01029": 3600.0}, listed={})
     got = {h.ticker: (h.quantity, h.avg_cost, h.isin) for h in r.holdings}
     assert got == {"RELIANCE.NS": (15.0, None, "INE002A01018"), "TCS.NS": (5.0, 3600.0, "INE467B01029")}, got
     assert r.prices["RELIANCE"].last_price == 1250.0 and r.prices["TCS"].as_of == "2026-09-30"
@@ -96,11 +96,33 @@ def test_statement_to_holdings() -> None:
           "average price unknown unless entered")
 
 
+def test_etfs_from_nse_list() -> None:
+    """An ETF maps through NSE's ETF list, whether the statement puts it under equities or mutual funds."""
+    data = statement()
+    data.accounts[1].mutual_funds.append(MutualFund(name="NIPPON INDIA ETF NIFTY BEES", isin="INF204KB14I2",
+                                                    balance=Decimal("4"), nav=Decimal("268.10"), value=Decimal("1072.4")))
+    r = holdings_from_cas(data, listed={"INF204KB14I2": "NIFTYBEES"})
+    got = {h.ticker: h.quantity for h in r.holdings}
+    assert got == {"RELIANCE.NS": 15.0, "TCS.NS": 5.0, "NIFTYBEES.NS": 24.0}, got   # 20 as equity + 4 as fund
+    assert r.prices["NIFTYBEES"].last_price == 268.10
+    assert not any("INF204KB14I2" in s for s in r.skipped) and any("SOME LIQUID FUND" in s for s in r.skipped)
+    import stock_list
+    rows = stock_list.parse_nse_etf("Symbol,Underlying Asset,SecurityName,DateofListing,MarketLot,ISINNumber,FaceValue\n"
+                                    "NIFTYBEES,Nifty 50,NIPINDETFNIFTYBEES,08-Jan-02,1,INF204KB14I2,1\n")
+    eq = stock_list.parse_nse_equity("SYMBOL,NAME OF COMPANY, SERIES, DATE OF LISTING, PAID UP VALUE, MARKET LOT, "
+                                     "ISIN NUMBER, FACE VALUE\nTCS,Tata Consultancy Services Limited,EQ,25-AUG-2004,1,1,"
+                                     "INE467B01029,1\n")
+    assert rows[0]["isin"] == "INF204KB14I2" and eq[0]["isin"] == "INE467B01029"   # NSE's real header names
+    renamed = holdings_from_cas(statement(), listed={"INE467B01029": "TCSNEW"})      # NSE's current symbol wins
+    assert {h.symbol for h in renamed.holdings} == {"RELIANCE", "TCSNEW"}
+    print("PASS: ETFs map via NSE's ETF list (under equities or mutual funds); stock-list rows carry ISINs")
+
+
 def test_sync_writes_no_personal_data() -> None:
     with tempfile.TemporaryDirectory() as d:
         db, pdf = Path(d) / "p.db", Path(d) / "statement.pdf"
         pdf.write_bytes(b"%PDF-1.4 stand-in; the reader is faked")
-        adapter = get_adapter("cas", file=pdf, password=PAN, reader=fake_reader())
+        adapter = get_adapter("cas", file=pdf, password=PAN, reader=fake_reader(), listed={})
         res = portfolio_sync.sync("cas", db_path=db, adapter=adapter, label="mom")
         assert res.ok and res.source == "cas:mom" and res.holdings_count == 2 and res.prices_status == "ok", res
         blob = db.read_bytes() + json.dumps(res.__dict__).encode() + repr(adapter).encode()
@@ -199,6 +221,7 @@ def test_partial_cost_valuation_is_honest() -> None:
 
 if __name__ == "__main__":
     test_statement_to_holdings()
+    test_etfs_from_nse_list()
     test_sync_writes_no_personal_data()
     test_real_casparser_error_paths()
     test_cli_reads_password_from_stdin()

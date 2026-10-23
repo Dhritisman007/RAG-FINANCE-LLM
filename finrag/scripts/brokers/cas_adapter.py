@@ -9,9 +9,11 @@ network call is made (tests/test_cas.py runs it under the network guard).
 What a CAS has, and doesn't:
   - each equity's ISIN, quantity and the market price on the statement date;
   - NOT what you paid — avg_cost stays unknown (NULL) unless the user enters it;
-  - no trading symbol: casparser fills it in from its bundled ISIN database, which maps
-    NSE equities only. ETFs, BSE-only shares, mutual funds, bonds and NPS are listed as
-    skipped (TODO: map ETFs from NSE's ETF list, which carries ISINs).
+  - no trading symbol: it comes from NSE's own equity and ETF lists (their ISINs are in
+    data/reference/stocks.csv — refresh with stock_list.py --update), falling back to
+    casparser's bundled ISIN database. ETFs count whether the statement lists them under
+    equities or mutual funds. BSE-only shares, other mutual funds, bonds and NPS are
+    listed as skipped.
 
 The password (the first holder's PAN in capital letters, per NSDL and CDSL) is held in
 memory only: never logged, stored, or put on a command line. Only holdings are kept —
@@ -91,15 +93,47 @@ def _iso_date(text: str) -> str | None:
     return None
 
 
-def holdings_from_cas(data: NSDLCASData, costs: dict[str, float] | None = None) -> CasReport:
-    """Statement -> holdings (pure). `costs` maps ISIN -> average buy price the user entered."""
+def nse_isins() -> dict[str, str]:
+    """ISIN -> NSE symbol for NSE equities and ETFs, from data/reference/stocks.csv (stock_list.py --update)."""
+    import stock_list  # scripts/ is on sys.path wherever brokers is imported
+    return {r["isin"]: r["symbol"] for r in stock_list.load_stocks() if r.get("isin")}
+
+
+def holdings_from_cas(data: NSDLCASData, costs: dict[str, float] | None = None,
+                      listed: dict[str, str] | None = None) -> CasReport:
+    """
+    Statement -> holdings (pure apart from reading the stock list when `listed` is None).
+    `costs` maps ISIN -> average buy price the user entered; `listed` maps ISIN -> NSE symbol and
+    fills in what casparser's ISIN database lacks — ETFs, which a statement may list under
+    equities or under mutual funds depending on its layout.
+    """
     costs = costs or {}
-    report = CasReport(issuer=str(getattr(data.file_type, "value", data.file_type)), period=(data.statement_period.from_, data.statement_period.to),
+    listed = nse_isins() if listed is None else listed
+    report = CasReport(issuer=str(getattr(data.file_type, "value", data.file_type)),
+                       period=(data.statement_period.from_, data.statement_period.to),
                        statement_date=_iso_date(data.statement_period.to), accounts=len(data.accounts),
                        warnings=list(data.parse_warnings))
     if report.statement_date is None:
         report.warnings.append(f"statement date {data.statement_period.to!r} not recognised — its prices aren't kept")
     by_isin: dict[str, int] = {}
+
+    def add(symbol: str, exchange: str, qty: float, isin: str, price) -> None:
+        symbol = symbol.upper()
+        if isin in by_isin:
+            i = by_isin[isin]
+            prev = report.holdings[i]
+            report.holdings[i] = Holding(prev.symbol, prev.exchange, prev.quantity + qty, prev.avg_cost,
+                                         prev.currency, prev.source, prev.isin)
+            note = f"{prev.symbol} is in more than one demat account — quantities added"
+            if note not in report.merged:
+                report.merged.append(note)
+            return
+        by_isin[isin] = len(report.holdings)
+        report.holdings.append(Holding(symbol=symbol, exchange=exchange, quantity=qty, avg_cost=costs.get(isin),
+                                       currency="INR", source="cas", isin=isin))
+        if report.statement_date and price and price > 0:
+            report.prices[symbol] = Price(symbol, float(price), report.statement_date)
+
     for n, account in enumerate(data.accounts, 1):
         where = f"account {n} ({account.type})"   # never the DP / client ID
         for eq in account.equities:
@@ -108,27 +142,19 @@ def holdings_from_cas(data: NSDLCASData, costs: dict[str, float] | None = None) 
             if qty <= 0:
                 report.skipped.append(f"{what} in {where}: quantity {qty:g}")
                 continue
-            exchange = (eq.exchange or "").upper()
-            if not eq.symbol or exchange not in ("NSE", "BSE"):
-                report.skipped.append(f"{what}: no NSE symbol known for this ISIN (ETFs and BSE-only shares aren't "
-                                      "mapped yet) — add it with ＋ Add to track it")
+            # NSE's own list first: it is current (casparser's database still has pre-rename symbols such as
+            # ICICIPRULI for ICICILIFE); casparser's is the fallback for ISINs the list doesn't carry
+            symbol, exchange = (listed[eq.isin], "NSE") if eq.isin in listed else (eq.symbol, (eq.exchange or "").upper())
+            if not symbol or exchange not in ("NSE", "BSE"):
+                report.skipped.append(f"{what}: no NSE symbol known for this ISIN (it isn't in NSE's equity or ETF "
+                                      "lists, e.g. a BSE-only share) — add it with ＋ Add to track it")
                 continue
-            if eq.isin in by_isin:
-                i = by_isin[eq.isin]
-                prev = report.holdings[i]
-                report.holdings[i] = Holding(prev.symbol, prev.exchange, prev.quantity + qty, prev.avg_cost,
-                                             prev.currency, prev.source, prev.isin)
-                note = f"{prev.symbol} is in more than one demat account — quantities added"
-                if note not in report.merged:
-                    report.merged.append(note)
-                continue
-            by_isin[eq.isin] = len(report.holdings)
-            report.holdings.append(Holding(symbol=eq.symbol.upper(), exchange=exchange, quantity=qty,
-                                           avg_cost=costs.get(eq.isin), currency="INR", source="cas", isin=eq.isin))
-            if report.statement_date and eq.price > 0:
-                report.prices[eq.symbol.upper()] = Price(eq.symbol.upper(), float(eq.price), report.statement_date)
-        report.skipped += [f"{mf.name or mf.isin} ({mf.isin}): mutual fund units aren't tracked yet"
-                           for mf in account.mutual_funds]
+            add(symbol, exchange, qty, eq.isin, eq.price)
+        for mf in account.mutual_funds:
+            if mf.isin in listed and float(mf.balance) > 0:   # an exchange-traded fund held in demat
+                add(listed[mf.isin], "NSE", float(mf.balance), mf.isin, mf.nav)
+            else:
+                report.skipped.append(f"{mf.name or mf.isin} ({mf.isin}): mutual fund units aren't tracked yet")
         report.skipped += [f"{bd.name or bd.isin} ({bd.isin}): bonds aren't tracked yet" for bd in account.bonds]
     if data.nps:
         report.skipped.append("NPS holdings aren't tracked yet")
@@ -153,11 +179,12 @@ class CasAdapter(BrokerAdapter):
     allowed_hosts = ()  # parsed on this machine — no network at all
 
     def __init__(self, file: str | Path | None = None, password: str | None = None,
-                 costs: dict[str, float] | None = None, reader=read_cas_pdf):
+                 costs: dict[str, float] | None = None, reader=read_cas_pdf, listed: dict[str, str] | None = None):
         self.file = Path(file) if file else None
         self._password = password
         self.costs = costs or {}
         self.reader = reader
+        self.listed = listed
         self.last_report: CasReport | None = None
 
     def fetch_holdings(self) -> list[Holding]:
@@ -165,7 +192,7 @@ class CasAdapter(BrokerAdapter):
             raise CredentialsMissing(f"cas: no statement file{' at ' + str(self.file) if self.file else ''} "
                                      "(pass --file)", self.name)
         data = read_statement(self.file, self._password, self.reader)
-        self.last_report = holdings_from_cas(data, self.costs)
+        self.last_report = holdings_from_cas(data, self.costs, self.listed)
         return self.last_report.holdings
 
     def fetch_prices(self, symbols: list[str]) -> dict[str, Price]:

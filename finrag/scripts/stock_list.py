@@ -30,7 +30,7 @@ NSE_EQUITY_URL = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv
 NSE_ETF_URL = "https://nsearchives.nseindia.com/content/equities/eq_etfseclist.csv"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 NSE_HEADERS = {"User-Agent": "FinRAG/0.1 (personal research; local RAG project)"}
-FIELDS = ["ticker", "symbol", "name", "exchange"]
+FIELDS = ["ticker", "symbol", "name", "exchange", "isin"]  # isin: NSE rows only (maps CAS statements)
 EXCHANGE_LABELS = {"NSE": "NSE", "NSE ETF": "NSE · ETF", "US": "US"}
 
 
@@ -40,7 +40,7 @@ def parse_nse_equity(text: str) -> list[dict]:
         r = {k.strip(): (v or "").strip() for k, v in r.items() if k}
         if r.get("SYMBOL"):
             rows.append({"ticker": f"{r['SYMBOL'].upper()}.NS", "symbol": r["SYMBOL"].upper(),
-                         "name": r.get("NAME OF COMPANY", ""), "exchange": "NSE"})
+                         "name": r.get("NAME OF COMPANY", ""), "exchange": "NSE", "isin": r.get("ISIN NUMBER", "")})
     return rows
 
 
@@ -51,7 +51,7 @@ def parse_nse_etf(text: str) -> list[dict]:
         if r.get("Symbol"):
             underlying = r.get("Underlying Asset") or r.get("SecurityName", "")
             rows.append({"ticker": f"{r['Symbol'].upper()}.NS", "symbol": r["Symbol"].upper(),
-                         "name": f"{underlying} ETF".strip(), "exchange": "NSE ETF"})
+                         "name": f"{underlying} ETF".strip(), "exchange": "NSE ETF", "isin": r.get("ISINNumber", "")})
     return rows
 
 
@@ -63,7 +63,7 @@ def parse_sec(payload: dict) -> list[dict]:
         if ticker and ticker not in seen:
             seen.add(ticker)
             rows.append({"ticker": ticker, "symbol": ticker, "name": str(entry.get("title", "")).strip(),
-                         "exchange": "US"})
+                         "exchange": "US", "isin": ""})
     return rows
 
 
