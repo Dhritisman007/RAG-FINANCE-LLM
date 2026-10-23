@@ -73,7 +73,7 @@ def test_parse_normalize_and_manual_override() -> None:
         market.write_text("ticker,price,as_of,source\nAAPL,343.46,2026-10-19T17:04,screener\n"
                           "BRK-B,1234.5,2026-10-19T17:04,screener\n")
         manual.write_text("ticker,price,date\nvbtlx,10.50,2026-10-18\nAAPL,300,2026-10-01\nBRK.B,1300,2026-10-19\n")
-        p = prices.load_prices(market, manual, Path(tmp) / "no_yahoo.csv")  # never read real price files
+        p = prices.load_prices(market, manual, Path(tmp) / "no_yahoo.csv", use_snapshots=False)  # never read real files
     assert p["VBTLX"]["price"] == 10.5 and p["VBTLX"]["source"] == "manual price file"   # fund via manual file
     assert p["AAPL"]["price"] == 343.46                                                   # older manual loses
     assert p["BRK-B"]["price"] == 1300                                                    # same-day manual wins
@@ -139,11 +139,11 @@ def test_yahoo_prices_and_source_precedence() -> None:
         q = prices.yahoo_quotes(["AAPL"], download=fake_download)["AAPL"]       # live panel: day change
         assert q == {"price": 342.94, "prev_close": 343.46, "as_of": "2026-10-19"}
         market.write_text("ticker,price,as_of,source\nAAPL,343.46,2026-10-19T17:04,screener\n")
-        p = prices.load_prices(market, manual, yahoo)
+        p = prices.load_prices(market, manual, yahoo, use_snapshots=False)
         assert p["AAPL"]["price"] == 342.94 and p["AAPL"]["source"] == prices.YAHOO_SOURCE   # same date: Yahoo > Nasdaq
         assert p["VBTLX"]["price"] == 9.29                                                    # a fund Nasdaq doesn't list
         manual.write_text("ticker,price,date\nAAPL,350,2026-10-19\n")
-        assert prices.load_prices(market, manual, yahoo)["AAPL"]["price"] == 350            # same date: manual wins
+        assert prices.load_prices(market, manual, yahoo, use_snapshots=False)["AAPL"]["price"] == 350            # same date: manual wins
     print("PASS: Yahoo closes for holdings (stocks and funds); same-date precedence manual > Yahoo > Nasdaq")
 
 

@@ -24,7 +24,10 @@ def allocation(rows: list[dict]) -> dict:
     total = sum(r["value_inr"] for r in priced)
     if not priced or total <= 0:
         return {}
-    weights = sorted(((r["symbol"], r["value_inr"] / total * 100) for r in priced), key=lambda x: -x[1])
+    by_symbol: dict[str, float] = {}  # one stock held in several places (manual + a broker) counts once
+    for r in priced:
+        by_symbol[r["symbol"]] = by_symbol.get(r["symbol"], 0.0) + r["value_inr"]
+    weights = sorted(((s, v / total * 100) for s, v in by_symbol.items()), key=lambda x: -x[1])
     india = sum(r["value_inr"] for r in priced if r["currency"] == "INR") / total * 100
     by_return = sorted((r for r in priced if r.get("pnl_pct") is not None), key=lambda r: r["pnl_pct"])
     hhi = sum((w / 100) ** 2 for _, w in weights)

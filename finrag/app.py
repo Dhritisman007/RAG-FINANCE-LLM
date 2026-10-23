@@ -30,7 +30,8 @@ import insights  # noqa: E402
 import stock_list  # noqa: E402
 import rag_loop as r  # noqa: E402
 from citations import Citation, CitationReport, check_citations, is_refusal  # noqa: E402
-from portfolio_store import HOLDINGS_PATH, format_position, load_holdings, add_holding, save_holdings  # noqa: E402
+from portfolio_store import (HOLDINGS_PATH, SOURCE_LABELS, add_holding, format_position, load_holdings,  # noqa: E402
+                             load_manual_holdings, save_holdings)
 
 # Brand: PortIQ — "Upload. Ask. Get Insights." The mark in assets/ is an SVG recreation;
 # a saved original (assets/portiq_logo.png or .svg) is used instead when present.
@@ -225,7 +226,7 @@ def edit_holdings_dialog() -> None:
                "Saved only on this machine.")
     rows = [{"ticker": h["ticker"], "quantity": h["quantity"], "avg_cost": h["avg_cost"],
              "purchase_date": date.fromisoformat(h["purchase_date"]) if h["purchase_date"] else None}
-            for h in load_holdings()]
+            for h in load_manual_holdings()]  # synced broker holdings are refreshed by portfolio_sync.py
     edited = st.data_editor(
         rows or [{"ticker": "", "quantity": None, "avg_cost": None, "purchase_date": None}],
         num_rows="dynamic", hide_index=True, width="stretch", key="holdings_editor",
@@ -396,7 +397,10 @@ def portfolio_frame(holdings: list[dict], quotes: dict[str, dict]):
         cur = prices.currency(h["ticker"])
         rate = 1.0 if cur == "INR" else fx
         q = quotes.get(prices.normalize_ticker(h["ticker"]))
-        row = {"Stock": symbol, "Exch": exchange, "Qty": h["quantity"], "Avg": h["avg_cost"], "LTP": None,
+        src = h.get("source", "manual")
+        row = {"Stock": symbol, "Exch": exchange,
+               "Source": "Manual" if src == "manual" else f"{SOURCE_LABELS.get(src, src)} · {str(h.get('as_of', ''))[:16]}",
+               "Qty": h["quantity"], "Avg": h["avg_cost"], "LTP": None,
                "Day %": None, "Invested ₹": None, "Current ₹": None, "P&L ₹": None, "P&L %": None, "cur": cur,
                "ticker": h["ticker"]}
         if q is None or rate is None:

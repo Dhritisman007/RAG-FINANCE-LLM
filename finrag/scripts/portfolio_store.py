@@ -2,8 +2,13 @@
 Portfolio store — the user's own holdings, looked up as structured data.
 
 Holdings are NOT embedded into Chroma: ticker / quantity / cost basis are exact
-facts, so they're read directly from data/portfolio/holdings.csv and injected
-into the prompt alongside retrieved filing chunks (see rag_loop.py).
+facts, so they're read directly and injected into the prompt alongside retrieved
+filing chunks (see rag_loop.py). Two kinds:
+  - manual: data/portfolio/holdings.csv, edited in the UI
+  - synced: the latest snapshot of each source (CSV export, Upstox, Dhan, Groww)
+    in data/portfolio/portfolio.db, written by scripts/portfolio_sync.py. Each
+    carries its source and as-of time, and format_position() states both, so an
+    answer about a synced holding always says where and when it came from.
 
 PRIVACY: this data never leaves the machine. It is only ever read here and
 sent to the local Ollama server — never to a cloud API. holdings.csv is
@@ -22,8 +27,35 @@ ROOT = Path(__file__).parent.parent
 HOLDINGS_PATH = ROOT / "data" / "portfolio" / "holdings.csv"
 
 
-def load_holdings(path: Path = HOLDINGS_PATH) -> list[dict]:
-    """Read holdings.csv -> [{ticker, quantity, avg_cost, purchase_date}, ...]."""
+SOURCE_LABELS = {"manual": "your holdings file", "csv": "CSV import", "upstox": "Upstox", "dhan": "Dhan",
+                 "groww": "Groww"}
+
+
+def load_holdings(path: Path | None = None, snapshots_db: Path | None = None) -> list[dict]:
+    """
+    All holdings: the manual file plus the latest synced snapshot of every source
+    (each dict has "source", and "as_of" for synced ones). With an explicit `path`,
+    only that CSV file is read, as before.
+    """
+    if path is not None:
+        return load_manual_holdings(path)
+    return load_manual_holdings() + load_snapshot_holdings(snapshots_db)
+
+
+def load_snapshot_holdings(db_path: Path | None = None) -> list[dict]:
+    import portfolio_db
+    out = []
+    for snap in portfolio_db.latest_snapshots(db_path or portfolio_db.DB_PATH):
+        for h in snap["holdings"]:
+            out.append({"ticker": h["ticker"], "quantity": h["quantity"], "avg_cost": h["avg_cost"],
+                        "purchase_date": "", "source": snap["source"], "as_of": snap["fetched_at"],
+                        "exchange": h["exchange"], "isin": h["isin"], "currency": h["currency"],
+                        "last_price": h["last_price"], "price_as_of": h["price_as_of"]})
+    return out
+
+
+def load_manual_holdings(path: Path = HOLDINGS_PATH) -> list[dict]:
+    """Read holdings.csv -> [{ticker, quantity, avg_cost, purchase_date, source: "manual"}, ...]."""
     if not path.exists():
         return []
     holdings = []
@@ -36,6 +68,7 @@ def load_holdings(path: Path = HOLDINGS_PATH) -> list[dict]:
                 "quantity": float(row["quantity"]),
                 "avg_cost": float(row["avg_cost"]),
                 "purchase_date": row.get("purchase_date", "").strip(),
+                "source": "manual",
             })
     return holdings
 
@@ -168,8 +201,8 @@ def find_held_tickers(query: str, holdings: list[dict] | None = None) -> list[st
         if t.endswith(INDIA_SUFFIXES):
             base = t[:-3]
             forms += [base] + ([base.capitalize()] if len(base) >= 5 and base.isalpha() else [])
-        if any(re.search(rf"(?<![A-Za-z&]){re.escape(f)}(?![A-Za-z&])", query) for f in forms):
-            found.append(t)
+        if t not in found and any(re.search(rf"(?<![A-Za-z&]){re.escape(f)}(?![A-Za-z&])", query) for f in forms):
+            found.append(t)  # once, even if several sources hold it
     return found
 
 
@@ -189,8 +222,11 @@ def format_position(h: dict) -> str:
     qty = f"{h['quantity']:g}"
     cost_basis = h["quantity"] * h["avg_cost"]
     bought = f", purchased {h['purchase_date']}" if h["purchase_date"] else ""
+    source = h.get("source", "manual")
+    origin = (f" — from {SOURCE_LABELS.get(source, source)}, as of {h['as_of']}"
+              if source != "manual" and h.get("as_of") else "")
     return (f"{h['ticker']}: {qty} shares @ avg cost {_price(h['avg_cost'], h['ticker'])} "
-            f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}")
+            f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}{origin}")
 
 
 if __name__ == "__main__":

@@ -258,10 +258,25 @@ def price_stats(history: list[tuple[str, float]]) -> dict:
 
 
 def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANUAL_PRICES_PATH,
-                yahoo_path: Path = YAHOO_PRICES_PATH) -> dict[str, dict]:
-    """{ticker: {"price", "as_of", "source"}} — newest date wins; same date: manual > Yahoo > Nasdaq."""
+                yahoo_path: Path = YAHOO_PRICES_PATH, snapshot_db: Path | None = None,
+                use_snapshots: bool = True) -> dict[str, dict]:
+    """
+    {ticker: {"price", "as_of", "source"}} — newest date wins; same date: manual > Yahoo > broker > Nasdaq.
+    Broker prices come from the latest synced snapshots (portfolio_sync.py); missing ones are NULL there,
+    never 0, so they're simply absent here.
+    """
     prices: dict[str, dict] = {}
-    for source_path in (market_path, yahoo_path):  # later sources win ties
+    if use_snapshots:
+        import portfolio_db
+        from portfolio_store import SOURCE_LABELS
+        for snap in portfolio_db.latest_snapshots(snapshot_db or portfolio_db.DB_PATH):
+            for h in snap["holdings"]:
+                if h["last_price"] and h["price_as_of"]:
+                    current = prices.get(h["ticker"])
+                    if current is None or h["price_as_of"][:10] >= current["as_of"][:10]:
+                        prices[h["ticker"]] = {"price": float(h["last_price"]), "as_of": h["price_as_of"],
+                                               "source": f"{SOURCE_LABELS.get(snap['source'], snap['source'])} last price"}
+    for source_path in (market_path, yahoo_path):  # later sources win ties (over broker prices too)
         if source_path.exists():
             with open(source_path, newline="", encoding="utf-8") as f:
                 for row in csv.DictReader(f):
@@ -299,7 +314,8 @@ def value_positions(holdings: list[dict], prices: dict[str, dict], today: date |
         row = {"ticker": h["ticker"], "currency": cur, "quantity": h["quantity"], "avg_cost": h["avg_cost"],
                "cost_basis": cost, "price": None, "as_of": None, "source": None, "market_value": None,
                "gain": None, "gain_pct": None, "stale": False, "missing": p is None,
-               "value_inr": None, "cost_inr": None}
+               "value_inr": None, "cost_inr": None,
+               "holding_source": h.get("source", "manual"), "holding_as_of": h.get("as_of")}
         if p is not None:
             value = h["quantity"] * p["price"]
             age = (today - date.fromisoformat(p["as_of"][:10])).days
@@ -336,8 +352,16 @@ def format_valuation(valued: list[dict]) -> list[str]:
         cur = v["currency"]
         lines.append(f"{v['ticker']}: {v['quantity']:g} × {money(v['price'], cur)} = {money(v['market_value'], cur)} "
                      f"(cost {money(v['cost_basis'], cur)}, {signed_money(v['gain'], cur)}, {v['gain_pct']:+.1f}%) "
-                     f"— price as of {v['as_of']}{stale}")
+                     f"— price as of {v['as_of']}{stale}{_holding_origin(v)}")
     return lines
+
+
+def _holding_origin(v: dict) -> str:
+    """' · holding from Upstox, as of …' for synced holdings; nothing for the manual file."""
+    if v.get("holding_source", "manual") == "manual" or not v.get("holding_as_of"):
+        return ""
+    from portfolio_store import SOURCE_LABELS
+    return f" · holding from {SOURCE_LABELS.get(v['holding_source'], v['holding_source'])}, as of {v['holding_as_of']}"
 
 
 def summary_sentence(valued: list[dict]) -> str:
@@ -357,7 +381,11 @@ def summary_sentence(valued: list[dict]) -> str:
         text += f" Not included (no USD→INR rate yet — run --update): {', '.join(s['no_fx'])}."
     if s["stale"]:
         text += f" Prices older than {STALE_AFTER_DAYS} days: {', '.join(s['stale'])} — run --update."
-    return text + " This is computed from your holdings file and the last downloaded prices, not investment advice."
+    from portfolio_store import SOURCE_LABELS
+    synced = sorted({(v["holding_source"], v["holding_as_of"]) for v in valued
+                     if v.get("holding_source", "manual") != "manual" and v.get("holding_as_of")})
+    origin = "your holdings file" + "".join(f"; {SOURCE_LABELS.get(s, s)} snapshot as of {a}" for s, a in synced)
+    return text + f" This is computed from {origin} and the last downloaded prices, not investment advice."
 
 
 if __name__ == "__main__":

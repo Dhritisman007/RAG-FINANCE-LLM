@@ -157,7 +157,13 @@ def get_embedder():
     if _embedder is None:
         from sentence_transformers import SentenceTransformer
         from build_vectorstore import EMBED_DEVICE
-        model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE)
+        # Offline first: loading the cached model must not phone the Hugging Face Hub at question
+        # time (sentence-transformers checks for updates otherwise). Online only on a first run,
+        # when the model isn't cached yet.
+        try:
+            model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE, local_files_only=True)
+        except OSError:
+            model = SentenceTransformer(EMBED_MODEL_NAME, device=EMBED_DEVICE)
 
         class _Embedder:
             def embed_query(self, text: str) -> list[float]:
@@ -552,9 +558,9 @@ def plan_query(
     positions: list[dict] = []
     if decision.route == "portfolio":
         holdings = load_holdings()
-        positions = ([get_holding(t, holdings) for t in decision.held_tickers]
+        # every position in a held stock — one per source (manual file, Upstox, …), each with its as-of
+        positions = ([h for h in holdings if h["ticker"] in decision.held_tickers]
                      if decision.held_tickers else holdings)
-        positions = [p for p in positions if p]
     return decision, plan, positions
 
 
