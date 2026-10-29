@@ -7,21 +7,28 @@ statistics (.streamlit/config.toml); the app refuses to start otherwise,
 because it shows your holdings. Generation only uses local models (Ollama, or MLX
 on 127.0.0.1:8080 — see scripts/start_mlx_server.sh).
 
+Hosted mode (PORTIQ_MODE=hosted — the website): Google sign-in, a privacy notice
+each user accepts before adding anything, and each user's holdings in their own
+folder (scripts/workspace.py); broker connections are off. Local mode is unchanged.
+
 Run from finrag/:
     streamlit run app.py
 """
 from __future__ import annotations
 
 import contextlib
+import functools
 import hashlib
 import html
 import io
 import itertools
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +40,7 @@ import prices  # noqa: E402
 import prompts  # noqa: E402
 import insights  # noqa: E402
 import portfolio_db  # noqa: E402
+import workspace  # noqa: E402
 from brokers.credentials import get_secret  # noqa: E402
 from brokers.csv_adapter import guess_mapping, parse_rows, read_headers  # noqa: E402
 from brokers.base import BrokerError, MalformedResponse  # noqa: E402
@@ -49,8 +57,23 @@ LOGO = next((p for p in (ASSETS / "portiq_logo.svg", ASSETS / "portiq_logo.png")
             ASSETS / "portiq_mark.svg")
 st.set_page_config(page_title="PortIQ", page_icon=str(LOGO), layout="wide", initial_sidebar_state="collapsed")
 
+def as_session_user(fn):
+    """
+    Dialogs and fragments rerun on their own, without the page's sign-in gate, so they re-apply this browser
+    session's user (stored server-side by the gate) before touching any data. Put it under @st.dialog/@st.fragment.
+    """
+    @functools.wraps(fn)
+    def run(*args, **kwargs):
+        workspace.use(st.session_state.get("_portiq_workspace"))
+        return fn(*args, **kwargs)
+    return run
+
+
 # ── Privacy guard ────────────────────────────────────────────────────────────
-if st.get_option("server.address") not in ("127.0.0.1", "localhost") or st.get_option("browser.gatherUsageStats"):
+HOSTED = workspace.hosted()
+workspace.use(None)  # every run starts as nobody; the sign-in gate (Page, below) sets the user in hosted mode
+if st.get_option("browser.gatherUsageStats") or (
+        not HOSTED and st.get_option("server.address") not in ("127.0.0.1", "localhost")):
     st.error("PortIQ shows your holdings, so it only runs bound to 127.0.0.1 with usage statistics off. "
              "Run it from `finrag/` (which has `.streamlit/config.toml`):  `streamlit run app.py`")
     st.stop()
@@ -228,11 +251,13 @@ def render_assistant(res: dict, show_details: bool) -> None:
 
 
 @st.dialog("Edit holdings", width="large")
+@as_session_user
 def edit_holdings_dialog() -> None:
     """Add, change or delete holdings; saved to data/portfolio/holdings.csv after validation."""
     from datetime import date
     st.caption("Add a row with the + at the bottom; select rows and press Delete to remove them. "
-               "Saved only on this machine.")
+               + ("Saved to your private PortIQ account — only you can see it." if HOSTED else
+                  "Saved only on this machine."))
     rows = [{"ticker": h["ticker"], "quantity": h["quantity"], "avg_cost": h["avg_cost"],
              "purchase_date": date.fromisoformat(h["purchase_date"]) if h["purchase_date"] else None}
             for h in load_manual_holdings()]  # synced broker holdings are refreshed by portfolio_sync.py
@@ -345,6 +370,109 @@ def corpus_counts() -> dict[str, int]:
             "papers": sum(n.startswith("tier3_") for n in names)}
 
 
+def privacy_summary() -> str:
+    if HOSTED:
+        return ("Your holdings are kept in your private PortIQ account (only you can see them; delete them any time "
+                "in ⚙ Settings). Questions, the passages found and the holdings you ask about go to this site's AI "
+                "model server to write the answer; live prices send only stock symbols to Yahoo Finance.")
+    return ("Runs on this machine (cloud models refused, no telemetry). Your holdings file stays here; live prices "
+            "send only stock symbols to Yahoo Finance.")
+
+
+def auth_configured() -> bool:
+    try:
+        return "auth" in st.secrets
+    except Exception:  # no secrets.toml at all
+        return False
+
+
+def brand_header() -> None:
+    st.markdown(f'<div class="topbar"><div class="brand"><img src="{logo_src()}" alt=""><div><div class="word">'
+                'Port<span class="iq">IQ</span></div><small>Upload. Ask. Get Insights.</small></div></div></div>',
+                unsafe_allow_html=True)
+
+
+def sign_in_page() -> None:
+    """Hosted: what PortIQ is, and Google sign-in. Nothing personal is shown or read before this."""
+    brand_header()
+    left, _ = st.columns([1.4, 1])
+    with left:
+        st.markdown("### Your portfolio, explained from the companies' own reports\n"
+                    "- Upload your monthly **CAS statement** — every demat account, every broker, in one PDF\n"
+                    "- Live value and P&L in ₹, with insights computed by code, not guessed\n"
+                    "- Ask about a company's annual report or filings — every answer cites its sources")
+        st.button("Sign in with Google", type="primary", on_click=st.login)
+        st.caption("Sign-in keeps your portfolio private to you. Educational information — not investment advice.")
+
+
+def privacy_notice(ws: workspace.Workspace) -> None:
+    """Shown once (and again when the notice changes) before anything can be added."""
+    api = backends.api_config()
+    model_host = f" ({api['host']})" if api and api.get("host") else ""
+    brand_header()
+    st.markdown(f"""
+### Before you add your portfolio
+
+**What PortIQ keeps** — the holdings you add or import (symbol, quantity, average price, when imported) and copies
+of broker CSV files you upload. **Not kept:** your CAS PDF (deleted right after it is read), its password (your PAN),
+or the name, address and account numbers printed on it.
+
+**Where** — in a private folder for your account on the servers that run this site (Hugging Face). Only your
+signed-in account can see it. From Google sign-in PortIQ stores only an account ID, as a one-way code — not your
+e-mail or name (your e-mail is only shown to you while you're signed in).
+
+**When you ask a question** — your question, the passages PortIQ found and the details of holdings you ask about
+are sent to the AI model server this site uses{html.escape(model_host)} to write the answer. Live prices send only
+stock symbols to Yahoo Finance.
+
+**Your control** — ⚙ Settings → *Download my data* or *Delete my data*, any time.
+
+**Not investment advice** — PortIQ gives educational information from public documents. It is not a
+SEBI-registered investment adviser and doesn't recommend buying or selling any security.
+""")
+    agree = st.checkbox("I've read this and agree", key="notice_agree")
+    if st.button("Continue", type="primary", disabled=not agree):
+        ws.record_consent()
+        st.rerun()
+
+
+def export_zip(ws: workspace.Workspace) -> bytes:
+    """Download my data: everything PortIQ keeps for this account, readable without PortIQ."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        if ws.holdings.exists():
+            z.write(ws.holdings, "holdings.csv")
+        z.writestr("imported_holdings.json", json.dumps(portfolio_db.latest_snapshots(ws.db), indent=2, default=str))
+        for f in sorted(ws.imports.glob("*.csv")) if ws.imports.exists() else []:
+            z.write(f, f"uploaded_csv/{f.name}")
+        if ws.consent_file.exists():
+            z.write(ws.consent_file, "privacy_notice_accepted.json")
+    return buf.getvalue()
+
+
+def account_controls(ws: workspace.Workspace, signed_in_as: str, dev_login: bool) -> None:
+    st.markdown(f"**Signed in** as {html.escape(signed_in_as)}")
+    st.download_button("⬇ Download my data", data=export_zip(ws), file_name="portiq-my-data.zip",
+                       mime="application/zip", width="stretch")
+    with st.expander("Delete my data"):
+        st.caption("Permanently deletes your holdings, imports and settings from PortIQ. Your broker account and "
+                   "the files on your computer are untouched.")
+        confirm = st.text_input("Type DELETE to confirm", key="delete_confirm")
+        if st.button("Delete everything", type="primary", disabled=confirm.strip() != "DELETE", width="stretch"):
+            ws.delete_everything()
+            cache = answer_cache()
+            for key in [k for k in cache if k[0] == ws.user_key]:
+                cache.pop(key, None)
+            for key in list(st.session_state):
+                del st.session_state[key]
+            if dev_login:
+                st.rerun()
+            else:
+                st.logout()
+    if not dev_login:
+        st.button("Sign out", on_click=st.logout, width="stretch")
+
+
 def how_it_works() -> None:
     n = corpus_counts()
     st.markdown(f"""
@@ -363,7 +491,7 @@ def how_it_works() -> None:
 - Portfolio values, P&L, allocation and all Insights — from your holdings and Yahoo Finance prices.
 
 **Privacy**
-- Runs on this machine. Your holdings file stays here; live prices send only stock symbols to Yahoo Finance.
+- {privacy_summary()}
 
 **Not investment advice**
 - PortIQ gives educational information from public documents. It is not a SEBI-registered investment
@@ -622,8 +750,16 @@ def insights_view(holdings: list[dict], df, tot: dict) -> None:
 # and the sync runs in a subprocess with its own working directory.
 APP_DIR = Path(__file__).resolve().parent
 SYNC_SCRIPT = APP_DIR / "scripts" / "portfolio_sync.py"
-IMPORTS_DIR = APP_DIR / "data" / "portfolio" / "imports"      # git-ignored
-MAPPINGS_DIR = APP_DIR / "config" / "broker_mappings"         # *.local.json git-ignored
+def imports_dir() -> Path:
+    """Uploaded CSV copies: the signed-in user's folder (hosted), else data/portfolio/imports (git-ignored)."""
+    ws = workspace.current()
+    return ws.imports if ws else APP_DIR / "data" / "portfolio" / "imports"
+
+
+def mappings_dir() -> Path:
+    """Saved column choices: per user (hosted), else config/broker_mappings (*.local.json git-ignored)."""
+    ws = workspace.current()
+    return ws.mappings if ws else APP_DIR / "config" / "broker_mappings"
 NOT_IN_FILE = "(not in this file)"
 BROKERS = {
     "upstox": {"label": "Upstox", "env": ["UPSTOX_ACCESS_TOKEN"], "optional": [],
@@ -648,6 +784,9 @@ def run_sync_cli(*args: str, stdin: str | None = None):
     live prices. Credentials stay in .env, and a CAS password goes through stdin: nothing secret is
     ever on the command line (where other programs on the machine could see it).
     """
+    ws = workspace.current()
+    if ws:  # hosted: the subprocess writes only to this user's database
+        args = (*args, "--db", str(ws.db))
     try:
         out = subprocess.run([sys.executable, str(SYNC_SCRIPT), *args, "--json"], capture_output=True, text=True,
                              timeout=180, cwd=APP_DIR, input=stdin)
@@ -675,7 +814,7 @@ def short_source(src: str) -> str:
 def import_copies(label: str) -> list[Path]:
     """This import's stored uploads, oldest first — exact label only, so 'zerodha' never matches 'zerodha-holdings'."""
     pattern = re.compile(rf"{re.escape(label)}-\d{{8}}-\d{{6}}\.csv")
-    return sorted(p for p in IMPORTS_DIR.glob(f"{label}-*.csv") if pattern.fullmatch(p.name))
+    return sorted(p for p in imports_dir().glob(f"{label}-*.csv") if pattern.fullmatch(p.name))
 
 
 def _decode(raw: bytes) -> str:
@@ -688,7 +827,9 @@ def _decode(raw: bytes) -> str:
 def csv_import_ui() -> None:
     up = st.file_uploader("Broker export (CSV)", type=["csv"],
                           help="Most brokers let you download your holdings as CSV or Excel — save it as CSV. "
-                               "The file stays on this machine (data/portfolio/imports/, git-ignored).")
+                               + ("PortIQ keeps a copy in your private folder (removed with Delete my data)."
+                                  if HOSTED else "The file stays on this machine (data/portfolio/imports/, "
+                                                 "git-ignored)."))
     if not up:
         st.caption("Upload a holdings export to preview it. Nothing is imported until you press Import.")
         return
@@ -700,7 +841,7 @@ def csv_import_ui() -> None:
                                                        help="Keeps exports from different brokers apart, e.g. "
                                                             "zerodha. Re-importing the same name replaces it.")
                    .lower()).strip("-") or "import"
-    saved_path = MAPPINGS_DIR / f"{label}.local.json"
+    saved_path = mappings_dir() / f"{label}.local.json"
     saved = json.loads(saved_path.read_text()) if saved_path.exists() else {}
     skip = int(c2.number_input("Lines before the header", 0, 50, value=int(saved.get("skip_lines", 0)),
                                help="Some exports start with a title or account details above the column names."))
@@ -752,9 +893,9 @@ def csv_import_ui() -> None:
                    f"{previous['fetched_at']}). Other sources are untouched.")
     if st.button(f"Import {len(report.holdings)} holding(s)", type="primary", disabled=not report.holdings,
                  key=f"import_{label}"):
-        IMPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        MAPPINGS_DIR.mkdir(parents=True, exist_ok=True)
-        file_path = IMPORTS_DIR / f"{label}-{datetime.now():%Y%m%d-%H%M%S}.csv"
+        imports_dir().mkdir(parents=True, exist_ok=True)
+        mappings_dir().mkdir(parents=True, exist_ok=True)
+        file_path = imports_dir() / f"{label}-{datetime.now():%Y%m%d-%H%M%S}.csv"
         file_path.write_bytes(raw)
         saved_path.write_text(json.dumps(mapping, indent=2))
         res = run_sync_cli("--source", "csv", "--file", str(file_path), "--mapping", str(saved_path), "--label", label)
@@ -773,7 +914,8 @@ def cas_import_ui() -> None:
     st.caption("Your **Consolidated Account Statement (CAS)** from NSDL or CDSL lists the shares in every demat "
                "account under your PAN — whichever brokers you use (Zerodha, Groww, Upstox, …) — in one PDF. It is "
                "e-mailed to you every month, and NSDL's and CDSL's websites let you download it again. PortIQ reads "
-               "it on this computer and keeps only the holdings — not your name, PAN, address or account numbers.")
+               + ("it on its server, deletes the PDF right after, " if HOSTED else "it on this computer ")
+               + "and keeps only the holdings — not your name, PAN, address or account numbers.")
     up = st.file_uploader("CAS statement (PDF)", type=["pdf"], key="cas_upload")
     if up is None:
         return
@@ -940,15 +1082,18 @@ def sources_ui() -> None:
 
 
 @st.dialog("Import & sync holdings", width="large")
+@as_session_user
 def import_sync_dialog() -> None:
-    cas_tab, upload_tab, brokers_tab, sources_tab = st.tabs(["CAS statement", "Upload CSV", "Brokers", "Synced sources"])
-    with cas_tab:
+    names = ["CAS statement", "Upload CSV"] + ([] if HOSTED else ["Brokers"]) + ["Synced sources"]
+    tabs = dict(zip(names, st.tabs(names)))  # website: no Brokers tab — the server's tokens are never a visitor's
+    with tabs["CAS statement"]:
         cas_import_ui()
-    with upload_tab:
+    with tabs["Upload CSV"]:
         csv_import_ui()
-    with brokers_tab:
-        brokers_ui()
-    with sources_tab:
+    if "Brokers" in tabs:
+        with tabs["Brokers"]:
+            brokers_ui()
+    with tabs["Synced sources"]:
         sources_ui()
 
 
@@ -985,7 +1130,8 @@ def portfolio_pane(pending) -> None:
                     st.rerun()
     if head[3].button("Edit", width="stretch", help="Change or delete holdings"):
         edit_holdings_dialog()
-    if head[4].button("⇅ Import", width="stretch", help="Upload your CAS statement (every broker) or a broker CSV, or sync Upstox / Dhan / Groww"):
+    if head[4].button("⇅ Import", width="stretch", help="Upload your CAS statement (every broker) or a broker CSV"
+                       + ("" if HOSTED else ", or sync Upstox / Dhan / Groww")):
         import_sync_dialog()
     if st.session_state.get("price_note"):
         st.toast(st.session_state.pop("price_note"))
@@ -993,12 +1139,14 @@ def portfolio_pane(pending) -> None:
     holdings = load_holdings()
     if not holdings:
         st.info("No holdings yet — use **＋ Add** to add a stock, or **⇅ Import** to upload your monthly CAS "
-                "statement (all your brokers in one PDF), a broker CSV, or sync Upstox / Dhan / Groww. "
-                "Your holdings stay on this machine.")
+                "statement (all your brokers in one PDF) or a broker CSV"
+                + (". Only you can see your holdings." if HOSTED else
+                   ", or sync Upstox / Dhan / Groww. Your holdings stay on this machine."))
         return
 
     # Pause live refresh while an answer is generating, so a refresh can't interrupt it.
     @st.fragment(run_every=LIVE_EVERY_SEC if live and pending is None else None)
+    @as_session_user
     def dashboard() -> None:
         import time
         from datetime import datetime
@@ -1098,7 +1246,8 @@ def answer_pending(query: str) -> None:
     started = time.time()
     with st.chat_message("assistant"):
         decision, plan, positions = r.plan_query(query, use_portfolio=use_portfolio, route=route)
-        key = (" ".join(query.lower().split()), decision.route, model, check, collection.count())
+        key = (workspace.cache_scope(), " ".join(query.lower().split()), decision.route, model, check,
+               collection.count())  # per user: an answer can carry the asker's positions
         cached = answer_cache().get(key) if decision.route != "portfolio" else None
         if cached:
             res = {**cached, "cached": True}
@@ -1208,6 +1357,29 @@ def assistant_pane(pending) -> None:
 
 
 # ── Page ─────────────────────────────────────────────────────────────────────
+# Who is this? Hosted: nothing personal is read until a signed-in user has accepted the privacy notice.
+ws, signed_in_as, dev_login = None, "", False
+st.session_state["_portiq_workspace"] = None  # set again below once this run's user is known
+if HOSTED:
+    dev = os.environ.get("PORTIQ_DEV_LOGIN", "").strip()
+    if dev and st.get_option("server.address") in ("127.0.0.1", "localhost"):  # testing hosted mode locally only
+        ws, signed_in_as, dev_login = workspace.for_user("dev", dev), f"{dev} (dev login)", True
+    elif not auth_configured():
+        st.error("Sign-in isn't set up: add an [auth] section (Google client ID and secret) to "
+                 ".streamlit/secrets.toml — see the README's hosting section.")
+        st.stop()
+    elif not st.user.is_logged_in:
+        sign_in_page()
+        st.stop()
+    else:
+        ws = workspace.for_user(str(st.user.get("iss") or ""), str(st.user.get("sub") or ""))
+        signed_in_as = str(st.user.get("email") or st.user.get("name") or "your Google account")
+    workspace.use(ws)
+    st.session_state["_portiq_workspace"] = ws  # for dialogs and fragments, which rerun without this gate
+    if not ws.has_consented():
+        privacy_notice(ws)
+        st.stop()
+
 collection = get_collection()
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -1221,6 +1393,9 @@ top = st.columns([4.4, 1.25, 1.1], vertical_alignment="center")
 with top[1].popover("ⓘ How it works", width="stretch"):
     how_it_works()
 with top[2].popover("⚙ Settings", width="stretch"):
+    if ws:
+        account_controls(ws, signed_in_as, dev_login)
+        st.divider()
     if models:
         default = models.index(r.DEFAULT_MODEL) if r.DEFAULT_MODEL in models else \
             next((i for i, m in enumerate(models) if m.startswith(r.DEFAULT_MODEL)), 0)
@@ -1242,8 +1417,7 @@ with top[2].popover("⚙ Settings", width="stretch"):
                    "PORTIQ_ALLOW_REMOTE_LLM): your questions, the retrieved passages and the details of holdings "
                    "you ask about are sent there. Live prices send only stock symbols to Yahoo Finance.")
     else:
-        st.caption("🔒 Answers are generated on this machine (cloud models refused, no telemetry). Your holdings "
-                   "file stays here; live prices send only stock symbols to Yahoo Finance.")
+        st.caption("🔒 " + privacy_summary())
 top[0].markdown(
     f'<div class="topbar"><div class="brand"><img src="{logo_src()}" alt="">'
     '<div><div class="word">Port<span class="iq">IQ</span></div><small>Upload. Ask. Get Insights.</small></div></div>'

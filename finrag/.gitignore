@@ -46,3 +46,6 @@ data/portfolio/imports/
 *.local.json
 config/broker_mappings/*
 !config/broker_mappings/generic_example.json
+
+# Streamlit secrets (Google sign-in client secret, cookie secret)
+.streamlit/secrets.toml
