@@ -10,9 +10,11 @@ filing chunks (see rag_loop.py). Two kinds:
     carries its source and as-of time, and format_position() states both, so an
     answer about a synced holding always says where and when it came from.
 
-PRIVACY: this data never leaves the machine. It is only ever read here and
-sent to the local Ollama server — never to a cloud API. holdings.csv is
-git-ignored so real positions are not committed.
+PRIVACY: locally this data never leaves the machine — it is only read here and
+sent to the local model server, never to a cloud API; holdings.csv is
+git-ignored. On the hosted site (PORTIQ_MODE=hosted) each signed-in user's
+files live in their own folder (scripts/workspace.py) and every default path
+below resolves to it.
 
 Usage:
     python scripts/portfolio_store.py          # print current holdings
@@ -23,8 +25,18 @@ import csv
 import re
 from pathlib import Path
 
+import workspace
+
 ROOT = Path(__file__).parent.parent
-HOLDINGS_PATH = ROOT / "data" / "portfolio" / "holdings.csv"
+HOLDINGS_PATH = ROOT / "data" / "portfolio" / "holdings.csv"   # local mode
+
+
+def holdings_path(path: Path | None = None) -> Path:
+    """The manual holdings file: an explicit path, else this request's user's (hosted), else HOLDINGS_PATH."""
+    if path is not None:
+        return path
+    ws = workspace.current()
+    return ws.holdings if ws else HOLDINGS_PATH
 
 
 SOURCE_LABELS = {"manual": "your holdings file", "csv": "CSV import", "cas": "CAS statement", "upstox": "Upstox",
@@ -53,7 +65,7 @@ def load_holdings(path: Path | None = None, snapshots_db: Path | None = None) ->
 def load_snapshot_holdings(db_path: Path | None = None) -> list[dict]:
     import portfolio_db
     out = []
-    for snap in portfolio_db.latest_snapshots(db_path or portfolio_db.DB_PATH):
+    for snap in portfolio_db.latest_snapshots(db_path):
         for h in snap["holdings"]:
             out.append({"ticker": h["ticker"], "quantity": h["quantity"], "avg_cost": h["avg_cost"],
                         "purchase_date": "", "source": snap["source"], "as_of": snap["fetched_at"],
@@ -62,8 +74,9 @@ def load_snapshot_holdings(db_path: Path | None = None) -> list[dict]:
     return out
 
 
-def load_manual_holdings(path: Path = HOLDINGS_PATH) -> list[dict]:
+def load_manual_holdings(path: Path | None = None) -> list[dict]:
     """Read holdings.csv -> [{ticker, quantity, avg_cost, purchase_date, source: "manual"}, ...]."""
+    path = holdings_path(path)
     if not path.exists():
         return []
     holdings = []
@@ -142,7 +155,7 @@ def validate_holdings(rows: list[dict]) -> tuple[list[dict], list[str]]:
     return holdings, errors
 
 
-def save_holdings(rows: list[dict], path: Path = HOLDINGS_PATH) -> list[str]:
+def save_holdings(rows: list[dict], path: Path | None = None) -> list[str]:
     """
     Validate and write holdings.csv. Returns the errors; nothing is written
     unless every row is valid. Writes to a temp file first, so a crash can't
@@ -151,6 +164,7 @@ def save_holdings(rows: list[dict], path: Path = HOLDINGS_PATH) -> list[str]:
     holdings, errors = validate_holdings(rows)
     if errors:
         return errors
+    path = holdings_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".csv.tmp")
     with open(tmp, "w", newline="", encoding="utf-8") as f:
@@ -162,7 +176,7 @@ def save_holdings(rows: list[dict], path: Path = HOLDINGS_PATH) -> list[str]:
     return []
 
 
-def add_holding(row: dict, path: Path = HOLDINGS_PATH) -> list[str]:
+def add_holding(row: dict, path: Path | None = None) -> list[str]:
     """
     Add one position and save. Buying more of a ticker already held merges the
     lots: shares add up, average cost becomes the weighted average, and the
@@ -172,7 +186,8 @@ def add_holding(row: dict, path: Path = HOLDINGS_PATH) -> list[str]:
     if errors or not new:
         return [e.removeprefix("Row 1: ") for e in errors] or ["Enter a ticker, shares and average cost."]
     new = new[0]
-    rows = load_holdings(path)
+    path = holdings_path(path)
+    rows = load_holdings(path)   # an explicit path: the manual file only, never synced snapshots
     held = next((h for h in rows if h["ticker"] == new["ticker"]), None)
     if held:
         total = held["quantity"] + new["quantity"]
@@ -242,6 +257,6 @@ def format_position(h: dict) -> str:
 if __name__ == "__main__":
     hs = load_holdings()
     if not hs:
-        print(f"No holdings found at {HOLDINGS_PATH}")
+        print(f"No holdings found at {holdings_path()}")
     for h in hs:
         print(format_position(h))

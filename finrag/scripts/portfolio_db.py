@@ -15,8 +15,18 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import workspace
+
 ROOT = Path(__file__).parent.parent
-DB_PATH = ROOT / "data" / "portfolio" / "portfolio.db"
+DB_PATH = ROOT / "data" / "portfolio" / "portfolio.db"   # local mode
+
+
+def db_path(path: Path | None = None) -> Path:
+    """An explicit path, else this request's user's DB (hosted — raises if nobody is signed in), else DB_PATH."""
+    if path is not None:
+        return path
+    ws = workspace.current()
+    return ws.db if ws else DB_PATH
 KEEP_SNAPSHOTS = 10  # per source
 
 HOLDINGS_TABLE = """CREATE TABLE IF NOT EXISTS holdings (
@@ -36,7 +46,8 @@ CREATE TABLE IF NOT EXISTS sync_log (
 """
 
 
-def connect(path: Path = DB_PATH) -> sqlite3.Connection:
+def connect(path: Path | None = None) -> sqlite3.Connection:
+    path = db_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None)  # explicit BEGIN/COMMIT below
     conn.row_factory = sqlite3.Row
@@ -90,8 +101,9 @@ def log_sync(conn: sqlite3.Connection, source: str, started_at: str, finished_at
                  "VALUES (?,?,?,?,?,?,?)", (source, started_at, finished_at, status, error_type, message, holdings_count))
 
 
-def delete_source(path: Path, source: str) -> int:
+def delete_source(path: Path | None, source: str) -> int:
     """Remove every snapshot of one source (its holdings go with them); sync_log is kept. Returns the count."""
+    path = db_path(path)
     if not path.exists():
         return 0
     conn = connect(path)
@@ -104,8 +116,9 @@ def delete_source(path: Path, source: str) -> int:
         conn.close()
 
 
-def latest_snapshots(path: Path = DB_PATH) -> list[dict]:
+def latest_snapshots(path: Path | None = None) -> list[dict]:
     """The newest snapshot of every source: [{source, fetched_at, prices_status, holdings: [row dicts]}]."""
+    path = db_path(path)
     if not path.exists():
         return []
     conn = connect(path)
@@ -118,7 +131,8 @@ def latest_snapshots(path: Path = DB_PATH) -> list[dict]:
         conn.close()
 
 
-def last_sync(path: Path = DB_PATH, source: str | None = None) -> dict | None:
+def last_sync(path: Path | None = None, source: str | None = None) -> dict | None:
+    path = db_path(path)
     if not path.exists():
         return None
     conn = connect(path)

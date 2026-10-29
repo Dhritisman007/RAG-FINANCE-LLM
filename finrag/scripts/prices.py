@@ -269,7 +269,7 @@ def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANU
     if use_snapshots:
         import portfolio_db
         from portfolio_store import source_label
-        for snap in portfolio_db.latest_snapshots(snapshot_db or portfolio_db.DB_PATH):
+        for snap in portfolio_db.latest_snapshots(snapshot_db):
             for h in snap["holdings"]:
                 if h["last_price"] and h["price_as_of"]:
                     current = prices.get(h["ticker"])

@@ -27,6 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import portfolio_db  # noqa: E402
+import workspace  # noqa: E402
 from brokers import BrokerAdapter, BrokerError, get_adapter, list_adapters  # noqa: E402
 from net_guard import NetworkBlocked, outbound_only  # noqa: E402
 
@@ -48,10 +49,15 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def sync(source: str, dry_run: bool = False, db_path: Path = portfolio_db.DB_PATH, adapter=None,
+def sync(source: str, dry_run: bool = False, db_path: Path | None = None, adapter=None,
          label: str | None = None, **adapter_kwargs) -> SyncResult:
     """Sync one source. A CSV or CAS import can carry a label ("zerodha", "mom") so several files
     coexist as separate snapshots ("csv:zerodha"); brokers are always stored under their own name."""
+    if workspace.hosted() and source not in ("csv", "cas"):  # the server's tokens are never a visitor's
+        return SyncResult(source, False, _now(), error_type="UnsupportedOperation",
+                          message="broker connections aren't available on the website — import your CAS "
+                                  "statement or a broker CSV instead")
+    db_path = portfolio_db.db_path(db_path)
     adapter = adapter or get_adapter(source, **adapter_kwargs)
     if label and source in ("csv", "cas"):
         source = f"{source}:{label}"
@@ -94,7 +100,7 @@ def sync(source: str, dry_run: bool = False, db_path: Path = portfolio_db.DB_PAT
     return result
 
 
-def status(db_path: Path = portfolio_db.DB_PATH, online: bool = True, sources: list[str] | None = None) -> list[dict]:
+def status(db_path: Path | None = None, online: bool = True, sources: list[str] | None = None) -> list[dict]:
     """Per source: auth state (online check for brokers with credentials) and snapshot age."""
     snaps = {s["source"]: s for s in portfolio_db.latest_snapshots(db_path)}
     rows = []
@@ -143,8 +149,10 @@ def main() -> None:
     parser.add_argument("--label", help="Name for a CSV import (e.g. zerodha): keeps several exports apart")
     parser.add_argument("--remove", metavar="SOURCE", help="Delete a source's snapshots (e.g. upstox, csv:zerodha)")
     parser.add_argument("--json", action="store_true", help="Machine-readable output (used by the app)")
-    parser.add_argument("--db", type=Path, default=portfolio_db.DB_PATH, help=argparse.SUPPRESS)  # tests
+    parser.add_argument("--db", type=Path, help=argparse.SUPPRESS)  # tests; the website passes each user's own DB
     args = parser.parse_args()
+    if workspace.hosted() and args.db is None:
+        parser.error("hosted mode: pass --db (the signed-in user's own database)")
     if args.remove:
         n = portfolio_db.delete_source(args.db, args.remove)
         print(json.dumps({"removed": n, "source": args.remove}) if args.json else f"Removed {n} snapshot(s) of {args.remove}")
