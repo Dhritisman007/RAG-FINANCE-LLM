@@ -585,7 +585,7 @@ Hosted mode is switched on by environment variables; without them PortIQ is the 
 | `PORTIQ_DATA_DIR` | where users' folders live (default `/data/portiq` — a Space's persistent storage) |
 | `PORTIQ_LLM_URL`, `PORTIQ_LLM_MODEL`, `PORTIQ_LLM_API_KEY`, `PORTIQ_ALLOW_REMOTE_LLM=1` | the model server (Inference Endpoint) — see the model section above |
 
-Google sign-in uses Streamlit's built-in `st.login` (OpenID Connect). Create an OAuth client in Google Cloud and put it in `finrag/.streamlit/secrets.toml` (git-ignored):
+Google sign-in uses Streamlit's built-in `st.login` (OpenID Connect). Create an OAuth client in Google Cloud — step by step in [docs/google-signin-setup.md](docs/google-signin-setup.md), including testing real sign-in on your Mac — and put it in `finrag/.streamlit/secrets.toml` (git-ignored):
 
 ```toml
 [auth]
