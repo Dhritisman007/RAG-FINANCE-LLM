@@ -551,7 +551,9 @@ def stock_view(holdings: list[dict], pending) -> None:
     for col, label, q in [(a, "Key risks", f"What are the key risks for {pick}?"),
                           (b, "Revenue & margins", f"What were {pick}'s revenue and profit in the latest year?"),
                           (c, "Business outlook", f"What does {pick}'s management say about the outlook?")]:
-        if col.button(label, key=f"q_{label}_{pick}", width="stretch", disabled=pending is not None):
+        if col.button(label, key=f"q_{label}_{pick}", width="stretch",
+                      disabled=pending is not None or assistant_problem is not None,
+                      help=assistant_problem and "The research assistant is off — see the right-hand pane"):
             ask(q)
             st.rerun(scope="app")
 
@@ -1166,6 +1168,11 @@ def assistant_pane(pending) -> None:
         st.session_state.messages = []
         st.rerun()
     box = st.container(height=640, border=True)
+    if assistant_problem:  # no model or no document store: the portfolio still works, questions don't
+        with box:
+            st.warning(assistant_problem)
+        st.chat_input("The research assistant is off until the problem above is fixed", disabled=True)
+        return
     with box:
         if not st.session_state.messages:
             st.markdown("**Ask about your holdings, a company's filings or annual report, or a finance concept.**")
@@ -1202,14 +1209,12 @@ def assistant_pane(pending) -> None:
 
 # ── Page ─────────────────────────────────────────────────────────────────────
 collection = get_collection()
-if collection is None:
-    st.error("Vector store not found — run `python scripts/build_vectorstore.py` first.")
-    st.stop()
 if "messages" not in st.session_state:
     st.session_state.messages = []
 pending = st.session_state.get("pending")
 
 models = r.local_models()
+model = None
 api_cfg = backends.api_config()  # an OpenAI-compatible server from PORTIQ_LLM_URL, if configured
 status, is_open = market_status()
 top = st.columns([4.4, 1.25, 1.1], vertical_alignment="center")
@@ -1246,15 +1251,18 @@ top[0].markdown(
     + (f'<span class="pill">☁ {html.escape(remote_host)} · {html.escape(model)}</span>' if remote_host else
        f'<span class="pill">🔒 Local · {html.escape(model if models else "no model")}</span>')
     + '</div>', unsafe_allow_html=True)
-if models:
+# Without a model or the document store only the research assistant is off — the portfolio
+# (holdings, prices, insights, import) needs neither.
+assistant_problem = (
+    "The document store wasn't found, so questions can't be answered yet. Build it once with "
+    "`python scripts/build_vectorstore.py`." if collection is None else
+    "No language model is running, so questions can't be answered right now — your portfolio still works. "
+    "Start the MLX server (`scripts/start_mlx_server.sh`, 127.0.0.1:8080) or Ollama (127.0.0.1:11434), or point "
+    "PORTIQ_LLM_URL / PORTIQ_LLM_MODEL at an OpenAI-compatible server (vLLM, a Hugging Face endpoint), then "
+    "reload this page. If Ollama's models live on the external drive and the Mac just restarted, Ollama may have "
+    "started before the drive mounted — quit and reopen it." if not models else None)
+if models and collection is not None:
     warm_up(model)
-if not models:
-    st.error("No models found. Start Ollama (127.0.0.1:11434) or the MLX server "
-             "(`scripts/start_mlx_server.sh`, 127.0.0.1:8080), or point PORTIQ_LLM_URL / PORTIQ_LLM_MODEL at an "
-             "OpenAI-compatible server (vLLM, a Hugging Face endpoint). If Ollama's models live on the external "
-             "drive and the Mac just restarted, Ollama may have started before the drive mounted and "
-             "fallen back to its default (empty) folder — quit and reopen Ollama.")
-    st.stop()
 
 left, right = st.columns([1.35, 1], gap="large")
 with left:
