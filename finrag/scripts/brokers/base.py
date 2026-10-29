@@ -83,7 +83,9 @@ class Holding:
 
     @property
     def ticker(self) -> str:
-        """The ticker the rest of FinRAG uses (Yahoo form): RELIANCE on NSE -> RELIANCE.NS."""
+        """The ticker the rest of FinRAG uses (Yahoo form): RELIANCE on NSE -> RELIANCE.NS; a fund -> MF:<ISIN>."""
+        if self.exchange.upper() == "MF":   # mutual fund: symbol is the ISIN, priced from AMFI's NAVs
+            return "MF:" + self.symbol.upper()
         return self.symbol.upper() + EXCHANGE_SUFFIX.get(self.exchange.upper(), "")
 
 

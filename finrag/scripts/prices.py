@@ -35,6 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from portfolio_store import load_holdings  # noqa: E402
+import mutual_funds  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 MARKET_PRICES_PATH = ROOT / "data" / "portfolio" / "market_prices.csv"
@@ -56,7 +57,7 @@ FX_TICKER = "USDINR=X"  # converts US holdings to ₹; a currency pair, so it re
 def normalize_ticker(ticker: str) -> str:
     """'BRK/B', 'brk.b' and 'BRK-B' are the same listing; 'reliance.ns' -> 'RELIANCE.NS'."""
     t = ticker.strip().upper()
-    if t.endswith(INDIA_SUFFIXES) or t.endswith("=X"):
+    if t.endswith(INDIA_SUFFIXES) or t.endswith("=X") or mutual_funds.is_mf(t):
         return t
     return re.sub(r"[/.]", "-", t)
 
@@ -68,11 +69,14 @@ def with_exchange(symbol: str, exchange: str) -> str:
 
 
 def currency(ticker: str) -> str:
-    return "INR" if normalize_ticker(ticker).endswith(INDIA_SUFFIXES) else "USD"
+    t = normalize_ticker(ticker)
+    return "INR" if t.endswith(INDIA_SUFFIXES) or mutual_funds.is_mf(t) else "USD"
 
 
 def display_symbol(ticker: str) -> tuple[str, str]:
-    """'RELIANCE.NS' -> ('RELIANCE', 'NSE'); 'AAPL' -> ('AAPL', 'US')."""
+    """'RELIANCE.NS' -> ('RELIANCE', 'NSE'); 'AAPL' -> ('AAPL', 'US'); 'MF:INF…' -> (scheme name, 'MF')."""
+    if mutual_funds.is_mf(ticker):
+        return mutual_funds.display_name(ticker), "MF"
     t = ticker.upper()
     for exchange, suffix in EXCHANGE_SUFFIX.items():
         if suffix and t.endswith(suffix):
@@ -150,9 +154,9 @@ def yahoo_quotes(tickers: list[str], download=None) -> dict[str, dict]:
     funds): {ticker: {"price", "prev_close", "as_of"}}. While the market is open
     the latest daily bar is today's, so "price" is live (Yahoo's delay applies).
     `download` is injectable for tests; defaults to yfinance.download. Yahoo sees
-    these tickers — never quantities or costs.
+    these tickers — never quantities or costs. Mutual funds (MF:…) are never sent: they're priced from AMFI.
     """
-    tickers = sorted({normalize_ticker(t) for t in tickers})
+    tickers = sorted({normalize_ticker(t) for t in tickers if not mutual_funds.is_mf(t)})
     if not tickers:
         return {}
     if download is None:
@@ -212,8 +216,8 @@ def yahoo_history(ticker: str, period: str = "1y", download=None) -> list[tuple[
 
 def yahoo_histories(tickers: list[str], period: str = "1y", download=None) -> dict[str, list[tuple[str, float]]]:
     """Daily closes for several tickers in ONE request: {ticker: [(YYYY-MM-DD, close), ...]}.
-    Index symbols like ^NSEI pass through unchanged. Yahoo sees these tickers."""
-    wanted = sorted({t if t.startswith("^") else normalize_ticker(t) for t in tickers})
+    Index symbols like ^NSEI pass through unchanged. Yahoo sees these tickers (never mutual funds)."""
+    wanted = sorted({t if t.startswith("^") else normalize_ticker(t) for t in tickers if not mutual_funds.is_mf(t)})
     if not wanted:
         return {}
     if download is None:
@@ -259,9 +263,10 @@ def price_stats(history: list[tuple[str, float]]) -> dict:
 
 def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANUAL_PRICES_PATH,
                 yahoo_path: Path = YAHOO_PRICES_PATH, snapshot_db: Path | None = None,
-                use_snapshots: bool = True) -> dict[str, dict]:
+                use_snapshots: bool = True, nav_path: Path = mutual_funds.NAV_PATH) -> dict[str, dict]:
     """
-    {ticker: {"price", "as_of", "source"}} — newest date wins; same date: manual > Yahoo > broker > Nasdaq.
+    {ticker: {"price", "as_of", "source"}} — newest date wins; same date: manual > Yahoo > AMFI > broker > Nasdaq.
+    Mutual funds (MF:<ISIN>) get AMFI's latest NAV.
     Broker prices come from the latest synced snapshots (portfolio_sync.py); missing ones are NULL there,
     never 0, so they're simply absent here.
     """
@@ -276,6 +281,11 @@ def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANU
                     if current is None or h["price_as_of"][:10] >= current["as_of"][:10]:
                         prices[h["ticker"]] = {"price": float(h["last_price"]), "as_of": h["price_as_of"],
                                                "source": f"{source_label(snap['source'])} last price"}
+    for isin, row in mutual_funds.load_navs(nav_path).items():
+        ticker = mutual_funds.ticker_for(isin)
+        current = prices.get(ticker)
+        if current is None or row["date"] >= current["as_of"][:10]:
+            prices[ticker] = {"price": row["nav"], "as_of": row["date"], "source": mutual_funds.SOURCE}
     for source_path in (market_path, yahoo_path):  # later sources win ties (over broker prices too)
         if source_path.exists():
             with open(source_path, newline="", encoding="utf-8") as f:

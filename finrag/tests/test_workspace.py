@@ -81,7 +81,7 @@ def test_two_users_never_see_each_other() -> None:
         assert not positions                                               # A's CAS holdings aren't B's
         workspace.use(a)
         tickers = {h["ticker"] for h in portfolio_store.load_holdings()}
-        assert tickers == {"AAPL", "RELIANCE.NS", "TCS.NS"}, tickers       # A: manual AAPL + CAS (RELIANCE, TCS)
+        assert tickers == {"AAPL", "RELIANCE.NS", "TCS.NS", "MF:INF000000001"}, tickers   # A: manual AAPL + CAS
         assert [h["ticker"] for h in portfolio_store.load_manual_holdings()] == ["AAPL"]   # B's TCS isn't here
         _, _, positions = r.plan_query("What risks does my RELIANCE position face?")
         assert [p["ticker"] for p in positions] == ["RELIANCE.NS"]

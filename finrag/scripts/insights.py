@@ -106,9 +106,9 @@ def headlines(alloc: dict, perf: dict, bench: dict[str, float], periods: dict[st
     if alloc:
         sym, pct = alloc["largest"]
         if pct >= CONCENTRATION_FLAG:
-            out.append(("warn", f"{sym} is {pct:.0f}% of your portfolio — one stock drives much of your result."))
+            out.append(("warn", f"{sym} is {pct:.0f}% of your portfolio — one holding drives much of your result."))
         else:
-            out.append(("good", f"No single stock is more than {pct:.0f}% of your portfolio."))
+            out.append(("good", f"No single holding is more than {pct:.0f}% of your portfolio."))
         if alloc["us_pct"] >= 50:
             out.append(("info", f"{alloc['us_pct']:.0f}% of your money is in US stocks, so the dollar–rupee rate "
                                 f"moves your rupee value too."))

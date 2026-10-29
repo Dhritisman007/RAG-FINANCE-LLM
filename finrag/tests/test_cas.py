@@ -79,20 +79,21 @@ def test_statement_to_holdings() -> None:
     with outbound_only([]):                     # mapping uses the bundled ISIN DB — no network
         r = holdings_from_cas(statement(), costs={"INE467B01029": 3600.0}, listed={})
     got = {h.ticker: (h.quantity, h.avg_cost, h.isin) for h in r.holdings}
-    assert got == {"RELIANCE.NS": (15.0, None, "INE002A01018"), "TCS.NS": (5.0, 3600.0, "INE467B01029")}, got
+    assert got == {"RELIANCE.NS": (15.0, None, "INE002A01018"), "TCS.NS": (5.0, 3600.0, "INE467B01029"),
+                   "MF:INF000000001": (3.0, None, "INF000000001")}, got           # a fund held in demat
     assert r.prices["RELIANCE"].last_price == 1250.0 and r.prices["TCS"].as_of == "2026-09-30"
     assert r.issuer == "CDSL" and r.accounts == 2 and r.statement_date == "2026-09-30"
     assert r.merged == ["RELIANCE is in more than one demat account — quantities added"]
     skipped = " | ".join(r.skipped)
     for expected in ("INF204KB14I2): no NSE symbol known", "INE009A01021) in account 1 (CDSL Demat Account): quantity 0",
-                     "mutual fund units aren't tracked yet", "bonds aren't tracked yet"):
+                     "bonds aren't tracked yet"):
         assert expected in skipped, skipped
     summary = r.summary()
-    assert "2 holding(s) imported from the CDSL statement for 01-Sep-2026 to 30-Sep-2026 (2 demat account(s))" in summary
+    assert "3 holding(s) imported from the CDSL statement for 01-Sep-2026 to 30-Sep-2026 (2 demat account(s))" in summary
     assert "average price unknown (a CAS doesn't include it): RELIANCE" in summary
     for private in (PAN, NAME, EMAIL, MOBILE, DP_ID, CLIENT_ID):
         assert private not in summary + skipped
-    print("PASS: a statement becomes holdings — ISIN→NSE symbol, accounts merged, ETF/MF/bond/zero rows reported, "
+    print("PASS: a statement becomes holdings — ISIN→NSE symbol, accounts merged, demat funds kept, bond/zero rows reported, "
           "average price unknown unless entered")
 
 
@@ -103,9 +104,9 @@ def test_etfs_from_nse_list() -> None:
                                                     balance=Decimal("4"), nav=Decimal("268.10"), value=Decimal("1072.4")))
     r = holdings_from_cas(data, listed={"INF204KB14I2": "NIFTYBEES"})
     got = {h.ticker: h.quantity for h in r.holdings}
-    assert got == {"RELIANCE.NS": 15.0, "TCS.NS": 5.0, "NIFTYBEES.NS": 24.0}, got   # 20 as equity + 4 as fund
+    assert got == {"RELIANCE.NS": 15.0, "TCS.NS": 5.0, "NIFTYBEES.NS": 24.0, "MF:INF000000001": 3.0}, got  # 20+4
     assert r.prices["NIFTYBEES"].last_price == 268.10
-    assert not any("INF204KB14I2" in s for s in r.skipped) and any("SOME LIQUID FUND" in s for s in r.skipped)
+    assert not any("INF204KB14I2" in s for s in r.skipped)
     import stock_list
     rows = stock_list.parse_nse_etf("Symbol,Underlying Asset,SecurityName,DateofListing,MarketLot,ISINNumber,FaceValue\n"
                                     "NIFTYBEES,Nifty 50,NIPINDETFNIFTYBEES,08-Jan-02,1,INF204KB14I2,1\n")
@@ -114,7 +115,7 @@ def test_etfs_from_nse_list() -> None:
                                      "INE467B01029,1\n")
     assert rows[0]["isin"] == "INF204KB14I2" and eq[0]["isin"] == "INE467B01029"   # NSE's real header names
     renamed = holdings_from_cas(statement(), listed={"INE467B01029": "TCSNEW"})      # NSE's current symbol wins
-    assert {h.symbol for h in renamed.holdings} == {"RELIANCE", "TCSNEW"}
+    assert {h.symbol for h in renamed.holdings} == {"RELIANCE", "TCSNEW", "INF000000001"}
     print("PASS: ETFs map via NSE's ETF list (under equities or mutual funds); stock-list rows carry ISINs")
 
 
@@ -124,12 +125,12 @@ def test_sync_writes_no_personal_data() -> None:
         pdf.write_bytes(b"%PDF-1.4 stand-in; the reader is faked")
         adapter = get_adapter("cas", file=pdf, password=PAN, reader=fake_reader(), listed={})
         res = portfolio_sync.sync("cas", db_path=db, adapter=adapter, label="mom")
-        assert res.ok and res.source == "cas:mom" and res.holdings_count == 2 and res.prices_status == "ok", res
+        assert res.ok and res.source == "cas:mom" and res.holdings_count == 3 and res.prices_status == "ok", res
         blob = db.read_bytes() + json.dumps(res.__dict__).encode() + repr(adapter).encode()
         for private in (PAN, NAME, EMAIL, MOBILE, ADDRESS, DP_ID, CLIENT_ID):
             assert private.encode() not in blob, f"{private} was stored"
         rows = dict(sqlite3.connect(db).execute("SELECT ticker, avg_cost FROM holdings").fetchall())
-        assert rows == {"RELIANCE.NS": None, "TCS.NS": None}           # unknown, not 0
+        assert rows == {"RELIANCE.NS": None, "TCS.NS": None, "MF:INF000000001": None}   # unknown, not 0
         held = portfolio_store.load_snapshot_holdings(db)
         line = portfolio_store.format_position(next(h for h in held if h["ticker"] == "TCS.NS"))
         assert "5 shares (average cost not known" in line and "from CAS statement (mom), as of" in line, line
@@ -141,7 +142,7 @@ def test_real_casparser_error_paths() -> None:
         pdf = encrypted_pdf(Path(d) / "locked.pdf")
         for pdf_in, password, error, text in [
                 (pdf, "WRONG9999Z", IncorrectPassword, "wrong password — a CAS opens with the first holder's PAN"),
-                (pdf, PAN, MalformedResponse, "doesn't read as an NSDL or CDSL statement"),   # opens, but isn't a CAS
+                (pdf, PAN, MalformedResponse, "doesn't read as a CAS from NSDL, CDSL, CAMS or KFintech"),   # opens, but isn't a CAS
                 (Path(d) / "x.pdf", PAN, MalformedResponse, "couldn't open this file as a PDF"),
                 (pdf, "", CredentialsMissing, "password is needed")]:
             if pdf_in.name == "x.pdf":

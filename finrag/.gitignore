@@ -49,3 +49,6 @@ config/broker_mappings/*
 
 # Streamlit secrets (Google sign-in client secret, cookie secret)
 .streamlit/secrets.toml
+
+# Mutual fund NAVs from AMFI (public, refreshed daily)
+data/portfolio/amfi_nav.csv

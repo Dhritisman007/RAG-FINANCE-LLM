@@ -230,7 +230,7 @@ def find_held_tickers(query: str, holdings: list[dict] | None = None) -> list[st
 
 
 def _price(x: float, ticker: str) -> str:
-    if not ticker.upper().endswith(INDIA_SUFFIXES):
+    if not ticker.upper().endswith(INDIA_SUFFIXES) and not ticker.upper().startswith("MF:"):
         return f"${x:,.2f}"
     whole, frac = f"{x:.2f}".split(".")  # Indian grouping: ₹12,34,567.80
     head, tail = whole[:-3], whole[-3:]
@@ -243,14 +243,19 @@ def _price(x: float, ticker: str) -> str:
 
 def format_position(h: dict) -> str:
     qty = f"{h['quantity']:g}"
+    if h["ticker"].upper().startswith("MF:"):  # a mutual fund: name it, and count units, not shares
+        import mutual_funds
+        label, unit = f"{mutual_funds.display_name(h['ticker'])} (mutual fund, {h['ticker']})", "units"
+    else:
+        label, unit = h["ticker"], "shares"
     bought = f", purchased {h['purchase_date']}" if h["purchase_date"] else ""
     source = h.get("source", "manual")
     origin = (f" — from {source_label(source)}, as of {h['as_of']}"
               if source != "manual" and h.get("as_of") else "")
     if h["avg_cost"] is None:  # e.g. a CAS statement: quantities only, no purchase price
-        return f"{h['ticker']}: {qty} shares (average cost not known — the source doesn't include it){bought}{origin}"
+        return f"{label}: {qty} {unit} (average cost not known — the source doesn't include it){bought}{origin}"
     cost_basis = h["quantity"] * h["avg_cost"]
-    return (f"{h['ticker']}: {qty} shares @ avg cost {_price(h['avg_cost'], h['ticker'])} "
+    return (f"{label}: {qty} {unit} @ avg cost {_price(h['avg_cost'], h['ticker'])} "
             f"(total cost basis {_price(cost_basis, h['ticker'])}){bought}{origin}")
 
 

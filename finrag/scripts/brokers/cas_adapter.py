@@ -29,7 +29,7 @@ from pathlib import Path
 
 from casparser import read_cas_pdf
 from casparser.exceptions import IncorrectPasswordError, ParserException
-from casparser.types import NSDLCASData
+from casparser.types import CASData, NSDLCASData
 
 from .base import (AuthStatus, BrokerAdapter, CredentialsMissing, Holding, IncorrectPassword, MalformedResponse,
                    Price)
@@ -46,13 +46,14 @@ class CasReport:
     period: tuple[str, str] = ("", "")                       # as printed on the statement
     statement_date: str | None = None                        # ISO date the prices are as of
     accounts: int = 0
+    account_word: str = "demat account(s)"                   # or "folio(s)" for a mutual-fund statement
     skipped: list[str] = field(default_factory=list)
     merged: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
         lines = [f"{len(self.holdings)} holding(s) imported from the {self.issuer} statement for "
-                 f"{self.period[0]} to {self.period[1]} ({self.accounts} demat account(s))"]
+                 f"{self.period[0]} to {self.period[1]} ({self.accounts} {self.account_word})"]
         lines += [f"  merged — {why}" for why in self.merged]
         lines += [f"  SKIPPED — {why}" for why in self.skipped]
         no_cost = [h.symbol for h in self.holdings if h.avg_cost is None]
@@ -62,7 +63,7 @@ class CasReport:
         return "\n".join(lines)
 
 
-def read_statement(pdf, password: str | None, reader=read_cas_pdf) -> NSDLCASData:
+def read_statement(pdf, password: str | None, reader=read_cas_pdf) -> NSDLCASData | CASData:
     """Open and parse a CAS. `pdf` is a path or a binary file object; `reader` is swappable for tests."""
     if not password:
         raise CredentialsMissing(f"cas: the statement's password is needed ({PASSWORD_HINT})", "cas")
@@ -72,15 +73,12 @@ def read_statement(pdf, password: str | None, reader=read_cas_pdf) -> NSDLCASDat
         raise IncorrectPassword(f"cas: wrong password — a CAS opens with {PASSWORD_HINT}", "cas") from None
     except ParserException as e:
         if str(e).startswith("Unhandled error while opening PDF"):  # casparser's wrapper for PDFium load errors
-            raise MalformedResponse("cas: couldn't open this file as a PDF — is it the statement from NSDL or "
-                                    "CDSL?", "cas") from None
-        raise MalformedResponse(f"cas: this doesn't read as an NSDL or CDSL statement "
+            raise MalformedResponse("cas: couldn't open this file as a PDF — is it a CAS from NSDL, CDSL, CAMS or "
+                                    "KFintech?", "cas") from None
+        raise MalformedResponse(f"cas: this doesn't read as a CAS from NSDL, CDSL, CAMS or KFintech "
                                 f"({str(e).replace(password, '***')})", "cas") from None
     except Exception as e:  # anything else from the PDF library: name it, never echo its text
         raise MalformedResponse(f"cas: couldn't open this file as a PDF statement ({type(e).__name__})", "cas") from None
-    if not isinstance(data, NSDLCASData):
-        raise MalformedResponse("cas: this is a CAMS / KFintech mutual-fund statement — upload the NSDL or CDSL "
-                                "CAS instead (it lists your demat holdings)", "cas")
     return data
 
 
@@ -99,40 +97,74 @@ def nse_isins() -> dict[str, str]:
     return {r["isin"]: r["symbol"] for r in stock_list.load_stocks() if r.get("isin")}
 
 
-def holdings_from_cas(data: NSDLCASData, costs: dict[str, float] | None = None,
+def _value_date(value) -> str | None:
+    """A valuation date from casparser: a date, or text such as 30-Sep-2026."""
+    return value.isoformat() if hasattr(value, "isoformat") else _iso_date(str(value or ""))
+
+
+def holdings_from_cas(data: NSDLCASData | CASData, costs: dict[str, float] | None = None,
                       listed: dict[str, str] | None = None) -> CasReport:
     """
     Statement -> holdings (pure apart from reading the stock list when `listed` is None).
-    `costs` maps ISIN -> average buy price the user entered; `listed` maps ISIN -> NSE symbol and
-    fills in what casparser's ISIN database lacks — ETFs, which a statement may list under
-    equities or under mutual funds depending on its layout.
+      - NSDL / CDSL (demat): shares and ETFs by NSE symbol; mutual fund units held in demat as funds.
+      - CAMS / KFintech (mutual funds): every scheme with units, with the cost the statement reports.
+    `costs` maps ISIN -> average buy price the user entered (it wins over the statement's); `listed`
+    maps ISIN -> NSE symbol and fills in what casparser's ISIN database lacks — ETFs, which a demat
+    statement may list under equities or under mutual funds depending on its layout.
     """
     costs = costs or {}
-    listed = nse_isins() if listed is None else listed
+    funds_statement = isinstance(data, CASData)
+    listed = {} if funds_statement else (nse_isins() if listed is None else listed)
     report = CasReport(issuer=str(getattr(data.file_type, "value", data.file_type)),
                        period=(data.statement_period.from_, data.statement_period.to),
-                       statement_date=_iso_date(data.statement_period.to), accounts=len(data.accounts),
+                       statement_date=_iso_date(data.statement_period.to),
+                       accounts=len(data.folios if funds_statement else data.accounts),
+                       account_word="folio(s)" if funds_statement else "demat account(s)",
                        warnings=list(data.parse_warnings))
-    if report.statement_date is None:
+    if report.statement_date is None and not funds_statement:
         report.warnings.append(f"statement date {data.statement_period.to!r} not recognised — its prices aren't kept")
     by_isin: dict[str, int] = {}
 
-    def add(symbol: str, exchange: str, qty: float, isin: str, price) -> None:
+    def add(symbol: str, exchange: str, qty: float, isin: str, price, cost: float | None = None,
+            price_date: str | None = None) -> None:
+        """cost: average buy price per unit from the statement, if it has one."""
         symbol = symbol.upper()
+        cost = costs.get(isin, cost)
         if isin in by_isin:
             i = by_isin[isin]
             prev = report.holdings[i]
-            report.holdings[i] = Holding(prev.symbol, prev.exchange, prev.quantity + qty, prev.avg_cost,
+            total = prev.quantity + qty
+            avg = ((prev.quantity * prev.avg_cost + qty * cost) / total
+                   if prev.avg_cost is not None and cost is not None else None)   # unknown if any part is
+            report.holdings[i] = Holding(prev.symbol, prev.exchange, total, costs.get(isin, avg),
                                          prev.currency, prev.source, prev.isin)
-            note = f"{prev.symbol} is in more than one demat account — quantities added"
+            note = f"{prev.symbol} is in more than one {'folio' if funds_statement else 'demat account'} — " \
+                   "quantities added"
             if note not in report.merged:
                 report.merged.append(note)
             return
         by_isin[isin] = len(report.holdings)
-        report.holdings.append(Holding(symbol=symbol, exchange=exchange, quantity=qty, avg_cost=costs.get(isin),
+        report.holdings.append(Holding(symbol=symbol, exchange=exchange, quantity=qty, avg_cost=cost,
                                        currency="INR", source="cas", isin=isin))
-        if report.statement_date and price and price > 0:
-            report.prices[symbol] = Price(symbol, float(price), report.statement_date)
+        when = price_date or report.statement_date
+        if when and price and price > 0:
+            report.prices[symbol] = Price(symbol, float(price), when)
+
+    def per_unit(total, units) -> float | None:
+        return float(total) / units if total is not None and units > 0 else None
+
+    if funds_statement:
+        for folio in data.folios:
+            for s in folio.schemes:
+                units = float(s.close)
+                if units <= 0:
+                    continue                                   # redeemed in full: nothing held
+                if not s.isin:
+                    report.skipped.append(f"{s.scheme}: no ISIN on the statement, so it can't be priced")
+                    continue
+                add(s.isin, "MF", units, s.isin, s.valuation.nav, per_unit(s.valuation.cost, units),
+                    _value_date(s.valuation.date))
+        return report
 
     for n, account in enumerate(data.accounts, 1):
         where = f"account {n} ({account.type})"   # never the DP / client ID
@@ -151,10 +183,14 @@ def holdings_from_cas(data: NSDLCASData, costs: dict[str, float] | None = None,
                 continue
             add(symbol, exchange, qty, eq.isin, eq.price)
         for mf in account.mutual_funds:
-            if mf.isin in listed and float(mf.balance) > 0:   # an exchange-traded fund held in demat
-                add(listed[mf.isin], "NSE", float(mf.balance), mf.isin, mf.nav)
-            else:
-                report.skipped.append(f"{mf.name or mf.isin} ({mf.isin}): mutual fund units aren't tracked yet")
+            units = float(mf.balance)
+            if units <= 0:
+                continue
+            if mf.isin in listed:                              # an exchange-traded fund held in demat
+                add(listed[mf.isin], "NSE", units, mf.isin, mf.nav)
+            else:                                              # a mutual fund held in demat
+                cost = float(mf.avg_cost) if mf.avg_cost is not None else per_unit(mf.total_cost, units)
+                add(mf.isin, "MF", units, mf.isin, mf.nav, cost)
         report.skipped += [f"{bd.name or bd.isin} ({bd.isin}): bonds aren't tracked yet" for bd in account.bonds]
     if data.nps:
         report.skipped.append("NPS holdings aren't tracked yet")
