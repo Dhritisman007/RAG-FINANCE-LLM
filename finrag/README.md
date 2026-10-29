@@ -36,6 +36,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 17 | Live portfolio (NSE/BSE, ₹) + MLX backend | `app.py`, `prices.py`, `portfolio_store.py`, `llm_backends.py` | ✅ Done — add stocks in the UI, live prices every 60 s, MLX fallback when Ollama is down |
 | 20 | Portfolio sources: CSV import + read-only broker sync | `scripts/brokers/`, `portfolio_sync.py`, `app.py` | ✅ Done — Upstox / Dhan / Groww fixture-tested, not yet on a live account |
 | 21 | CAS statement import (all brokers) | `brokers/cas_adapter.py`, `app.py` | ✅ Done — not yet tried on a real statement |
+| 22 | Website groundwork: sign-in, per-user data, privacy notice | `workspace.py`, `app.py` | ✅ Done locally — not deployed yet |
 
 ---
 
@@ -424,6 +425,14 @@ Most brokers can't be connected from another app (Groww documents no way at all)
 - Found and fixed on the way: empty cells in the holdings table showed Streamlit's "None" instead of "—" (Streamlit ignores formatters for empty numbers), now plain text.
 - Found and fixed on the way: huggingface_hub 1.x fetches an "agent registry" from huggingface.co once a day while loading even a cached model (`local_files_only` doesn't stop it), so the app contacted huggingface.co daily. The embedder now loads in the hub's offline mode; `tests/test_security.py` caught it when the day-old cache expired.
 
+### Day 22 — Website groundwork (hosted mode)
+Decided: host on Hugging Face Spaces, Google sign-in, a Hugging Face Inference Endpoint for the model, and users' holdings stored on the site's server **only after a clear notice**. This step makes the app safe for many users; deploying it is next. See **Hosting** under Setup.
+- `scripts/workspace.py`: each script run says whose data it handles (a context variable — Streamlit runs every session's script in its own thread, so a global would leak between users). Holdings file, snapshot DB, uploaded CSVs and saved column mappings all resolve to the signed-in user's own folder, named by a one-way hash of their sign-in ID. With nobody signed in, reading holdings **fails** instead of falling back to a shared file — the fail-safe that caught dialogs and the live-price refresh rerunning without the sign-in gate (now fixed: they re-apply the session's user).
+- Shared answer cache keyed per user (an answer can carry the asker's positions).
+- Broker connections are off on the website: `.env` tokens there would be the operator's, so every visitor's "sync" would import the operator's accounts. The sync refuses broker sources and `get_secret` returns nothing in hosted mode.
+- Privacy notice before anything can be added (asked again when it changes); ⚙ Settings → Download my data / Delete my data (type DELETE) / Sign out.
+- Local mode is unchanged (tested: same paths, Brokers tab, "Runs on this machine").
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -446,6 +455,7 @@ python tests/test_brokers.py          # adapter contract: parsing, expired token
 python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of, CLI --json/--label/--remove, column guesses
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 python tests/test_cas.py              # CAS → holdings, no personal data stored, wrong password / not a CAS, stdin password, DB migration, unknown costs
+python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
 
 `test_citations.py` covers: distinct chunks from the same filing section aren't merged; every `[N]` marker maps to the same chunk in the prompt and the printed list, even after dedup re-orders results; near-copy chunks are skipped and the slot is backfilled; citation parsing (`[N]`, `[a][b]`, `(Source: [N])`, lead-ins, formulas, reference lists); and the checker flags swapped, invalid and missing citations.
@@ -565,6 +575,34 @@ For a CSV, copy `config/broker_mappings/generic_example.json` to a `*.local.json
 - When answering a question nothing goes out at all — the models run on 127.0.0.1 (tested).
 - Snapshots stay in `data/portfolio/portfolio.db` (git-ignored); a failed sync never wipes the last good snapshot; an unavailable price is stored as unavailable, never 0; every answer built from a snapshot names its source and as-of time.
 - **Limitation:** one-click hosted "Connect broker" needs each broker's partner approval (Dhan documents a partner consent flow; Upstox multi-user access appears to require onboarding; Groww documents no third-party access). It is designed, not built — `docs/hosted-oauth-design.md`.
+
+### Hosting (the website) — groundwork done, not deployed yet
+Hosted mode is switched on by environment variables; without them PortIQ is the local app above.
+
+| Setting | Meaning |
+|---|---|
+| `PORTIQ_MODE=hosted` | sign-in required, per-user data, privacy notice, no broker connections; may bind beyond 127.0.0.1 |
+| `PORTIQ_DATA_DIR` | where users' folders live (default `/data/portiq` — a Space's persistent storage) |
+| `PORTIQ_LLM_URL`, `PORTIQ_LLM_MODEL`, `PORTIQ_LLM_API_KEY`, `PORTIQ_ALLOW_REMOTE_LLM=1` | the model server (Inference Endpoint) — see the model section above |
+
+Google sign-in uses Streamlit's built-in `st.login` (OpenID Connect). Create an OAuth client in Google Cloud and put it in `finrag/.streamlit/secrets.toml` (git-ignored):
+
+```toml
+[auth]
+redirect_uri = "https://<your-space>.hf.space/oauth2callback"
+cookie_secret = "<a long random string>"
+client_id = "<from Google Cloud>"
+client_secret = "<from Google Cloud>"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+```
+
+**Try hosted mode on this machine** (no Google client needed): `PORTIQ_DEV_LOGIN` signs you in as a test user, and is ignored unless the app is bound to 127.0.0.1:
+
+```bash
+PORTIQ_MODE=hosted PORTIQ_DATA_DIR=/tmp/portiq-users PORTIQ_DEV_LOGIN=alice@test streamlit run app.py --server.port 8502
+```
+
+Still to do (deploy): the Space, its persistent storage, shipping the document store (~720 MB) privately, the Google OAuth client, and the Inference Endpoint. Unverified: whether sign-in works when the Space is opened inside huggingface.co's page frame — use the Space's own `*.hf.space` address.
 
 ### Troubleshooting: "no models" after a restart
 Ollama's models live on the external drive (Ollama → Settings → Model location). If the Mac restarts and Ollama launches before the drive mounts, it logs `models path not accessible, using default` and serves an empty default folder — `ollama list` shows nothing and FinRAG can't answer. Quit and reopen Ollama (or restart its server) once the drive is mounted.
