@@ -2,7 +2,7 @@
 # This is the single source of truth for what gets ingested.
 # Day 2/3 scrapers read this file; they do not hardcode source lists themselves.
 
-target_total_docs: 172  # soft target (tier1 47 + tier2 75 + tier2_india 15 + tier3 35)
+target_total_docs: 207  # soft target (tier1 47 + tier2 75 + tier2_india 50 + tier3 35)
 
 tier1_fundamentals:
   description: >
@@ -172,7 +172,7 @@ tier2_india:
     Annual reports of large NSE-listed Indian companies (Day 18): the integrated
     report, Board's report, MD&A, corporate governance and the consolidated
     financial statements. Amounts are in ₹ (mostly ₹ crore).
-  target_count: 15  # 15 companies x latest annual report
+  target_count: 50  # the Nifty 50 x latest annual report
   doc_type: "annual_report"
   source:
     name: nse_annual_report
@@ -226,6 +226,112 @@ tier2_india:
     - symbol: ASIANPAINT
       name: "Asian Paints"
       sector: "Paints & consumer"
+    # Nifty 50 completed (Day 24): the rest of the index, from NSE's ind_nifty50list.csv (30 Oct 2026)
+    - symbol: ADANIENT
+      name: "Adani Enterprises"
+      sector: "Metals & Mining"
+    - symbol: ADANIPORTS
+      name: "Adani Ports and Special Economic Zone"
+      sector: "Services"
+    - symbol: APOLLOHOSP
+      name: "Apollo Hospitals Enterprise"
+      sector: "Healthcare"
+    - symbol: AXISBANK
+      name: "Axis Bank"
+      sector: "Financial Services"
+    - symbol: BSE
+      name: "BSE"
+      sector: "Financial Services"
+    - symbol: BAJAJ-AUTO
+      name: "Bajaj Auto"
+      sector: "Automobile and Auto Components"
+    - symbol: BAJAJFINSV
+      name: "Bajaj Finserv"
+      sector: "Financial Services"
+    - symbol: BEL
+      name: "Bharat Electronics"
+      sector: "Capital Goods"
+    - symbol: CIPLA
+      name: "Cipla"
+      sector: "Healthcare"
+    - symbol: COALINDIA
+      name: "Coal India"
+      sector: "Oil Gas & Consumable Fuels"
+    - symbol: DRREDDY
+      name: "Dr. Reddy's Laboratories"
+      sector: "Healthcare"
+    - symbol: EICHERMOT
+      name: "Eicher Motors"
+      sector: "Automobile and Auto Components"
+    - symbol: ETERNAL
+      name: "Eternal"
+      sector: "Consumer Services"
+    - symbol: GRASIM
+      name: "Grasim Industries"
+      sector: "Construction Materials"
+    - symbol: HCLTECH
+      name: "HCL Technologies"
+      sector: "Information Technology"
+    - symbol: HDFCLIFE
+      name: "HDFC Life Insurance Company"
+      sector: "Financial Services"
+    - symbol: HINDALCO
+      name: "Hindalco Industries"
+      sector: "Metals & Mining"
+    - symbol: INDIGO
+      name: "InterGlobe Aviation"
+      sector: "Services"
+    - symbol: JSWSTEEL
+      name: "JSW Steel"
+      sector: "Metals & Mining"
+    - symbol: JIOFIN
+      name: "Jio Financial Services"
+      sector: "Financial Services"
+    - symbol: KOTAKBANK
+      name: "Kotak Mahindra Bank"
+      sector: "Financial Services"
+    - symbol: M&M
+      name: "Mahindra & Mahindra"
+      sector: "Automobile and Auto Components"
+    - symbol: MAXHEALTH
+      name: "Max Healthcare Institute"
+      sector: "Healthcare"
+    - symbol: NTPC
+      name: "NTPC"
+      sector: "Power"
+    - symbol: NESTLEIND
+      name: "Nestle India"
+      sector: "Fast Moving Consumer Goods"
+    - symbol: ONGC
+      name: "Oil & Natural Gas Corporation"
+      sector: "Oil Gas & Consumable Fuels"
+    - symbol: POWERGRID
+      name: "Power Grid Corporation of India"
+      sector: "Power"
+    - symbol: SBILIFE
+      name: "SBI Life Insurance Company"
+      sector: "Financial Services"
+    - symbol: SHRIRAMFIN
+      name: "Shriram Finance"
+      sector: "Financial Services"
+    - symbol: TATACONSUM
+      name: "Tata Consumer Products"
+      sector: "Fast Moving Consumer Goods"
+    - symbol: TMPV
+      name: "Tata Motors Passenger Vehicles"
+      sector: "Automobile and Auto Components"
+    - symbol: TECHM
+      name: "Tech Mahindra"
+      sector: "Information Technology"
+    - symbol: TITAN
+      name: "Titan Company"
+      sector: "Consumer Durables"
+    - symbol: TRENT
+      name: "Trent"
+      sector: "Consumer Services"
+    - symbol: ULTRACEMCO
+      name: "UltraTech Cement"
+      sector: "Construction Materials"
 
 tier3_microstructure:
   description: >

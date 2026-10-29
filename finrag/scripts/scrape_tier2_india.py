@@ -30,6 +30,7 @@ import zipfile
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 import yaml
@@ -96,30 +97,47 @@ def load_companies() -> list[dict]:
 
 def latest_report(symbol: str, get=requests.get) -> dict | None:
     """NSE's newest annual-report entry for `symbol` (highest fiscal year)."""
-    resp = get(LISTING_URL.format(symbol=symbol), headers=HEADERS, timeout=30)
+    resp = get(LISTING_URL.format(symbol=quote(symbol, safe="")), headers=HEADERS, timeout=30)  # "M&M" -> M%26M
     resp.raise_for_status()
     rows = [r for r in (resp.json() or {}).get("data", []) if r.get("fileName")]
     return max(rows, key=lambda r: int(r["toYr"])) if rows else None
 
 
-def download_pdf(url: str, dest: Path) -> Path:
-    """Download (or reuse) the report PDF; a .zip is unpacked to its largest PDF."""
+def download_pdf(url: str, dest: Path, get=requests.get, attempts: int = 5) -> Path:
+    """
+    Download (or reuse) the report PDF; a .zip is unpacked to its largest PDF. NSE's archive
+    sometimes serves a cut-off copy with a matching Content-Length (Day 24: the same URL gave
+    16.7 MB, then 3.8 MB), so a file is kept only if it ends with %%EOF; otherwise retry.
+    """
     if dest.exists() and dest.stat().st_size > 0:
         return dest
-    resp = requests.get(url, headers=HEADERS, timeout=300)
-    resp.raise_for_status()
-    data = resp.content
-    if url.lower().endswith(".zip"):
-        with zipfile.ZipFile(io.BytesIO(data)) as z:
-            pdfs = [i for i in z.infolist() if i.filename.lower().endswith(".pdf")]
-            if not pdfs:
-                raise RuntimeError(f"no PDF inside {url}")
-            data = z.read(max(pdfs, key=lambda i: i.file_size))
-    if not data.startswith(b"%PDF"):
-        raise RuntimeError(f"not a PDF: {url}")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(data)
-    return dest
+    problem = ""
+    for attempt in range(attempts):
+        if attempt:
+            print(f"  {problem} — retrying ({attempt + 1}/{attempts})")
+            time.sleep(REQUEST_DELAY_SEC * 2 * attempt)
+        resp = get(url, headers=HEADERS, timeout=300)
+        resp.raise_for_status()
+        data = resp.content
+        expected = int(resp.headers.get("Content-Length") or 0)
+        if expected and len(data) != expected:
+            problem = f"incomplete download ({len(data):,} of {expected:,} bytes)"
+            continue
+        if url.lower().endswith(".zip"):
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                pdfs = [i for i in z.infolist() if i.filename.lower().endswith(".pdf")]
+                if not pdfs:
+                    raise RuntimeError(f"no PDF inside {url}")
+                data = z.read(max(pdfs, key=lambda i: i.file_size))
+        if not data.startswith(b"%PDF"):
+            raise RuntimeError(f"not a PDF: {url}")
+        if b"%%EOF" not in data[-2048:]:      # a complete PDF ends with %%EOF; never cache a truncated one
+            problem = f"truncated PDF ({len(data):,} bytes, no end-of-file marker)"
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        return dest
+    raise RuntimeError(f"{problem} after {attempts} tries: {url}")
 
 
 # ── Side-by-side Standalone | Consolidated tables (Day 19) ─────────────────

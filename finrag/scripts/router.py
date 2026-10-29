@@ -76,13 +76,53 @@ CORPUS_COMPANIES = {
     "SUNPHARMA.NS": ["sun pharma", "sun pharmaceutical"],
     "TATASTEEL.NS": ["tata steel"],
     "ASIANPAINT.NS": ["asian paints"],
+    # Day 24: the rest of the Nifty 50 (NSE's list, 30 Oct 2026)
+    "ADANIENT.NS": ["adani enterprises"],
+    "ADANIPORTS.NS": ["adani ports", "apsez"],
+    "APOLLOHOSP.NS": ["apollo hospitals"],
+    "AXISBANK.NS": ["axis bank"],
+    "BSE.NS": ["bse limited", "bse ltd"],              # bare "BSE" is usually the exchange: see NAME_ONLY
+    "BAJAJ-AUTO.NS": ["bajaj auto"],
+    "BAJAJFINSV.NS": ["bajaj finserv"],
+    "BEL.NS": ["bharat electronics"],
+    "CIPLA.NS": ["cipla"],
+    "COALINDIA.NS": ["coal india"],
+    "DRREDDY.NS": ["dr. reddy's", "dr reddy's", "dr. reddys", "dr reddys", "dr. reddy", "dr reddy"],
+    "EICHERMOT.NS": ["eicher motors", "royal enfield"],
+    "ETERNAL.NS": ["zomato", "blinkit"],                # "Eternal" itself only capitalised
+    "GRASIM.NS": ["grasim"],
+    "HCLTECH.NS": ["hcl technologies", "hcl tech"],
+    "HDFCLIFE.NS": ["hdfc life"],
+    "HINDALCO.NS": ["hindalco"],
+    "INDIGO.NS": ["interglobe aviation", "interglobe"],  # "IndiGo" only capitalised (indigo is a colour)
+    "JSWSTEEL.NS": ["jsw steel"],
+    "JIOFIN.NS": ["jio financial services", "jio financial", "jio finance"],
+    "KOTAKBANK.NS": ["kotak mahindra bank", "kotak bank", "kotak"],
+    "M&M.NS": ["mahindra & mahindra", "mahindra and mahindra"],
+    "MAXHEALTH.NS": ["max healthcare"],
+    "NTPC.NS": [],
+    "NESTLEIND.NS": ["nestle india", "nestlé india"],
+    "ONGC.NS": ["oil and natural gas corporation", "oil & natural gas corporation"],
+    "POWERGRID.NS": ["power grid corporation", "power grid corp"],
+    "SBILIFE.NS": ["sbi life"],
+    "SHRIRAMFIN.NS": ["shriram finance"],
+    "TATACONSUM.NS": ["tata consumer products", "tata consumer"],
+    "TMPV.NS": ["tata motors passenger vehicles", "tata motors"],   # the listed Tata Motors after its demerger
+    "TECHM.NS": ["tech mahindra"],
+    "TITAN.NS": ["titan company"],                        # "Titan" itself only capitalised
+    "TRENT.NS": ["zudio"],                               # "Trent" itself only capitalised
+    "ULTRACEMCO.NS": ["ultratech cement", "ultratech"],
 }
 # Names that are also ordinary words ("a travel visa", "meta-analysis", "the
 # Amazon river") count only when capitalised.
 CASE_SENSITIVE_NAMES = {"V": ["Visa"], "META": ["Meta"], "AMZN": ["Amazon"],
                         # "reliance on debt", "icici" in prose are rare, but "Reliance" lowercase is a word
                         "RELIANCE.NS": ["Reliance", "RIL"], "SBIN.NS": ["SBI"], "HINDUNILVR.NS": ["HUL"],
-                        "ICICIBANK.NS": ["ICICI"], "HDFCBANK.NS": ["HDFC Bank"]}
+                        "ICICIBANK.NS": ["ICICI"], "HDFCBANK.NS": ["HDFC Bank"],
+                        "ETERNAL.NS": ["Eternal"], "INDIGO.NS": ["IndiGo", "Indigo"], "TITAN.NS": ["Titan"],
+                        "TRENT.NS": ["Trent"], "SBILIFE.NS": ["SBI Life"]}
+# Symbols that are also something else: only the company's name counts ("listed on BSE" is the exchange).
+NAME_ONLY = {"BSE.NS"}
 
 
 def filing_key(ticker: str) -> str:
@@ -271,15 +311,22 @@ def route_query(query: str, holdings: list[dict] | None = None, allow_portfolio:
     held_key = {filing_key(h["ticker"]): h["ticker"] for h in holdings} if allow_portfolio else {}
 
     # Corpus companies mentioned by ticker (uppercase) or by name
-    companies = []
+    found: dict[str, list[tuple[int, int]]] = {}
     for ticker, names in CORPUS_COMPANIES.items():
         symbol = re.escape(symbol_of(ticker))
         ticker_re = (SHORT_TICKER_RE.format(t=symbol) if len(symbol) <= 2
                      else rf"(?<![A-Za-z]){symbol}(?![A-Za-z])")
-        if re.search(ticker_re, query) or \
-           any(re.search(rf"(?<![\w&]){re.escape(n)}(?![\w&])", query, re.I) for n in names) or \
-           any(re.search(rf"\b{re.escape(n)}\b", query) for n in CASE_SENSITIVE_NAMES.get(ticker, [])):
-            companies.append(ticker)
+        spans = [] if ticker in NAME_ONLY else [m.span() for m in re.finditer(ticker_re, query)]
+        spans += [m.span() for n in names for m in re.finditer(rf"(?<![\w&]){re.escape(n)}(?![\w&])", query, re.I)]
+        spans += [m.span() for n in CASE_SENSITIVE_NAMES.get(ticker, []) for m in re.finditer(rf"\b{re.escape(n)}\b", query)]
+        if spans:
+            found[ticker] = spans
+
+    def inside_longer(span: tuple[int, int], ticker: str) -> bool:
+        """A name inside another company's longer name belongs to that one: "Jio" in "Jio Financial", "SBI" in "SBI Life"."""
+        return any(o[0] <= span[0] and span[1] <= o[1] and o[1] - o[0] > span[1] - span[0]
+                   for other, spans in found.items() if other != ticker for o in spans)
+    companies = [t for t, spans in found.items() if not all(inside_longer(s, t) for s in spans)]
 
     held = find_held_tickers(query, holdings) if allow_portfolio else []
     portfolio_words = _find(PORTFOLIO_PHRASES, query) if allow_portfolio else []

@@ -163,7 +163,7 @@ def test_indian_holdings() -> None:
             ("What risks does my RELIANCE position face?", ["RELIANCE.NS"], ["RELIANCE.NS"]),
             ("What risks does Reliance face for me?", ["RELIANCE.NS"], ["RELIANCE.NS"]),   # by name
             ("Should I worry about my Wipro shares?", ["WIPRO.BO"], []),       # no annual report in the corpus
-            ("How is M&M doing for me?", ["M&M.NS"], []),
+            ("How is M&M doing for me?", ["M&M.NS"], ["M&M.NS"]),               # "&" in the symbol; Nifty 50 report
             ("What does my TCS holding depend on?", ["TCS.BO"], ["TCS.NS"])]:   # BSE holding, NSE report
         d = route_query(q, holdings=holdings)
         assert d.route == "portfolio" and d.held_tickers == held and d.plan.tickers == filings, (q, d.held_tickers, d.plan)
@@ -178,6 +178,16 @@ def test_indian_company_detection() -> None:
         "What did HDFC Bank say about deposits?": ["HDFCBANK.NS"], "How exposed is L&T to order backlog?": ["LT.NS"],
         "What is SBI's net interest margin?": ["SBIN.NS"], "Bharti Airtel ARPU trend": ["BHARTIARTL.NS"],
         "What was Jio Platforms' revenue?": ["RELIANCE.NS"],   # a subsidiary -> its parent's annual report
+        # Nifty 50 (Day 24): a name inside a longer company name belongs to that company
+        "What is Jio Financial Services' loan book?": ["JIOFIN.NS"],             # not Reliance via "jio"
+        "SBI Life premium growth": ["SBILIFE.NS"], "SBI Life vs HDFC Life": ["HDFCLIFE.NS", "SBILIFE.NS"],
+        "Kotak Mahindra Bank deposits": ["KOTAKBANK.NS"],                        # not M&M via "mahindra"
+        "Tech Mahindra attrition": ["TECHM.NS"], "Zomato's quick commerce losses": ["ETERNAL.NS"],
+        "Is Eternal profitable?": ["ETERNAL.NS"], "Dr. Reddy's US generics": ["DRREDDY.NS"],
+        "BSE Ltd's transaction revenue": ["BSE.NS"],
+        # the exchange, a colour and a lowercase word are not companies
+        "Is Infosys listed on both NSE and BSE?": ["INFY.NS"], "an indigo-coloured logo": [],
+        "an eternal question about compounding": [],
         # ordinary words that must NOT match a company
         "Is reliance on short-term debt risky?": [],
         # known limitation: an uppercase "ITC" always means the company, even as "input tax credit"
@@ -188,7 +198,8 @@ def test_indian_company_detection() -> None:
         assert got == want, (q, got, want)
     d = route_query("What was Reliance's revenue in FY26?", HOLDINGS)
     assert d.route == "technical" and d.plan.tickers == ["RELIANCE.NS"]
-    print("PASS: 15 Indian companies by symbol or name; lowercase 'reliance' is just a word")
+    print("PASS: Nifty 50 companies by symbol or name; longer names win (Jio Financial, SBI Life); "
+          "'listed on BSE', 'indigo', 'eternal', lowercase 'reliance' are just words")
 
 
 def test_annual_questions_read_the_10k() -> None:

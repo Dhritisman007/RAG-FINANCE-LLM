@@ -123,7 +123,46 @@ def test_dual_tables_labelled() -> None:
     print("PASS: Standalone|Consolidated rows labelled per value (any column order); odd rows and prose untouched")
 
 
+def _downloads(Resp, full: bytes, cut: bytes) -> None:
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        served = iter([cut, cut, full])
+        dest = india.download_pdf("https://x/a.pdf", Path(d) / "a.pdf", get=lambda url, **kw: Resp(next(served)))
+        assert dest.read_bytes() == full                                  # retried until complete
+        try:
+            india.download_pdf("https://x/b.pdf", Path(d) / "b.pdf", get=lambda url, **kw: Resp(cut), attempts=3)
+        except RuntimeError as e:
+            assert "truncated PDF" in str(e) and "after 3 tries" in str(e)
+        else:
+            raise AssertionError("a truncated PDF must not be saved")
+        assert not (Path(d) / "b.pdf").exists()                           # nothing cached to be reused later
+
+
+def test_downloads_never_keep_a_truncated_pdf() -> None:
+    """NSE's archive sometimes serves a cut-off copy with a matching Content-Length; and "M&M" must be URL-encoded."""
+    class Resp:
+        def __init__(self, data):
+            self.content, self.headers = data, {"Content-Length": str(len(data))}
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": []}
+    full, cut = b"%PDF-1.7\n...pages...\n%%EOF\n", b"%PDF-1.7\n...pag"
+    real_sleep, india.time.sleep = india.time.sleep, lambda s: None   # no real back-off waits in a test
+    try:
+        _downloads(Resp, full, cut)
+    finally:
+        india.time.sleep = real_sleep
+    asked = []
+    india.latest_report("M&M", get=lambda url, **kw: asked.append(url) or Resp(b""))
+    assert asked[0].endswith("symbol=M%26M"), asked
+    print("PASS: truncated PDFs are retried and never cached; symbols like M&M are URL-encoded for NSE")
+
+
 if __name__ == "__main__":
+    test_downloads_never_keep_a_truncated_pdf()
     test_rupee_symbol_repair()
     test_sections_kept_and_skipped()
     test_slug_and_title()
