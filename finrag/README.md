@@ -37,6 +37,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 20 | Portfolio sources: CSV import + read-only broker sync | `scripts/brokers/`, `portfolio_sync.py`, `app.py` | ✅ Done — Upstox / Dhan / Groww fixture-tested, not yet on a live account |
 | 21 | CAS statement import (all brokers) | `brokers/cas_adapter.py`, `app.py` | ✅ Done — not yet tried on a real statement |
 | 22 | Website groundwork: sign-in, per-user data, privacy notice | `workspace.py`, `app.py` | ✅ Done locally — not deployed yet |
+| 23 | Mutual funds (CAMS / KFintech CAS, AMFI NAVs) | `mutual_funds.py`, `brokers/cas_adapter.py` | ✅ Done — not yet tried on a real statement |
 
 ---
 
@@ -433,6 +434,12 @@ Decided: host on Hugging Face Spaces, Google sign-in, a Hugging Face Inference E
 - Privacy notice before anything can be added (asked again when it changes); ⚙ Settings → Download my data / Delete my data (type DELETE) / Sign out.
 - Local mode is unchanged (tested: same paths, Brokers tab, "Runs on this machine").
 
+### Day 23 — Mutual funds
+Most Indian investors hold mutual funds; PortIQ skipped them. Now:
+- **Import:** the CAS from **CAMS or KFintech** (⇅ Import → CAS statement) — every scheme with units, with the **cost** the statement reports (weighted across folios; unknown if any lot's cost is missing). Fund units held in a demat account (NSDL/CDSL CAS) are imported too. A fund statement is its own source (`cas:funds`), so it never replaces your demat statement.
+- **Prices:** AMFI's daily NAV file (`scripts/mutual_funds.py`; `https://portal.amfiindia.com/spages/NAVAll.txt` — the old www.amfiindia.com address redirects there; 8 columns, checked 29 Oct 2026). The whole file is downloaded (~18,000 ISINs), at most every 6 hours, so it reveals nothing about anyone's funds; fund ISINs are never sent to Yahoo. Day change = latest NAV vs the previous one the cache saw (so it appears from the second day).
+- **Shown as:** `MF:<ISIN>` holdings named from AMFI ("HDFC Corporate Bond Fund · Direct · Growth"), valued in ₹; answers say "units"; the stock view shows a NAV card. Not yet: NAV history/charts for funds — the 1-year insights say they cover stocks only.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -455,6 +462,7 @@ python tests/test_brokers.py          # adapter contract: parsing, expired token
 python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the last good one, NULL prices, source + as-of, CLI --json/--label/--remove, column guesses
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 python tests/test_cas.py              # CAS → holdings, no personal data stored, wrong password / not a CAS, stdin password, DB migration, unknown costs
+python tests/test_mutual_funds.py     # AMFI NAV parsing + cache (previous NAV, bad files), ₹ pricing, never sent to Yahoo, CAMS statement with costs
 python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
 
@@ -534,6 +542,7 @@ For a server that is **not** on the same machine (e.g. `https://<name>.endpoints
 
 | Source | Status | Holdings | Prices | Auth |
 |---|---|---|---|---|
+| **Mutual funds** (CAMS / KFintech CAS) | ✅ working; tested with casparser's data model — not yet with a real statement | every scheme with units, with cost | daily NAV from AMFI | the PDF password |
 | **CAS statement** (NSDL / CDSL) | ✅ working; tested with casparser's data model and an encrypted test PDF — not yet with a real statement | every demat account under your PAN, all brokers, in one PDF | statement-date prices as a fallback (live prices from Yahoo) | the PDF password (your PAN) |
 | **CSV / broker export** | ✅ working | any export, via a column-mapping JSON | — (Yahoo / manual prices) | none |
 | **Upstox** | ✅ implemented, fixture-tested; not yet run against a live account | `GET /v2/portfolio/long-term-holdings` | `GET /v3/market-quote/ltp` | your access token (expires 3:30 AM daily) |
