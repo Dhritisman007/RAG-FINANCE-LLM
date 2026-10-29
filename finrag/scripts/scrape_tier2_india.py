@@ -224,9 +224,13 @@ def clean_text(text: str) -> str:
 def page_section(lines: list[str]) -> str | None:
     """The section named in a page's running header (or financial-statement footer), if any."""
     for line in lines[:HEADER_LINES]:
-        for name, pattern, _ in SECTIONS:
-            if re.search(pattern, line, re.I):
-                return name
+        named = [name for name, pattern, _ in SECTIONS if re.search(pattern, line, re.I)]
+        if len(named) > 1:
+            # A navigation bar listing several sections ("... Standalone Financial Statements Consolidated
+            # Financial Statements" on every ONGC page): the highlighted one is lost in text, so it says nothing.
+            continue
+        if named:
+            return named[0]
     for line in lines[-HEADER_LINES:]:
         m = FOOTER_RE.match(line)
         if m:

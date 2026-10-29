@@ -123,6 +123,15 @@ def test_dual_tables_labelled() -> None:
     print("PASS: Standalone|Consolidated rows labelled per value (any column order); odd rows and prose untouched")
 
 
+def test_navigation_bar_is_not_a_section() -> None:
+    """ONGC prints a bar listing several sections on every page; it must not label the page (Day 24)."""
+    bar = "Annexures to the Board’s Report Standalone Financial Statements Consolidated Financial Statements"
+    assert india.page_section([bar, "Unified. Digital. Sustainable.", "Note 12: Borrowings"]) is None
+    assert india.page_section([bar, "Overview Consolidated Financial Statements"]) == "Consolidated Financial Statements"
+    assert india.page_section(["Standalone Financial Statements", "Balance Sheet"]) == "Standalone Financial Statements"
+    print("PASS: a header line naming several sections (a navigation bar) doesn't decide the page's section")
+
+
 def _downloads(Resp, full: bytes, cut: bytes) -> None:
     import tempfile
     with tempfile.TemporaryDirectory() as d:
@@ -162,6 +171,7 @@ def test_downloads_never_keep_a_truncated_pdf() -> None:
 
 
 if __name__ == "__main__":
+    test_navigation_bar_is_not_a_section()
     test_downloads_never_keep_a_truncated_pdf()
     test_rupee_symbol_repair()
     test_sections_kept_and_skipped()
