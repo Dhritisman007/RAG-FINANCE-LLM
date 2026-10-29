@@ -39,6 +39,7 @@ import llm_backends as backends  # noqa: E402
 import prices  # noqa: E402
 import prompts  # noqa: E402
 import insights  # noqa: E402
+import mutual_funds  # noqa: E402
 import portfolio_db  # noqa: E402
 import workspace  # noqa: E402
 from brokers.credentials import get_secret  # noqa: E402
@@ -637,6 +638,19 @@ def stock_view(holdings: list[dict], pending) -> None:
     pick = st.selectbox("Stock", list(names), label_visibility="collapsed", key="stock_pick")
     h = names[pick]
     cur = prices.currency(h["ticker"])
+    if mutual_funds.is_mf(h["ticker"]):  # funds: one NAV a day from AMFI, no price history here yet
+        q = mutual_funds.quotes([h["ticker"]]).get(h["ticker"].upper())
+        avg = h["avg_cost"]
+        ret = (q["price"] / avg - 1) * 100 if q and avg else None
+        cells = [("Latest NAV", prices.money(q["price"]) if q else "—", ""), ("NAV date", q["as_of"] if q else "—", ""),
+                 ("Your avg cost", prices.money(avg) if avg is not None else "—", ""),
+                 ("Your return", f"{ret:+.1f}%" if ret is not None else "—", tone(ret))]
+        st.markdown('<div class="stats">' + "".join(
+            f'<div class="stat"><div class="label">{label}</div><div class="value {cls}">{html.escape(v)}</div></div>'
+            for label, v, cls in cells) + "</div>", unsafe_allow_html=True)
+        st.markdown('<p class="footnote">Mutual fund · NAV from AMFI, published once a day · price history and '
+                    "charts for funds aren't available yet</p>", unsafe_allow_html=True)
+        return
     try:
         history = cached_history(h["ticker"])
     except Exception as e:
@@ -717,6 +731,10 @@ def insights_view(holdings: list[dict], df, tot: dict) -> None:
     lines = insights.headlines(alloc, perf, bench, periods)
     st.markdown("".join(f'<div class="insight {tone_}"><div class="dot"></div><div>{html.escape(text)}</div></div>'
                         for tone_, text in lines), unsafe_allow_html=True)
+    funds = [h for h in holdings if mutual_funds.is_mf(h["ticker"])]
+    if funds and perf:  # history comes from Yahoo, which has no Indian fund NAVs
+        st.caption(f"The 1-year return, volatility and worst drop cover your stocks only — {len(funds)} mutual "
+                   "fund(s) have no price history here yet. They are included in today's value and allocation.")
     if perf:
         sym, pct = alloc["largest"] if alloc else ("—", 0)
         st.markdown('<div class="kpis">'
@@ -915,14 +933,17 @@ def cas_import_ui() -> None:
                "account under your PAN — whichever brokers you use (Zerodha, Groww, Upstox, …) — in one PDF. It is "
                "e-mailed to you every month, and NSDL's and CDSL's websites let you download it again. PortIQ reads "
                + ("it on its server, deletes the PDF right after, " if HOSTED else "it on this computer ")
-               + "and keeps only the holdings — not your name, PAN, address or account numbers.")
+               + "and keeps only the holdings — not your name, PAN, address or account numbers. "
+               "**Mutual funds** held outside demat: upload the CAS from CAMS or KFintech too — it includes what "
+               "you invested.")
     up = st.file_uploader("CAS statement (PDF)", type=["pdf"], key="cas_upload")
     if up is None:
         return
     c1, c2 = st.columns([1.2, 1])
     password = c1.text_input("PDF password", type="password", key="cas_password",
-                             help=f"NSDL and CDSL lock the PDF with {PASSWORD_HINT}. It is used only to open the "
-                                  "file — never saved or logged.")
+                             help=f"NSDL and CDSL lock the PDF with {PASSWORD_HINT}; a CAMS or KFintech statement "
+                                  "usually with the password you chose when requesting it. It is used only to open "
+                                  "the file — never saved or logged.")
     label = re.sub(r"[^a-z0-9-]+", "-", c2.text_input(
         "Whose statement? (optional)", max_chars=24, key="cas_label",
         help="Only needed if you import several people's statements, e.g. 'mom'.").lower()).strip("-")
@@ -942,33 +963,43 @@ def cas_import_ui() -> None:
             return
         st.session_state.cas_read = cached = (digest, report)  # holdings only — the statement itself isn't kept
     report = cached[1]
+    funds = report.account_word == "folio(s)"
+    if funds:  # a fund statement is its own source, so it never replaces your demat (shares) statement
+        label = f"{label}-funds" if label else "funds"
     source = f"cas:{label}" if label else "cas"
     previous = next((s for s in portfolio_db.latest_snapshots() if s["source"] == source), None)
     known = {h["isin"]: h["avg_cost"] for h in (previous or {}).get("holdings", [])
              if h["isin"] and h["avg_cost"] is not None}
     st.markdown(f"**{len(report.holdings)} holding(s) found** · {report.issuer} statement for {report.period[0]} "
-                f"to {report.period[1]} · {report.accounts} demat account(s)")
+                f"to {report.period[1]} · {report.accounts} {report.account_word}")
     edited = None
     if report.holdings:
         import pandas as pd
-        table = pd.DataFrame([{"Stock": h.symbol, "Shares": h.quantity,
+        table = pd.DataFrame([{"Holding": mutual_funds.display_name(h.symbol) if h.exchange == "MF" else h.symbol,
+                               "Quantity": h.quantity,
                                "Statement price": report.prices[h.symbol].last_price if h.symbol in report.prices else None,
-                               "Avg buy price": known.get(h.isin), "ISIN": h.isin} for h in report.holdings])
+                               "Avg buy price": h.avg_cost if h.avg_cost is not None else known.get(h.isin),
+                               "ISIN": h.isin} for h in report.holdings])
         table["Avg buy price"] = table["Avg buy price"].astype(float)  # blank cells, not "None"
-        st.caption("A CAS doesn't say what you paid. Enter your **average buy price** to see P&L for a holding, or "
-                   "leave it blank — the holding is still valued, but left out of Invested and P&L."
-                   + (" Prices from your previous import of this statement are filled in — check them if you bought "
-                      "or sold since." if known else ""))
+        if all(h.avg_cost is not None for h in report.holdings):
+            st.caption("Average buy prices come from the statement — change any that look wrong.")
+        else:
+            st.caption("The statement doesn't say what you paid for some holdings. Enter your **average buy price** "
+                       "to see P&L for them, or leave it blank — the holding is still valued, but left out of "
+                       "Invested and P&L."
+                       + (" Prices from your previous import of this statement are filled in — check them if you "
+                          "bought or sold since." if known else ""))
         edited = st.data_editor(
             table, hide_index=True, width="stretch", key=f"cas_costs_{digest[:12]}",
-            disabled=["Stock", "Shares", "Statement price", "ISIN"], height=min(320, 38 + 35 * len(table)),
-            column_config={"Shares": st.column_config.NumberColumn(format="%g"),
+            disabled=["Holding", "Quantity", "Statement price", "ISIN"], height=min(320, 38 + 35 * len(table)),
+            column_config={"Quantity": st.column_config.NumberColumn(help="Shares, or units of a fund", format="%g"),
                            "Statement price": st.column_config.NumberColumn(
                                "Statement price (₹)", format="%.2f",
-                               help=f"Market price on the statement date ({report.statement_date or 'unknown'})"),
+                               help="Market price or fund NAV on the statement's valuation date"),
                            "Avg buy price": st.column_config.NumberColumn(
                                "Avg buy price (₹)", min_value=0.0, format="%.2f",
-                               help="What you paid per share, on average — your broker's holdings page shows it")})
+                               help="What you paid per share or unit, on average — your broker's or fund "
+                                    "house's holdings page shows it")})
     for note in report.merged:
         st.caption(f"Merged — {note}")
     if report.skipped:
@@ -1156,8 +1187,14 @@ def portfolio_pane(pending) -> None:
         error = None
         if live and not fresh:
             try:
-                quotes = prices.yahoo_quotes(prices.with_fx(tickers))
+                quotes = prices.yahoo_quotes(prices.with_fx(tickers))  # funds (MF:…) are never sent to Yahoo
                 prices.save_yahoo_prices(quotes)  # answers use the same prices
+                fund_tickers = [t for t in tickers if mutual_funds.is_mf(t)]
+                if fund_tickers:
+                    nav_error = mutual_funds.refresh_if_stale()  # AMFI's whole NAV file, at most every 6 hours
+                    quotes.update(mutual_funds.quotes(fund_tickers))
+                    if nav_error:
+                        st.session_state.price_note = nav_error
                 st.session_state.live_quotes = {"tickers": tickers, "at": time.time(), "quotes": quotes}
             except Exception as e:
                 error = e
@@ -1196,6 +1233,9 @@ def portfolio_pane(pending) -> None:
                 else "Last saved prices — turn on Live to refresh")
         if tot["fx"]:
             note += f" · US stocks at ₹{tot['fx']:.2f}/$"
+        nav_dates = sorted({q["as_of"][:10] for t, q in quotes.items() if mutual_funds.is_mf(t)})
+        if nav_dates:
+            note += f" · mutual funds at AMFI NAV of {nav_dates[-1]}"
         if tot["missing"]:
             note += f" · no price for {', '.join(tot['missing'])} — check the symbol and exchange"
         if tot["no_fx"]:
