@@ -183,7 +183,31 @@ def test_histories_one_request() -> None:
     print("PASS: several histories (holdings + index benchmarks) in one request")
 
 
+def test_past_moves_range() -> None:
+    import random
+    days = [f"2021-01-{i:05d}" for i in range(400)]
+    steady = list(zip(days, [100 * 1.01 ** i for i in range(400)]))           # +1% every day, no randomness
+    r = prices.past_moves_range(steady)
+    move = (1.01 ** 63 - 1) * 100
+    assert r["periods"] == 400 - 63 and r["up_share"] == 100
+    assert all(abs(x - move) < 1e-6 for x in (*r["move68"], *r["move95"]))   # every 3-month move is identical
+    assert abs(r["low95"] - r["last"] * 1.01 ** 63) < 1e-6 * r["last"]
+    rng = random.Random(7)
+    walk, price = [], 100.0
+    for d in days * 3:
+        price *= 1 + rng.gauss(0, 0.015)
+        walk.append((d, price))
+    r = prices.past_moves_range(walk)
+    assert r["low95"] < r["low68"] < r["high68"] < r["high95"] and r["move95"][0] < 0 < r["move95"][1]
+    assert prices.past_moves_range(walk, horizon=1, min_periods=1)["periods"] == len(walk) - 1
+    known = [("d", 100.0)] + [("d", 100.0 + i) for i in range(1, 101)]       # horizon 100: one move only...
+    assert prices.past_moves_range(known, horizon=100, min_periods=2) == {}    # ...too few periods: no range
+    assert prices.past_moves_range(walk[:300]) == {}                          # ~14 months: not enough history
+    print("PASS: 3-month range from the stock's own past moves (middle 2/3 and 19/20); too little history shows none")
+
+
 if __name__ == "__main__":
+    test_past_moves_range()
     test_fetch_never_sends_tickers()
     test_endpoint_change_fails_loudly()
     test_parse_normalize_and_manual_override()

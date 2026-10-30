@@ -317,6 +317,14 @@ html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "SF
 .stat { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 .stat .label { color: var(--muted); font-size: 0.72rem; } .stat .value { font-weight: 600; font-variant-numeric: tabular-nums; }
 .footnote { color: var(--muted); font-size: 0.75rem; }
+.range { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.range-title { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.range-bar { position: relative; height: 10px; border-radius: 5px; background: var(--line); }
+.range-bar .band { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: var(--accent); opacity: .55; }
+.range-bar .now { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: #e5e7eb; }
+.range-ends { display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 6px;
+              font-variant-numeric: tabular-nums; color: var(--muted); }
+.range-ends .mid { color: #e5e7eb; font-weight: 600; }
 div[data-testid="stTabs"] button p { font-size: 0.9rem; }
 /* ── Answer trust bar and source cards ── */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
@@ -628,8 +636,35 @@ def stock_options() -> tuple[list[str], dict[str, str]]:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
-def cached_history(ticker: str) -> list[tuple[str, float]]:
-    return prices.yahoo_history(ticker, "1y")
+def cached_history(ticker: str, period: str = "1y") -> list[tuple[str, float]]:
+    return prices.yahoo_history(ticker, period)
+
+
+def range_card(ticker: str, cur: str) -> None:
+    """Next 3 months, IF they move like this stock's past 3-month periods — a range, never a forecast."""
+    try:
+        r = prices.past_moves_range(cached_history(ticker, "5y"))
+    except Exception:
+        r = {}
+    title = '<div class="range-title">Next 3 months — if they move like its past 3-month periods</div>'
+    if not r:
+        st.markdown(f'<div class="range">{title}<p class="footnote">Not enough price history yet (needs about 15 '
+                    "months) to show a range from past moves.</p></div>", unsafe_allow_html=True)
+        return
+    span = r["high95"] - r["low95"] or 1.0
+    at = lambda x: (x - r["low95"]) / span * 100
+    m = lambda x: html.escape(prices.money(x, cur))
+    (a, b), (c, d) = r["move68"], r["move95"]
+    st.markdown(
+        f'<div class="range">{title}'
+        f'<div class="range-bar"><div class="band" style="left:{at(r["low68"]):.1f}%;width:{at(r["high68"]) - at(r["low68"]):.1f}%"></div>'
+        f'<div class="now" style="left:{at(r["last"]):.1f}%" title="Today {m(r["last"])}"></div></div>'
+        f'<div class="range-ends"><span>{m(r["low95"])}</span><span class="mid">{m(r["low68"])} – {m(r["high68"])}</span>'
+        f'<span>{m(r["high95"])}</span></div>'
+        f'<p class="footnote">In {r["periods"]:,} overlapping 3-month periods since {r["since"][:4]}, 2 in 3 moved between '
+        f'{a:+.0f}% and {b:+.0f}% (shaded) and 19 in 20 between {c:+.0f}% and {d:+.0f}% (whole bar); {r["up_share"]:.0f}% '
+        f'ended higher. Applied to today\'s {m(r["last"])} (the line). <b>Not a forecast</b> — the past doesn\'t repeat, '
+        "and results, news or a market fall can move a price beyond any past range.</p></div>", unsafe_allow_html=True)
 
 
 def stock_view(holdings: list[dict], pending) -> None:
@@ -689,6 +724,7 @@ def stock_view(holdings: list[dict], pending) -> None:
         for label, v, cls in cells) + "</div>", unsafe_allow_html=True)
     st.markdown('<p class="footnote">Past prices, not a forecast · Yahoo Finance daily closes</p>',
                 unsafe_allow_html=True)
+    range_card(h["ticker"], cur)
     a, b, c = st.columns(3)
     for col, label, q in [(a, "Key risks", f"What are the key risks for {pick}?"),
                           (b, "Revenue & margins", f"What were {pick}'s revenue and profit in the latest year?"),

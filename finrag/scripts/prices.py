@@ -261,6 +261,31 @@ def price_stats(history: list[tuple[str, float]]) -> dict:
             "ret_1y": ret(min(252, len(closes) - 1)), "volatility": vol, "max_drawdown": drawdown}
 
 
+def past_moves_range(history: list[tuple[str, float]], horizon: int = 63, min_periods: int = 252) -> dict:
+    """
+    What the stock's own past did, applied to today's price — NOT a forecast. Every `horizon`-trading-day
+    stretch in `history` (63 ≈ 3 months; overlapping, so not independent) gives one % move; the middle two
+    thirds (16th–84th percentile) and middle 19 in 20 (2.5th–97.5th) of those moves are applied to the last
+    close. {} when there are fewer than `min_periods` stretches (≈15 months of prices for 3 months).
+    """
+    closes = [c for _, c in history]
+    moves = sorted(closes[i + horizon] / closes[i] - 1 for i in range(len(closes) - horizon) if closes[i] > 0)
+    if len(moves) < min_periods:
+        return {}
+
+    def pct(q: float) -> float:  # linear-interpolated percentile of the sorted moves
+        k = (len(moves) - 1) * q
+        lo = int(k)
+        hi = min(lo + 1, len(moves) - 1)
+        return moves[lo] + (moves[hi] - moves[lo]) * (k - lo)
+    last = closes[-1]
+    m16, m84, m2, m97 = pct(0.16), pct(0.84), pct(0.025), pct(0.975)
+    return {"last": last, "periods": len(moves), "since": history[0][0], "horizon": horizon,
+            "low68": last * (1 + m16), "high68": last * (1 + m84), "low95": last * (1 + m2), "high95": last * (1 + m97),
+            "move68": (m16 * 100, m84 * 100), "move95": (m2 * 100, m97 * 100),
+            "up_share": sum(m > 0 for m in moves) / len(moves) * 100}
+
+
 def load_prices(market_path: Path = MARKET_PRICES_PATH, manual_path: Path = MANUAL_PRICES_PATH,
                 yahoo_path: Path = YAHOO_PRICES_PATH, snapshot_db: Path | None = None,
                 use_snapshots: bool = True, nav_path: Path = mutual_funds.NAV_PATH) -> dict[str, dict]:
