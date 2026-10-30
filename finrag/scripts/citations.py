@@ -374,6 +374,9 @@ def split_cited_claims(answer: str) -> list[tuple[str, list[int]]]:
 
 # A number in an answer: "$4,944.29", "3.5%", "139,996", "2026", "0.58".
 NUMBER_RE = re.compile(r"(?<![\w.])\$?\d[\d,]*(?:\.\d+)?%?")
+# In source text PDFs glue labels to figures ("YoY growth117%" in Eternal's report), so a number counts as
+# present there even right after a letter; the answer side keeps NUMBER_RE ("FY26" isn't a figure).
+SOURCE_NUMBER_RE = re.compile(r"(?<![\d.,])\$?\d[\d,]*(?:\.\d+)?%?")
 
 
 def _norm_number(token: str) -> str:
@@ -391,7 +394,7 @@ def find_ungrounded_numbers(answer: str, sources: list[str]) -> list[str]:
     """
     text = MARKER_RE.sub(" ", answer)
     text = re.sub(r"^\s*\d+[.)]\s", " ", text, flags=re.M)  # list numbering
-    known = {_norm_number(m.group(0)) for s in sources for m in NUMBER_RE.finditer(s)}
+    known = {_norm_number(m.group(0)) for s in sources for m in SOURCE_NUMBER_RE.finditer(s)}
     missing = []
     for m in NUMBER_RE.finditer(text):
         tok = m.group(0).rstrip(".,")

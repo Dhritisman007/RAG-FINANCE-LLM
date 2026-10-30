@@ -206,6 +206,8 @@ def test_numbers_must_come_from_sources() -> None:
     answer = ("1. Deposit $1,000 at 5% and earn $50 [1].\n"
               "2. The EMI is $4,944.29 at 3.5% [1]. Revenue was $139,996 million in 2026 [2].")
     assert find_ungrounded_numbers(answer, sources + ["What was revenue in 2026?"]) == ["$1,000", "5%", "$50"]
+    glued = ["NOV INR 48,567 crore YoY growth117% customers 22.1 million YoY growth116%"]   # Eternal's report text
+    assert find_ungrounded_numbers("NOV grew 117% and customers 116%; costs 125%.", glued) == ["125%"]
     cites = [Citation(rank=1, tier=1, source="", doc_title="", section_heading="", url="", distance=0.1,
                       text_preview="", text=sources[0])]
     report = check_citations("Deposit $1,000 to earn $50.", cites, bow_encode)
