@@ -170,11 +170,26 @@ def test_openai_compatible_api_backend() -> None:
             assert "starting up" in str(e)
         else:
             raise AssertionError("503 should say the server is starting")
+
+        # Free-tier limits (Groq): 429 with a short Retry-After = busy for a minute; otherwise the daily quota
+        for headers, daily, text in (({"retry-after": "7"}, False, "try again in 7 s"),
+                                     ({}, True, "free daily limit is used up")):
+            def limited(url, reply_headers=headers, **kwargs):
+                resp = FakeResponse({})
+                resp.status_code, resp.headers = 429, reply_headers
+                return resp
+            backends.requests.post = limited
+            try:
+                backends.api_generate("q", "api:meta-llama/Llama-3.1-8B-Instruct", 100)
+            except backends.ProviderLimit as e:
+                assert e.daily is daily and text in str(e), str(e)
+            else:
+                raise AssertionError("429 should raise ProviderLimit")
     finally:
         backends.requests.post = real
         for var in API_ENV:
             os.environ.pop(var, None)
-    print("PASS: OpenAI-compatible server by URL; local allowed, remote refused unless PORTIQ_ALLOW_REMOTE_LLM=1; token, Qwen3 no-think, 503 message")
+    print("PASS: OpenAI-compatible server by URL; local allowed, remote refused unless PORTIQ_ALLOW_REMOTE_LLM=1; token, Qwen3 no-think, 503 message, 429 busy vs daily quota")
 
 
 def test_api_fallback_order() -> None:

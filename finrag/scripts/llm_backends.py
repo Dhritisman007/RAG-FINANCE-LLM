@@ -44,6 +44,14 @@ API_PREFIX = "api:"
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
+class ProviderLimit(RuntimeError):
+    """The model provider refused for rate or quota (HTTP 429). `daily` = come back tomorrow, else in a minute."""
+
+    def __init__(self, message: str, daily: bool):
+        super().__init__(message)
+        self.daily = daily
+
+
 class RemoteLLMRefused(RuntimeError):
     """A remote model server is configured but sending prompts off this machine wasn't allowed."""
 
@@ -219,6 +227,16 @@ def _api_request(prompt: str, max_tokens: int, temperature: float, stream: bool,
     resp = _chat_request(cfg["url"], cfg["model"], prompt, max_tokens, temperature, stream, headers, extra)
     if resp.status_code == 503:  # e.g. a Hugging Face endpoint scaled to zero, still starting
         raise RuntimeError(f"The model server at {cfg['host']} is starting up — try again in a minute or two.")
+    if resp.status_code == 429:  # free-tier limits (Groq: per minute and per day, per organisation)
+        # Retry-After (seconds) tells a short per-minute limit from a daily one. TODO, unverified: whether
+        # Groq always sends it on 429 — without it, assume the daily quota (the safer message).
+        try:
+            wait = float(resp.headers.get("retry-after", ""))
+        except ValueError:
+            wait = None
+        if wait is not None and wait <= 120:
+            raise ProviderLimit(f"The AI service is busy — try again in {max(1, round(wait))} s.", daily=False)
+        raise ProviderLimit("The AI service's free daily limit is used up — try again tomorrow.", daily=True)
     resp.raise_for_status()
     return resp
 
