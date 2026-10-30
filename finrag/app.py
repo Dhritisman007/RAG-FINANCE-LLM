@@ -40,6 +40,7 @@ import prices  # noqa: E402
 import prompts  # noqa: E402
 import insights  # noqa: E402
 import mutual_funds  # noqa: E402
+import remote_store  # noqa: E402
 import usage  # noqa: E402
 import portfolio_db  # noqa: E402
 import workspace  # noqa: E402
@@ -421,6 +422,10 @@ def privacy_notice(ws: workspace.Workspace) -> None:
     """Shown once (and again when the notice changes) before anything can be added."""
     api = backends.api_config()
     model_host = f" ({api['host']})" if api and api.get("host") else ""
+    host = f" ({os.environ['PORTIQ_HOST_NAME']})" if os.environ.get("PORTIQ_HOST_NAME") else ""
+    store = os.environ.get("PORTIQ_STORE_NAME", "")
+    store_line = (" and, encrypted with a key only this site holds, in its database" + (f" ({html.escape(store)})" if store
+                  else "") + " — so the database provider can't read it." if remote_store.enabled() else ".")
     brand_header()
     st.markdown(f"""
 ### Before you add your portfolio
@@ -429,8 +434,8 @@ def privacy_notice(ws: workspace.Workspace) -> None:
 of broker CSV files you upload. **Not kept:** your CAS PDF (deleted right after it is read), its password (your PAN),
 or the name, address and account numbers printed on it.
 
-**Where** — in a private folder for your account on the servers that run this site (Hugging Face). Only your
-signed-in account can see it. From Google sign-in PortIQ stores only an account ID, as a one-way code — not your
+**Where** — in a private folder for your account on the server that runs this site{html.escape(host)}{store_line}
+Only your signed-in account can see it. From Google sign-in PortIQ stores only an account ID, as a one-way code — not your
 e-mail or name (your e-mail is only shown to you while you're signed in).
 
 **When you ask a question** — your question, the passages PortIQ found and the details of holdings you ask about
@@ -472,6 +477,7 @@ def account_controls(ws: workspace.Workspace, signed_in_as: str, dev_login: bool
         confirm = st.text_input("Type DELETE to confirm", key="delete_confirm")
         if st.button("Delete everything", type="primary", disabled=confirm.strip() != "DELETE", width="stretch"):
             ws.delete_everything()
+            remote_store.forget(ws.user_key)
             usage.forget(ws.user_key)
             cache = answer_cache()
             for key in [k for k in cache if k[0] == ws.user_key]:
@@ -1488,8 +1494,18 @@ if HOSTED:
     else:
         ws = workspace.for_user(str(st.user.get("iss") or ""), str(st.user.get("sub") or ""))
         signed_in_as = str(st.user.get("email") or st.user.get("name") or "your Google account")
+    if remote_store.enabled() and not ws.root.exists():  # free hosting wiped its disk: restore this user's files
+        try:
+            remote_store.pull(ws.user_key, ws.root)
+        except Exception as e:  # never go on with an empty folder — a save would overwrite the real holdings
+            st.error(f"Couldn't load your saved portfolio right now ({type(e).__name__}). Please reload in a minute.")
+            st.stop()
     workspace.use(ws)
     st.session_state["_portiq_workspace"] = ws  # for dialogs and fragments, which rerun without this gate
+    try:
+        remote_store.push(ws.user_key, ws.root)  # save what the last run changed (every change is followed by a rerun)
+    except Exception as e:
+        st.warning(f"Your latest changes aren't backed up yet ({type(e).__name__}) — PortIQ will retry.")
     if not ws.has_consented():
         privacy_notice(ws)
         st.stop()

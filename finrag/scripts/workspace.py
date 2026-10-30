@@ -27,7 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-NOTICE_VERSION = "2026-10-29"   # bump when the privacy notice changes: everyone is asked again
+NOTICE_VERSION = "2026-10-30"   # bump when the privacy notice changes: everyone is asked again
+#                 2026-10-30: host named from settings (not Hugging Face); encrypted database copy
 
 
 class NoWorkspace(RuntimeError):
