@@ -39,6 +39,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 22 | Website groundwork: sign-in, per-user data, privacy notice | `workspace.py`, `app.py` | ✅ Done locally — not deployed yet |
 | 23 | Mutual funds (CAMS / KFintech CAS, AMFI NAVs) | `mutual_funds.py`, `brokers/cas_adapter.py` | ✅ Done — not yet tried on a real statement |
 | 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ 48 of 50 — 54,402 passages |
+| 25 | 3-month range card (from the stock's own past moves) | `prices.past_moves_range`, `app.py` | ✅ Done |
 
 ---
 
@@ -451,6 +452,9 @@ The corpus now has the FY2025-26 annual reports of **48 of the 50 Nifty 50 compa
   - Reading all 54k passages in one call failed ("too many SQL variables"): the store is read in pages.
   - The number check called figures "possibly invented" when the PDF glued them to a word ("YoY growth117%"); source text now counts them.
 - Spot checks: ONGC's FY26 consolidated revenue ₹6,622,473 million (the report's units) from its consolidated statements; Eternal's Blinkit growth figures and Apollo Hospitals' risks from their own reports. The 7B model still sometimes cites a neighbouring passage's number ([1] vs [3]) — the citation check flags it.
+
+### Day 25 — 3-month range card
+Stock view → under the price stats: **"Next 3 months — if they move like its past 3-month periods"**. Every 3-month stretch in the stock's last 5 years (≈1,200 overlapping periods) gives one % move; the middle two thirds and the middle 19 in 20 of those moves are applied to today's price, drawn as a bar with today's price marked, plus how often those periods ended higher. It is what the stock's own past did, not a model or a forecast, and says so: results, news or a market fall can move a price beyond any past range. Fewer than ~15 months of prices → no range. Funds have no Yahoo history, so no card. (`prices.past_moves_range`, tested on exact and random series; e.g. RELIANCE since 2021: 2 in 3 periods moved −9% to +12%.)
 
 ## Tests
 
