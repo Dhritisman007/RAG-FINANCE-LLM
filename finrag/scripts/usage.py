@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import remote_store
 import workspace
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -47,11 +48,22 @@ def today() -> str:
     return datetime.now(IST).date().isoformat()
 
 
+SITE_OWNER = "_site"   # the usage counts' owner in the remote store (scripts/remote_store.py)
+
+
 def db_path() -> Path:
-    return workspace.data_root() / "usage.db"
+    return workspace.data_root() / "site" / "usage.db"
+
+
+def _saved(path: Path | None) -> None:
+    """Mirror the counts (free hosting wipes its disk); only for the real database, not a test path."""
+    if path is None and workspace.hosted():
+        remote_store.push(SITE_OWNER, db_path().parent)
 
 
 def _connect(path: Path | None = None) -> sqlite3.Connection:
+    if path is None and workspace.hosted() and not db_path().exists():
+        remote_store.pull(SITE_OWNER, db_path().parent)   # the disk was wiped: restore the counts
     path = path or db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None, timeout=10)
@@ -93,12 +105,13 @@ def reserve(user_key: str, path: Path | None = None) -> Allowance:
             conn.execute("DELETE FROM questions WHERE day < ?", (cutoff,))
             conn.execute("DELETE FROM events WHERE day < ?", (cutoff,))
         conn.execute("COMMIT")
-        return Allowance(reason is None, max(0, user_limit() - mine), reason)
     except BaseException:
         conn.execute("ROLLBACK")
         raise
     finally:
         conn.close()
+    _saved(path)
+    return Allowance(reason is None, max(0, user_limit() - mine), reason)
 
 
 def refund(user_key: str, path: Path | None = None) -> None:
@@ -112,6 +125,7 @@ def refund(user_key: str, path: Path | None = None) -> None:
         conn.execute("UPDATE events SET n = MAX(0, n - 1) WHERE day = ? AND kind = 'answered'", (day,))
     finally:
         conn.close()
+    _saved(path)
 
 
 def note(kind: str, path: Path | None = None) -> None:
@@ -124,14 +138,14 @@ def note(kind: str, path: Path | None = None) -> None:
         _note(conn, kind, today())
     finally:
         conn.close()
+    _saved(path)
 
 
 def left_today(user_key: str, path: Path | None = None) -> tuple[int, bool]:
     """(questions this user has left today, whether the whole site is out for today)."""
-    path = path or db_path()
-    if not path.exists():
+    if path is not None and not path.exists():
         return user_limit(), False
-    conn = _connect(path)
+    conn = _connect(path)   # the real database is restored from the remote store first if the disk was wiped
     try:
         day = today()
         used = conn.execute("SELECT COALESCE(SUM(n), 0) FROM questions WHERE day = ?", (day,)).fetchone()[0]
@@ -151,6 +165,7 @@ def forget(user_key: str, path: Path | None = None) -> None:
             conn.execute("DELETE FROM questions WHERE user_key = ?", (user_key,))
         finally:
             conn.close()
+        _saved(path)
 
 
 def report(days: int = 14, path: Path | None = None) -> list[dict]:

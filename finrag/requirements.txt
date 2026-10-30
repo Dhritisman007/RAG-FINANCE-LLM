@@ -6,3 +6,5 @@ requests>=2.32.0
 pyyaml>=6.0
 ollama>=0.4.0
 casparser>=1.4.1
+psycopg[binary]>=3.2
+cryptography>=42
