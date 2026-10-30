@@ -40,6 +40,7 @@ import prices  # noqa: E402
 import prompts  # noqa: E402
 import insights  # noqa: E402
 import mutual_funds  # noqa: E402
+import usage  # noqa: E402
 import portfolio_db  # noqa: E402
 import workspace  # noqa: E402
 from brokers.credentials import get_secret  # noqa: E402
@@ -244,6 +245,8 @@ def render_assistant(res: dict, show_details: bool) -> None:
     render_retrieval_notes(res, show_details)
     render_positions(res["positions"])
     render_valuation(res.get("valuation"))
+    if res.get("notice"):  # a daily limit stopped this one before the AI was asked
+        st.info(res["notice"])
     st.markdown(md(res["answer"]))
     if res["disclaimer"]:
         st.caption(res["disclaimer"])
@@ -469,6 +472,7 @@ def account_controls(ws: workspace.Workspace, signed_in_as: str, dev_login: bool
         confirm = st.text_input("Type DELETE to confirm", key="delete_confirm")
         if st.button("Delete everything", type="primary", disabled=confirm.strip() != "DELETE", width="stretch"):
             ws.delete_everything()
+            usage.forget(ws.user_key)
             cache = answer_cache()
             for key in [k for k in cache if k[0] == ws.user_key]:
                 cache.pop(key, None)
@@ -1316,6 +1320,16 @@ def short_doc(c: Citation) -> str:
     return compact_title(doc) + (f" ({page.group(1)})" if page else "")
 
 
+STILL_WORKS = "Your portfolio, prices and insights keep working."
+LIMIT_NOTICES = {
+    "user_limit": f"You've used today's {usage.user_limit()} free question{'s' if usage.user_limit() != 1 else ''} — "
+                  "they reset at midnight (India time). "
+                  + STILL_WORKS,
+    "site_limit": "PortIQ's free daily question limit is used up for everyone today — questions reopen at midnight "
+                  "(India time). " + STILL_WORKS,
+}
+
+
 def answer_pending(query: str) -> None:
     """Route, retrieve, stream the answer and check citations for the queued question."""
     import time
@@ -1357,16 +1371,32 @@ def answer_pending(query: str) -> None:
             where = docs[0] + (f" and {len(docs) - 1} more" if len(docs) > 1 else "")
             status.update(label=f"Reading {len(citations)} passages — {where}…")
             prompt = r.build_prompt(query, citations, positions=positions, route=decision.route)
-            try:
-                tokens = r.stream_tokens(prompt, model=model)
-                first = next(tokens, "")
-                status.update(label=f"Read {len(citations)} passages in {time.time() - started:.0f} s — {where}",
-                              state="complete")
-                res["answer"] = st.write_stream(md(tok) for tok in itertools.chain([first], tokens))
-                res["answer"] = res["answer"].replace("\\$", "$")  # store unescaped
-            except Exception as e:  # unreachable server, cloud-model refusal, ...
-                status.update(label="The model couldn't answer", state="error")
-                st.error(f"Generation failed: {e}")
+            ws = workspace.current()
+            allowance = usage.reserve(ws.user_key) if ws else usage.Allowance(True)  # only AI calls count
+            if not allowance.ok:
+                status.update(label="Today's question limit is reached", state="complete")
+                res["notice"] = LIMIT_NOTICES[allowance.reason]
+                st.info(res["notice"])
+            else:
+                try:
+                    tokens = r.stream_tokens(prompt, model=model)
+                    first = next(tokens, "")
+                    status.update(label=f"Read {len(citations)} passages in {time.time() - started:.0f} s — {where}",
+                                  state="complete")
+                    res["answer"] = st.write_stream(md(tok) for tok in itertools.chain([first], tokens))
+                    res["answer"] = res["answer"].replace("\\$", "$")  # store unescaped
+                except backends.ProviderLimit as e:  # the free AI quota (daily) or rate (per minute)
+                    if ws:
+                        usage.refund(ws.user_key)
+                    usage.note("provider_limit" if e.daily else "provider_busy")
+                    status.update(label="The AI service is at its free limit", state="error")
+                    res["notice"] = str(e) + " " + STILL_WORKS
+                    st.info(res["notice"])
+                except Exception as e:  # unreachable server, cloud-model refusal, ...
+                    if ws:
+                        usage.refund(ws.user_key)
+                    status.update(label="The model couldn't answer", state="error")
+                    st.error(f"Generation failed: {e}")
 
         res["refusal"] = bool(res["answer"]) and is_refusal(res["answer"])
         if decision.route == "portfolio" and res["answer"] and citations and not res["refusal"]:
@@ -1415,8 +1445,16 @@ def assistant_pane(pending) -> None:
                     render_assistant(msg["result"], show_details)
     # A new question while an answer is still generating would restart the script and
     # silently drop that answer, so the input is locked until the pending one is done.
-    query = st.chat_input("Ask about a stock, a filing, a concept, or your holdings…",
-                          disabled=pending is not None)
+    ws = workspace.current()
+    left, site_out = usage.left_today(ws.user_key) if ws else (None, False)
+    out_of_questions = ws is not None and (site_out or left == 0)
+    query = st.chat_input("Questions reopen at midnight (India time)" if out_of_questions else
+                          "Ask about a stock, a filing, a concept, or your holdings…",
+                          disabled=pending is not None or out_of_questions)
+    if ws:
+        st.caption(LIMIT_NOTICES["site_limit"] if site_out else LIMIT_NOTICES["user_limit"] if left == 0 else
+                   f"{left} of {usage.user_limit()} free questions left today · repeats and questions PortIQ "
+                   "has no documents for don't count")
     st.markdown('<p class="disclaimer">Educational information from public company documents — not investment '
                 "advice. Figures are checked against the cited sources; open them to verify.</p>",
                 unsafe_allow_html=True)
