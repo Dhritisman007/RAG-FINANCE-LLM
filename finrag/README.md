@@ -40,6 +40,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 23 | Mutual funds (CAMS / KFintech CAS, AMFI NAVs) | `mutual_funds.py`, `brokers/cas_adapter.py` | ✅ Done — not yet tried on a real statement |
 | 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ 48 of 50 — 54,402 passages |
 | 25 | 3-month range card (from the stock's own past moves) | `prices.past_moves_range`, `app.py` | ✅ Done |
+| 26 | Daily question limits (website) | `usage.py`, `llm_backends.py`, `app.py` | ✅ Done |
 
 ---
 
@@ -456,6 +457,13 @@ The corpus now has the FY2025-26 annual reports of **48 of the 50 Nifty 50 compa
 ### Day 25 — 3-month range card
 Stock view → under the price stats: **"Next 3 months — if they move like its past 3-month periods"**. Every 3-month stretch in the stock's last 5 years (≈1,200 overlapping periods) gives one % move; the middle two thirds and the middle 19 in 20 of those moves are applied to today's price, drawn as a bar with today's price marked, plus how often those periods ended higher. It is what the stock's own past did, not a model or a forecast, and says so: results, news or a market fall can move a price beyond any past range. Fewer than ~15 months of prices → no range. Funds have no Yahoo history, so no card. (`prices.past_moves_range`, tested on exact and random series; e.g. RELIANCE since 2021: 2 in 3 periods moved −9% to +12%.)
 
+### Day 26 — Daily question limits (website mode)
+The website will run on free tiers (Groq's free API has one shared daily quota), so in hosted mode:
+- **Per user** `PORTIQ_DAILY_QUESTIONS` (default 20) and **whole site** `PORTIQ_DAILY_QUESTIONS_TOTAL` (default 900, under Groq's free ~1,000/day) questions a day, reset at midnight India time. Only questions that reach the AI count — cached repeats and questions with no matching documents are free; a failed answer is refunded. Reserving is atomic (20 simultaneous questions with 5 left → exactly 5).
+- The question box shows "N of 20 free questions left today"; at the limit it closes with "questions reopen at midnight" and says the portfolio, prices and insights keep working.
+- Groq's HTTP 429 becomes a typed `ProviderLimit`: a short `Retry-After` → "busy, try again in N s", otherwise "free daily limit used up — try again tomorrow" (TODO, unverified: whether Groq always sends `Retry-After`).
+- `python scripts/usage.py` prints the last two weeks — answered, users, and how often each limit (user, site, AI quota, AI busy) was hit: the evidence for when to pay for a plan. Upgrading = raising the two numbers. Only counts and the one-way user key are stored (never question text), for 90 days; Delete my data removes the user's counts. The local app has no limits.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -479,6 +487,7 @@ python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the 
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 python tests/test_cas.py              # CAS → holdings, no personal data stored, wrong password / not a CAS, stdin password, DB migration, unknown costs
 python tests/test_mutual_funds.py     # AMFI NAV parsing + cache (previous NAV, bad files), ₹ pricing, never sent to Yahoo, CAMS statement with costs
+python tests/test_usage.py            # per-user and site caps, refunds, midnight reset, atomic reserve, report, forget; local mode unlimited
 python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
 
