@@ -38,6 +38,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 21 | CAS statement import (all brokers) | `brokers/cas_adapter.py`, `app.py` | ✅ Done — not yet tried on a real statement |
 | 22 | Website groundwork: sign-in, per-user data, privacy notice | `workspace.py`, `app.py` | ✅ Done locally — not deployed yet |
 | 23 | Mutual funds (CAMS / KFintech CAS, AMFI NAVs) | `mutual_funds.py`, `brokers/cas_adapter.py` | ✅ Done — not yet tried on a real statement |
+| 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ 48 of 50 — 54,402 passages |
 
 ---
 
@@ -439,6 +440,17 @@ Most Indian investors hold mutual funds; PortIQ skipped them. Now:
 - **Import:** the CAS from **CAMS or KFintech** (⇅ Import → CAS statement) — every scheme with units, with the **cost** the statement reports (weighted across folios; unknown if any lot's cost is missing). Fund units held in a demat account (NSDL/CDSL CAS) are imported too. A fund statement is its own source (`cas:funds`), so it never replaces your demat statement.
 - **Prices:** AMFI's daily NAV file (`scripts/mutual_funds.py`; `https://portal.amfiindia.com/spages/NAVAll.txt` — the old www.amfiindia.com address redirects there; 8 columns, checked 29 Oct 2026). The whole file is downloaded (~18,000 ISINs), at most every 6 hours, so it reveals nothing about anyone's funds; fund ISINs are never sent to Yahoo. Day change = latest NAV vs the previous one the cache saw (so it appears from the second day).
 - **Shown as:** `MF:<ISIN>` holdings named from AMFI ("HDFC Corporate Bond Fund · Direct · Growth"), valued in ₹; answers say "units"; the stock view shows a NAV card. Not yet: NAV history/charts for funds — the 1-year insights say they cover stocks only.
+
+### Day 24 — Nifty 50 annual reports
+The corpus now has the FY2025-26 annual reports of **48 of the 50 Nifty 50 companies** (the list from NSE's `ind_nifty50list.csv`, 30 Oct 2026): 36,927 annual-report passages, 54,402 in all; the SEC filings, explainers and papers are unchanged (checked per source against a backup). **Coal India and NTPC are missing:** NSE's own archive copies of their reports are cut off (a range request past the cut gets HTTP 416), so retrying can't help — add them from the companies' websites later.
+- **Router:** every company by name and brand (Zomato/Blinkit → Eternal, Royal Enfield → Eicher, Zudio → Trent). A name inside a longer company name belongs to that company ("Jio" in Jio Financial Services, "SBI" in SBI Life); bare "BSE" is the exchange; Eternal, Titan, Trent and IndiGo count only capitalised.
+- **Found and fixed on the way:**
+  - NSE's archive sometimes serves a cut-off PDF with a matching Content-Length (the same URL gave 16.7 MB, then 3.8 MB): a PDF is kept only if it ends with `%%EOF`, retried up to 5 times, and never cached truncated.
+  - "M&M" was requested from NSE as "M" (unencoded `&`).
+  - ONGC prints a bar naming several sections on every page, so 573 pages (its consolidated statements among them) were skipped as "standalone"; a header line naming several sections is now ignored (ONGC: 124 → 564 pages kept). One TCS page (p. 350, a materiality table) is now kept under the preceding section's label.
+  - Reading all 54k passages in one call failed ("too many SQL variables"): the store is read in pages.
+  - The number check called figures "possibly invented" when the PDF glued them to a word ("YoY growth117%"); source text now counts them.
+- Spot checks: ONGC's FY26 consolidated revenue ₹6,622,473 million (the report's units) from its consolidated statements; Eternal's Blinkit growth figures and Apollo Hospitals' risks from their own reports. The 7B model still sometimes cites a neighbouring passage's number ([1] vs [3]) — the citation check flags it.
 
 ## Tests
 
