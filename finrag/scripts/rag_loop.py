@@ -226,11 +226,28 @@ def _keyword_tokens(text: str) -> list[str]:
     return [w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 1 and w not in _STOPWORDS]
 
 
+def get_all(collection: chromadb.Collection, include: list[str], page: int = 5000) -> dict:
+    """
+    Every stored item, read in pages: one get() of the whole collection fails past ~30k passages
+    ("too many SQL variables" — SQLite's limit; it did at 54k, Day 24). Same shape as collection.get().
+    """
+    out: dict[str, list] = {"ids": [], **{k: [] for k in include}}
+    offset = 0
+    while True:
+        part = collection.get(include=include, limit=page, offset=offset)
+        if not part["ids"]:
+            return out
+        out["ids"] += part["ids"]
+        for k in include:
+            out[k] += list(part[k])
+        offset += len(part["ids"])
+
+
 class ExactIndex:
     """Exact cosine search with Chroma's query() result shape (ids/documents/metadatas/distances)."""
 
     def __init__(self, collection: chromadb.Collection):
-        stored = collection.get(include=["embeddings", "documents", "metadatas"])
+        stored = get_all(collection, ["embeddings", "documents", "metadatas"])
         self.ids = stored["ids"]
         self.documents = stored["documents"]
         self.metadatas = stored["metadatas"]

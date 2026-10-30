@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from rag_loop import ExactIndex, _matches, annual_titles  # noqa: E402
+from rag_loop import ExactIndex, _matches, annual_titles, get_all  # noqa: E402
 
 
 class FakeCollection:
@@ -18,8 +18,9 @@ class FakeCollection:
         self._data = {"ids": [f"c{i}" for i in range(len(vectors))], "documents": [f"doc {i}" for i in range(len(vectors))],
                       "metadatas": metadatas, "embeddings": vectors}
 
-    def get(self, include):
-        return self._data
+    def get(self, include, limit=None, offset=0):
+        end = None if limit is None else offset + limit
+        return {k: v[offset:end] for k, v in self._data.items()}
 
 
 def test_exact_ranking_distances_and_ties() -> None:
@@ -83,7 +84,27 @@ def test_annual_titles() -> None:
     print("PASS: a company's 10-K titles are found for annual questions")
 
 
+def test_whole_store_is_read_in_pages() -> None:
+    """Chroma/SQLite refuses to return ~54k items in one get() ("too many SQL variables", Day 24)."""
+    class Limited:
+        def __init__(self, n, limit):
+            self.n, self.limit, self.calls = n, limit, 0
+
+        def get(self, include, limit=None, offset=0):
+            self.calls += 1
+            if limit is None or limit > self.limit:
+                raise RuntimeError("too many SQL variables")
+            ids = [f"c{i}" for i in range(offset, min(offset + limit, self.n))]
+            return {"ids": ids, "embeddings": [[float(i[1:]), 1.0] for i in ids], "metadatas": [{"i": i} for i in ids]}
+    store = Limited(12_345, limit=5000)
+    got = get_all(store, ["embeddings", "metadatas"])
+    assert len(got["ids"]) == len(got["embeddings"]) == len(got["metadatas"]) == 12_345
+    assert got["ids"][5000] == "c5000" and got["embeddings"][-1] == [12344.0, 1.0] and store.calls == 4
+    print("PASS: the whole store is read in pages of 5,000 (one big read fails past ~30k passages)")
+
+
 if __name__ == "__main__":
+    test_whole_store_is_read_in_pages()
     test_exact_ranking_distances_and_ties()
     test_where_filters()
     test_hybrid_keyword_fusion()

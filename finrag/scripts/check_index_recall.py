@@ -44,7 +44,8 @@ def run(k: int = 5) -> float:
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=chromadb.Settings(anonymized_telemetry=False))
     collection = client.get_collection(COLLECTION_NAME)
-    stored = collection.get(include=["embeddings"])
+    from rag_loop import get_all
+    stored = get_all(collection, ["embeddings"])
     ids = np.array(stored["ids"])
     doc_matrix = np.array(stored["embeddings"])
     doc_matrix /= np.linalg.norm(doc_matrix, axis=1, keepdims=True)

@@ -74,7 +74,7 @@ def is_relevant(doc_title: str, relevant: list[str]) -> bool:
 
 def validate_labels(golden: list[dict], collection) -> list[str]:
     """Every relevant_docs label must match a document in the store."""
-    titles = {m["doc_title"] for m in collection.get(include=["metadatas"])["metadatas"]}
+    titles = {m["doc_title"] for m in r.get_all(collection, ["metadatas"])["metadatas"]}
     return [f"{q['id']}: {label!r}" for q in golden for label in q["relevant_docs"]
             if not any(t.startswith(label) for t in titles)]
 
