@@ -41,6 +41,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ 48 of 50 — 54,402 passages |
 | 25 | 3-month range card (from the stock's own past moves) | `prices.past_moves_range`, `app.py` | ✅ Done |
 | 26 | Daily question limits (website) | `usage.py`, `llm_backends.py`, `app.py` | ✅ Done |
+| 27 | Users' data survives free hosting (encrypted Postgres mirror) | `remote_store.py`, `app.py`, `usage.py` | ✅ Done — tested on local Postgres |
 
 ---
 
@@ -464,6 +465,14 @@ The website will run on free tiers (Groq's free API has one shared daily quota),
 - Groq's HTTP 429 becomes a typed `ProviderLimit`: a short `Retry-After` → "busy, try again in N s", otherwise "free daily limit used up — try again tomorrow" (TODO, unverified: whether Groq always sends `Retry-After`).
 - `python scripts/usage.py` prints the last two weeks — answered, users, and how often each limit (user, site, AI quota, AI busy) was hit: the evidence for when to pay for a plan. Upgrading = raising the two numbers. Only counts and the one-way user key are stored (never question text), for 90 days; Delete my data removes the user's counts. The local app has no limits.
 
+### Day 27 — Users' data survives free hosting
+Free hosting (Streamlit Community Cloud) wipes its disk on every restart and wake-up. Rather than rewrite storage, each user's folder (holdings, imports, snapshots, consent) and the site's usage counts are **mirrored to Postgres** (Neon's free tier when deployed):
+- After any change the user's changed files are pushed (every change is followed by a rerun, whose start pushes); when the disk was wiped, sign-in restores them. If restoring fails, the app stops with "reload in a minute" — it never continues with an empty folder that a save would overwrite.
+- **Encrypted before it leaves the server** (Fernet, `PORTIQ_DATA_KEY`): the database provider sees only ciphertext and the one-way user key. A database URL without a key is refused — nothing is stored unencrypted.
+- Delete my data also erases the stored copy. Without `PORTIQ_DATABASE_URL` nothing changes (local disk only).
+- The privacy notice no longer says "Hugging Face": it names the host and database from `PORTIQ_HOST_NAME` / `PORTIQ_STORE_NAME` and explains the encryption (notice version bumped, so everyone accepts it again).
+- Tested on a local Postgres 18: per-user round trip, only changes sent, no plaintext in the database, wrong key can't decrypt, stored paths can't escape the folder, counts survive a wipe; and in the app — import, delete the whole data folder, restart, sign in: the portfolio came back; Delete my data left no rows.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -487,6 +496,7 @@ python tests/test_portfolio_sync.py   # atomic snapshots, failed sync keeps the 
 python tests/test_security.py         # no secrets anywhere, broker-host-only sync, no network when answering, .gitignore
 python tests/test_cas.py              # CAS → holdings, no personal data stored, wrong password / not a CAS, stdin password, DB migration, unknown costs
 python tests/test_mutual_funds.py     # AMFI NAV parsing + cache (previous NAV, bad files), ₹ pricing, never sent to Yahoo, CAMS statement with costs
+python tests/test_remote_store.py     # encrypted Postgres mirror (needs PORTIQ_TEST_DATABASE_URL; skipped otherwise)
 python tests/test_usage.py            # per-user and site caps, refunds, midnight reset, atomic reserve, report, forget; local mode unlimited
 python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
@@ -616,7 +626,10 @@ Hosted mode is switched on by environment variables; without them PortIQ is the 
 | Setting | Meaning |
 |---|---|
 | `PORTIQ_MODE=hosted` | sign-in required, per-user data, privacy notice, no broker connections; may bind beyond 127.0.0.1 |
-| `PORTIQ_DATA_DIR` | where users' folders live (default `/data/portiq` — a Space's persistent storage) |
+| `PORTIQ_DATA_DIR` | where users' folders live (default `/data/portiq`) |
+| `PORTIQ_DATABASE_URL`, `PORTIQ_DATA_KEY` | Postgres to mirror users' files to (encrypted with the key) — needed on hosts that wipe their disk |
+| `PORTIQ_HOST_NAME`, `PORTIQ_STORE_NAME` | named in the privacy notice (e.g. "Streamlit Community Cloud", "Neon") |
+| `PORTIQ_DAILY_QUESTIONS`, `PORTIQ_DAILY_QUESTIONS_TOTAL` | per-user and site-wide daily question limits (20 / 900) |
 | `PORTIQ_LLM_URL`, `PORTIQ_LLM_MODEL`, `PORTIQ_LLM_API_KEY`, `PORTIQ_ALLOW_REMOTE_LLM=1` | the model server (Inference Endpoint) — see the model section above |
 
 Google sign-in uses Streamlit's built-in `st.login` (OpenID Connect). Create an OAuth client in Google Cloud — step by step in [docs/google-signin-setup.md](docs/google-signin-setup.md), including testing real sign-in on your Mac — and put it in `finrag/.streamlit/secrets.toml` (git-ignored):
