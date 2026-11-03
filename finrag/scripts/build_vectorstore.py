@@ -131,11 +131,11 @@ def build_collection(embedder=None) -> chromadb.Collection:
     return collection
 
 
-def _add_chunks(collection: chromadb.Collection, chunks: list[dict], embedder) -> None:
+def _add_chunks(collection: chromadb.Collection, chunks: list[dict], embedder, upsert: bool = False) -> None:
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i:i + BATCH_SIZE]
         texts = [c["text"] for c in batch]
-        collection.add(
+        (collection.upsert if upsert else collection.add)(
             ids=[c["chunk_id"] for c in batch],
             embeddings=embedder.embed_documents(texts),
             documents=texts,
@@ -144,7 +144,23 @@ def _add_chunks(collection: chromadb.Collection, chunks: list[dict], embedder) -
         print(f"  Inserted batch {i // BATCH_SIZE + 1} ({len(batch)} chunks)")
 
 
-def update_source(source: str, embedder=None, tickers: list[str] | None = None) -> chromadb.Collection:
+def changed_chunks(collection: chromadb.Collection, chunks: list[dict], where: dict) -> tuple[list[dict], list[str]]:
+    """(chunks whose text or metadata differ from the stored copy, or aren't stored; stored ids no longer in
+    `chunks`) among the stored items matching `where`. Read in pages: one get() fails past ~30k items."""
+    stored, offset = {}, 0
+    while True:
+        part = collection.get(where=where, include=["documents", "metadatas"], limit=5000, offset=offset)
+        if not part["ids"]:
+            break
+        stored.update(zip(part["ids"], zip(part["documents"], part["metadatas"])))
+        offset += len(part["ids"])
+    ids = {c["chunk_id"] for c in chunks}
+    todo = [c for c in chunks if stored.get(c["chunk_id"]) != (c["text"], clean_metadata(c))]
+    return todo, [i for i in stored if i not in ids]
+
+
+def update_source(source: str, embedder=None, tickers: list[str] | None = None,
+                  changed_only: bool = False) -> chromadb.Collection:
     """
     Replace one source's chunks (e.g. "nse_annual_report" after re-extracting the annual
     reports) in the existing collection, without re-embedding everything else — about
@@ -152,6 +168,8 @@ def update_source(source: str, embedder=None, tickers: list[str] | None = None) 
     first; other sources' chunk ids are unchanged by re-chunking, so they stay valid.
     tickers: only these companies' chunks of that source (e.g. two newly added annual
     reports: minutes instead of re-embedding all ~37k annual-report passages).
+    changed_only: re-embed only chunks whose text or metadata differ from the stored copy (and drop
+    stored ones that are gone) — e.g. 636 passages where a rupee glyph became ₹, not 25k.
     """
     if embedder is None:
         embedder = BGEEmbedder()
@@ -160,9 +178,18 @@ def update_source(source: str, embedder=None, tickers: list[str] | None = None) 
     if not chunks:
         raise ValueError(f"no chunks with source={source!r}" + (f" for {tickers}" if tickers else "") + f" in {CHUNKS_PATH}")
     collection = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=chromadb.Settings(anonymized_telemetry=False)).get_collection(COLLECTION_NAME)
+    where = ({"source": source} if tickers is None else
+             {"$and": [{"source": source}, {"company_ticker": {"$in": list(tickers)}}]})
+    if changed_only:
+        todo, gone = changed_chunks(collection, chunks, where)
+        if gone:
+            collection.delete(ids=gone)
+        print(f"{len(todo)} of {len(chunks)} '{source}' chunks changed or new; {len(gone)} removed")
+        _add_chunks(collection, todo, embedder, upsert=True)
+        print(f"\nCollection '{COLLECTION_NAME}' now has {collection.count()} chunks.")
+        return collection
     before = collection.count()
-    collection.delete(where={"source": source} if tickers is None else
-                      {"$and": [{"source": source}, {"company_ticker": {"$in": list(tickers)}}]})
+    collection.delete(where=where)
     print(f"Removed {before - collection.count()} old '{source}' chunks"
           + (f" of {', '.join(tickers)}" if tickers else "") + f"; embedding {len(chunks)}")
     _add_chunks(collection, chunks, embedder)
@@ -195,12 +222,15 @@ if __name__ == "__main__":
                         help="Replace just this source's chunks, e.g. nse_annual_report (no full rebuild)")
     parser.add_argument("--tickers", type=str, default=None,
                         help="With --only-source: just these companies, e.g. COALINDIA.NS,NTPC.NS")
+    parser.add_argument("--changed-only", action="store_true",
+                        help="With --only-source: re-embed only chunks whose text or metadata changed")
     args = parser.parse_args()
 
-    if args.tickers and not args.only_source:
-        parser.error("--tickers needs --only-source")
+    if (args.tickers or args.changed_only) and not args.only_source:
+        parser.error("--tickers and --changed-only need --only-source")
     if args.only_source:
-        update_source(args.only_source, tickers=args.tickers.split(",") if args.tickers else None)
+        update_source(args.only_source, tickers=args.tickers.split(",") if args.tickers else None,
+                      changed_only=args.changed_only)
     else:
         build_collection()
     if args.test_query:
