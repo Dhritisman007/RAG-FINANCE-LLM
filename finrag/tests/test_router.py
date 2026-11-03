@@ -185,6 +185,8 @@ def test_indian_company_detection() -> None:
         "Tech Mahindra attrition": ["TECHM.NS"], "Zomato's quick commerce losses": ["ETERNAL.NS"],
         "Is Eternal profitable?": ["ETERNAL.NS"], "Dr. Reddy's US generics": ["DRREDDY.NS"],
         "BSE Ltd's transaction revenue": ["BSE.NS"],
+        "CIL coal production FY26": ["COALINDIA.NS"], "NTPC's generation in FY26": ["NTPC.NS"],
+        "a council of ministers": [],                                            # "cil" inside a word
         # the exchange, a colour and a lowercase word are not companies
         "Is Infosys listed on both NSE and BSE?": ["INFY.NS"], "an indigo-coloured logo": [],
         "an eternal question about compounding": [],

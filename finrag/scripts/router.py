@@ -120,7 +120,7 @@ CASE_SENSITIVE_NAMES = {"V": ["Visa"], "META": ["Meta"], "AMZN": ["Amazon"],
                         "RELIANCE.NS": ["Reliance", "RIL"], "SBIN.NS": ["SBI"], "HINDUNILVR.NS": ["HUL"],
                         "ICICIBANK.NS": ["ICICI"], "HDFCBANK.NS": ["HDFC Bank"],
                         "ETERNAL.NS": ["Eternal"], "INDIGO.NS": ["IndiGo", "Indigo"], "TITAN.NS": ["Titan"],
-                        "TRENT.NS": ["Trent"], "SBILIFE.NS": ["SBI Life"]}
+                        "TRENT.NS": ["Trent"], "SBILIFE.NS": ["SBI Life"], "COALINDIA.NS": ["CIL"]}
 # Symbols that are also something else: only the company's name counts ("listed on BSE" is the exchange).
 NAME_ONLY = {"BSE.NS"}
 
