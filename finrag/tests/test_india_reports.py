@@ -25,9 +25,12 @@ def test_rupee_symbol_repair() -> None:
     assert out.count("(₹ in crore)") == 2, out
     assert india.clean_text("(In ` crore, except per equity share data)") == "(₹ in crore, except per equity share data)"
     assert india.clean_text("(in crore)") == "(in crore)"                    # no glyph: unchanged
+    assert india.clean_text("Revenue from Operations J 1,68,400 Cr; J1,68,400 Crores") == \
+        "Revenue from Operations ₹ 1,68,400 Cr; ₹1,68,400 Crores"           # Coal India's font: J (and "Cr"/"Crores")
+    assert india.clean_text("clause i 5 crore; item c 10 lakh") == "clause i 5 crore; item c 10 lakh"   # lowercase: not a glyph
     assert india.clean_text("Section I of the Act; Schedule H applies") == "Section I of the Act; Schedule H applies"
     assert india.clean_text("## footnote marker") == "* footnote marker"   # would otherwise read as a heading
-    print("PASS: the rupee glyph (I/H/C/`) is restored before crore/lakh amounts and in unit headers only")
+    print("PASS: the rupee glyph (I/H/C/J/`) is restored before crore/lakh amounts and in unit headers only")
 
 
 def test_sections_kept_and_skipped() -> None:
@@ -132,6 +135,24 @@ def test_navigation_bar_is_not_a_section() -> None:
     print("PASS: a header line naming several sections (a navigation bar) doesn't decide the page's section")
 
 
+def test_navigation_bar_above_the_header_is_skipped() -> None:
+    """NTPC: an 8-line bar of part names on every page, then the page's own section header (line 9)."""
+    bar = ["Our Group’s", "Overview", "Innovating for", "Sustainability", "Statutory", "Disclosures",
+           "Statutory and", "Financial Results"]
+    body = "Revenue from operations 1,87,384.63 1,72,000.00 and other lines of the statement " * 4
+
+    def page(n: int, section: str) -> str:
+        return "\n".join([f"NTPC LIMITED | {2 * n}{2 * n - 1} | INTEGRATED ANNUAL REPORT 2025-26", *bar, section, section, body])
+    pages = ([page(i, "Directors’ Report") for i in range(1, 11)] + [page(i, "Standalone Financial Statements") for i in range(11, 21)]
+             + [page(i, "Consolidated Financial Statements") for i in range(21, 31)])
+    assert india.build_document(pages, parent="NTPC")[1] == {("Integrated Report", True): 30}   # off by default
+    text, stats = india.build_document(pages, parent="NTPC", nav_bar=True)
+    assert stats == {("Board's Report", True): 10, ("Standalone Financial Statements", False): 10,
+                     ("Consolidated Financial Statements", True): 10}, stats
+    assert "Innovating for" not in text and "Sustainability" not in text            # the bar isn't passage text
+    print("PASS: with nav_bar (NTPC) a navigation bar above each page's header is skipped: sections found, standalone skipped")
+
+
 def _downloads(Resp, full: bytes, cut: bytes) -> None:
     import tempfile
     with tempfile.TemporaryDirectory() as d:
@@ -170,8 +191,31 @@ def test_downloads_never_keep_a_truncated_pdf() -> None:
     print("PASS: truncated PDFs are retried and never cached; symbols like M&M are URL-encoded for NSE")
 
 
+def test_company_copy_replaces_a_cut_off_nse_copy() -> None:
+    """Coal India / NTPC: the manifest names the company's own PDF for the year NSE lists — never for another year."""
+    class Resp:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": self.rows}
+    nse = lambda to_yr: (lambda url, **kw: Resp([{"fromYr": str(int(to_yr) - 1), "toYr": to_yr, "fileName": "https://nse/cut.pdf",
+                                                  "broadcast_dttm": "07-AUG-2026 15:56:45"}]))
+    company = {"symbol": "COALINDIA", "report_fy": "2025-26", "report_url": "https://www.coalindia.in/documents/14122/CIL_AR_2025-26.pdf"}
+    got = india.report_for(company, get=nse("2026"))
+    assert got["fileName"] == company["report_url"] and got["toYr"] == "2026" and got["broadcast_dttm"].startswith("07-AUG")
+    assert india.report_for(company, get=nse("2027"))["fileName"] == "https://nse/cut.pdf"   # NSE has a newer year
+    assert india.report_for({"symbol": "TCS"}, get=nse("2026"))["fileName"] == "https://nse/cut.pdf"  # no override
+    print("PASS: a company's own copy replaces NSE's cut-off copy for that year only; NSE still decides the newest year")
+
+
 if __name__ == "__main__":
+    test_company_copy_replaces_a_cut_off_nse_copy()
     test_navigation_bar_is_not_a_section()
+    test_navigation_bar_above_the_header_is_skipped()
     test_downloads_never_keep_a_truncated_pdf()
     test_rupee_symbol_repair()
     test_sections_kept_and_skipped()

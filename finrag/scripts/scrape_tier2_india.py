@@ -63,13 +63,14 @@ SECTIONS = [
     ("Corporate Governance Report", r"corporate governance report|report on corporate governance", True),
 ]
 HEADER_LINES = 5  # how many lines at the top of a page count as its running header
+NAV_LINES = 15    # how far down a navigation bar can reach (NTPC: 8 lines before the section's own header)
 # Some reports (Asian Paints) mark statement pages only with a footer:
 # "to the Consolidated Financial Statements for the year ended ... (Contd.)". Only this exact
 # form is read from the bottom of a page, so prose that ends a page can't relabel it.
 FOOTER_RE = re.compile(r"^(?:notes\s+)?to the (standalone|consolidated) financial statements", re.I)
 
 # The rupee glyph extracts as a stray capital/backtick right before an amount in crore/lakh.
-RUPEE_AMOUNT_RE = re.compile(r"(?<![A-Za-z0-9])[HICK`](?=\s?\d[\d,]*(?:\.\d+)?\s*(?:crore|lakh|cr\b))")
+RUPEE_AMOUNT_RE = re.compile(r"(?<![A-Za-z0-9])[HICJK`](?=\s?\d[\d,]*(?:\.\d+)?\s*(?i:crore|lakh|cr\b))")
 # "(H in crore)" and "(In ` crore, except per share data)" — the glyph before or after "in"
 RUPEE_UNIT_RE = re.compile(r"\((?:\s*[HICK`₹]\s*(?i:in)|\s*(?i:in)\s+[HICK`₹])\s+((?i:crore|lakh|million|billion))s?")
 PAGE_NUMBER_RE = re.compile(r"^\d{1,3}(?:\s+\d{1,3})?$")
@@ -101,6 +102,23 @@ def latest_report(symbol: str, get=requests.get) -> dict | None:
     resp.raise_for_status()
     rows = [r for r in (resp.json() or {}).get("data", []) if r.get("fileName")]
     return max(rows, key=lambda r: int(r["toYr"])) if rows else None
+
+
+def report_for(company: dict, get=requests.get) -> dict | None:
+    """
+    NSE's newest report entry; its PDF comes from `report_url` instead when the manifest gives
+    one for that same year (`report_fy: 2025-26`) — the company's own copy, for when NSE's
+    archive copy is cut off (Coal India, NTPC FY2025-26). NSE still says which year is newest,
+    so when it lists a newer year the old override is ignored rather than serving last year's report.
+    """
+    report = latest_report(company["symbol"], get=get)
+    if report is None or not company.get("report_url"):
+        return report
+    fy = f"{report['fromYr']}-{report['toYr'][-2:]}"
+    if str(company.get("report_fy")) != fy:
+        print(f"  [NOTE] report_url is for FY{company.get('report_fy')}, NSE lists FY{fy} — using NSE's copy")
+        return report
+    return {**report, "fileName": company["report_url"]}
 
 
 def download_pdf(url: str, dest: Path, get=requests.get, attempts: int = 5) -> Path:
@@ -238,12 +256,24 @@ def page_section(lines: list[str]) -> str | None:
     return None
 
 
-def build_document(pages: list[str], parent: str = "") -> tuple[str, Counter]:
+def build_document(pages: list[str], parent: str = "", nav_bar: bool = False) -> tuple[str, Counter]:
     """
     Pages -> text with "## <section> (p. N)" headings for kept sections only.
     Returns the text and the number of pages kept/skipped per section.
     """
     page_lines = [[l.strip() for l in p.split("\n") if l.strip()] for p in pages]
+    if nav_bar:
+        # A navigation bar on every page (NTPC: "Our Group's / Overview / Innovating for / Sustainability /
+        # Statutory / Disclosures / …", 8 lines, then the page's own "Consolidated Financial Statements")
+        # pushes the section's header out of the first lines: lines atop at least half the pages that name
+        # no section are dropped before looking for the header, and from the text. Opt-in per company
+        # (manifest `nav_bar: true`): applied to every report it also relabelled pages of reports whose
+        # sections were right (Infosys' standalone statements became "Corporate Governance").
+        # (On its integrated-report pages the bar is at the bottom instead.)
+        edges = Counter(l for lines in page_lines for l in set(lines[:NAV_LINES] + lines[-NAV_LINES:]))
+        nav = {l for l, n in edges.items() if n >= len(pages) // 2 and len(l) <= 40 and not page_section([l])}
+        page_lines = [[l for j, l in enumerate(lines) if not ((j < NAV_LINES or j >= len(lines) - NAV_LINES) and l in nav)]
+                      for lines in page_lines]
     # Running headers repeat on many pages; drop them from the body text.
     counts = Counter(l for lines in page_lines for l in set(lines[:HEADER_LINES]))
     repeated = {l for l, n in counts.items() if n >= max(5, len(pages) // 10) and len(l) <= 120}
@@ -318,7 +348,7 @@ def save_doc(company: dict, report: dict, text: str) -> Path:
 def process(company: dict, reextract: bool = False) -> None:
     symbol = company["symbol"]
     print(f"\n{symbol} — {company['name']}")
-    report = latest_report(symbol)
+    report = report_for(company)
     time.sleep(REQUEST_DELAY_SEC)
     if report is None:
         print("  [SKIP] NSE lists no annual report")
@@ -331,7 +361,7 @@ def process(company: dict, reextract: bool = False) -> None:
     if not pdf.exists():
         print(f"  downloading FY{report['fromYr']}-{report['toYr'][-2:]} ({report.get('attFileSize') or '?'})…")
     download_pdf(report["fileName"], pdf)
-    text, stats = build_document(extract_pages(pdf), parent=company["name"])
+    text, stats = build_document(extract_pages(pdf), parent=company["name"], nav_bar=company.get("nav_bar", False))
     kept = sum(n for (_, k), n in stats.items() if k)
     skipped = ", ".join(f"{name} {n}p" for (name, k), n in sorted(stats.items()) if not k)
     path = save_doc(company, report, text)

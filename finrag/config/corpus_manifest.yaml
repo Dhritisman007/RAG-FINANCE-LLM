@@ -257,6 +257,8 @@ tier2_india:
     - symbol: COALINDIA
       name: "Coal India"
       sector: "Oil Gas & Consumable Fuels"
+      report_fy: "2025-26"   # NSE's archive copy is cut off at 16.5 of 20.9 MB; this is the company's own (coalindia.in → Annual Reports)
+      report_url: https://www.coalindia.in/documents/14122/CIL_AR_2025-26.pdf
     - symbol: DRREDDY
       name: "Dr. Reddy's Laboratories"
       sector: "Healthcare"
@@ -299,6 +301,9 @@ tier2_india:
     - symbol: NTPC
       name: "NTPC"
       sector: "Power"
+      report_fy: "2025-26"   # NSE's archive copy is cut off; this is NTPC's own exchange filing of the report (4 Aug 2026; ntpc.co.in blocks scripts)
+      report_url: https://nsearchives.nseindia.com/corporate/NTPC_04082026184413_20260804_STEX_Intimation_of_AGM_and_Annual_Report_Signed.pdf
+      nav_bar: true         # an 8-line navigation bar tops every page; the section header comes after it
     - symbol: NESTLEIND
       name: "Nestle India"
       sector: "Fast Moving Consumer Goods"
