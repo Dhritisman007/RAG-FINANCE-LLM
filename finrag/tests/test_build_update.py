@@ -19,8 +19,9 @@ class FakeEmbedder:
         return [[float(len(t)), 1.0, 0.5] for t in texts]
 
 
-def chunk(cid, source, text, dup=False):
-    return {"chunk_id": cid, "source": source, "text": text, "tier": 2, "is_duplicate": dup, "topic_tags": []}
+def chunk(cid, source, text, dup=False, ticker=""):
+    return {"chunk_id": cid, "source": source, "text": text, "tier": 2, "is_duplicate": dup, "topic_tags": [],
+            "company_ticker": ticker}
 
 
 def test_update_replaces_only_one_source() -> None:
@@ -40,6 +41,27 @@ def test_update_replaces_only_one_source() -> None:
     print("PASS: --only-source replaces that source's chunks (stale ones removed, duplicates skipped), others untouched")
 
 
+def test_update_adds_only_given_companies() -> None:
+    with tempfile.TemporaryDirectory() as d:
+        bv.CHROMA_DIR, bv.CHUNKS_PATH = Path(d) / "db", Path(d) / "chunks.jsonl"
+        write = lambda rows: bv.CHUNKS_PATH.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+        write([chunk("infy-1", "nse_annual_report", "Infosys row", ticker="INFY.NS"),
+               chunk("sec-1", "sec_edgar", "10-K text")])
+        bv.build_collection(FakeEmbedder())
+        write([chunk("infy-1", "nse_annual_report", "CHANGED but not re-embedded", ticker="INFY.NS"),
+               chunk("sec-1", "sec_edgar", "10-K text"),
+               chunk("coal-1", "nse_annual_report", "Coal India row", ticker="COALINDIA.NS"),
+               chunk("ntpc-1", "nse_annual_report", "NTPC row", ticker="NTPC.NS")])
+        col = bv.update_source("nse_annual_report", FakeEmbedder(), tickers=["COALINDIA.NS", "NTPC.NS"])
+        got = col.get(include=["documents"])
+        assert dict(zip(got["ids"], got["documents"])) == {
+            "infy-1": "Infosys row", "sec-1": "10-K text", "coal-1": "Coal India row", "ntpc-1": "NTPC row"}
+        col = bv.update_source("nse_annual_report", FakeEmbedder(), tickers=["COALINDIA.NS"])  # re-run: replaced, not doubled
+        assert col.count() == 4
+    print("PASS: --tickers adds just those companies' chunks (re-runs replace them); other companies untouched")
+
+
 if __name__ == "__main__":
     test_update_replaces_only_one_source()
+    test_update_adds_only_given_companies()
     print("\nAll build-update tests passed.")
