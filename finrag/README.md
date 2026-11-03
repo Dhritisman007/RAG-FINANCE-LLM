@@ -38,10 +38,11 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 21 | CAS statement import (all brokers) | `brokers/cas_adapter.py`, `app.py` | ✅ Done — not yet tried on a real statement |
 | 22 | Website groundwork: sign-in, per-user data, privacy notice | `workspace.py`, `app.py` | ✅ Done locally — not deployed yet |
 | 23 | Mutual funds (CAMS / KFintech CAS, AMFI NAVs) | `mutual_funds.py`, `brokers/cas_adapter.py` | ✅ Done — not yet tried on a real statement |
-| 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ 48 of 50 — 54,402 passages |
+| 24 | Nifty 50 annual reports | `scrape_tier2_india.py`, `router.py` | ✅ All 50 (Coal India, NTPC on Day 28) — 55,778 passages |
 | 25 | 3-month range card (from the stock's own past moves) | `prices.past_moves_range`, `app.py` | ✅ Done |
 | 26 | Daily question limits (website) | `usage.py`, `llm_backends.py`, `app.py` | ✅ Done |
 | 27 | Users' data survives free hosting (encrypted Postgres mirror) | `remote_store.py`, `app.py`, `usage.py` | ✅ Done — tested on local Postgres |
+| 28 | Coal India + NTPC reports; table-row citation check | `scrape_tier2_india.py`, `build_vectorstore.py`, `citations.py` | ✅ Done — all 50 Nifty 50 reports |
 
 ---
 
@@ -445,7 +446,7 @@ Most Indian investors hold mutual funds; PortIQ skipped them. Now:
 - **Shown as:** `MF:<ISIN>` holdings named from AMFI ("HDFC Corporate Bond Fund · Direct · Growth"), valued in ₹; answers say "units"; the stock view shows a NAV card. Not yet: NAV history/charts for funds — the 1-year insights say they cover stocks only.
 
 ### Day 24 — Nifty 50 annual reports
-The corpus now has the FY2025-26 annual reports of **48 of the 50 Nifty 50 companies** (the list from NSE's `ind_nifty50list.csv`, 30 Oct 2026): 36,927 annual-report passages, 54,402 in all; the SEC filings, explainers and papers are unchanged (checked per source against a backup). **Coal India and NTPC are missing:** NSE's own archive copies of their reports are cut off (a range request past the cut gets HTTP 416), so retrying can't help — add them from the companies' websites later.
+The corpus now has the FY2025-26 annual reports of **48 of the 50 Nifty 50 companies** (the list from NSE's `ind_nifty50list.csv`, 30 Oct 2026): 36,927 annual-report passages, 54,402 in all; the SEC filings, explainers and papers are unchanged (checked per source against a backup). **Coal India and NTPC are missing:** NSE's own archive copies of their reports are cut off (a range request past the cut gets HTTP 416), so retrying can't help — added on Day 28 from the companies' own copies.
 - **Router:** every company by name and brand (Zomato/Blinkit → Eternal, Royal Enfield → Eicher, Zudio → Trent). A name inside a longer company name belongs to that company ("Jio" in Jio Financial Services, "SBI" in SBI Life); bare "BSE" is the exchange; Eternal, Titan, Trent and IndiGo count only capitalised.
 - **Found and fixed on the way:**
   - NSE's archive sometimes serves a cut-off PDF with a matching Content-Length (the same URL gave 16.7 MB, then 3.8 MB): a PDF is kept only if it ends with `%%EOF`, retried up to 5 times, and never cached truncated.
@@ -472,6 +473,13 @@ Free hosting (Streamlit Community Cloud) wipes its disk on every restart and wak
 - Delete my data also erases the stored copy. Without `PORTIQ_DATABASE_URL` nothing changes (local disk only).
 - The privacy notice no longer says "Hugging Face": it names the host and database from `PORTIQ_HOST_NAME` / `PORTIQ_STORE_NAME` and explains the encryption (notice version bumped, so everyone accepts it again).
 - Tested on a local Postgres 18: per-user round trip, only changes sent, no plaintext in the database, wrong key can't decrypt, stored paths can't escape the folder, counts survive a wipe; and in the app — import, delete the whole data folder, restart, sign in: the portfolio came back; Delete my data left no rows.
+
+### Day 28 — All 50 Nifty 50 reports; figures on table rows count as matching
+- **Coal India and NTPC added** (FY2025-26), so all 50 Nifty 50 companies' annual reports are searchable: 1,376 new passages, **55,778** in all (38,303 from annual reports). NSE's archive copies are still cut off, so a company's manifest entry can name another official copy for the year NSE lists (`report_fy` + `report_url`): Coal India's from coalindia.in, NTPC's from its own NSE exchange filing of the report (ntpc.co.in blocks scripts). If NSE later lists a newer year, the override is ignored rather than serving last year's report.
+- **NTPC's navigation bar:** an 8-line bar of part names tops every page, so its section headers were never seen (271 of 278 pages "Integrated Report", standalone statements kept). `nav_bar: true` in its manifest entry skips those lines: 89 consolidated-statement pages, MD&A, Board's and Governance reports found; 84 standalone pages and the AGM notice skipped. Opt-in, because applied to every report it also relabelled reports that were right (Infosys' standalone statements became "Corporate Governance") — checked by extracting all cached reports with the old and new code.
+- **Rupee glyph "J":** Coal India's font prints ₹ as "J" ("J1,68,400 Crores"); now restored like H/I/C/`. Twelve already-indexed reports also contain it (e.g. Reliance "J3,71,085 Crore") and keep it until they're re-extracted — figure checks read the number either way.
+- `build_vectorstore.py --only-source nse_annual_report --tickers COALINDIA.NS,NTPC.NS` embeds just those companies (minutes, not the ~hour of re-embedding all annual reports). Re-chunking left all 56,536 existing passages byte-identical; retrieval on the 66 golden questions unchanged (precision 92%, MRR 0.96). "CIL" (capitalised) now means Coal India.
+- **Citation check:** a correct table figure showed "0 of 1 statement matches its source" next to "All figures found" — a table row embeds far from a prose sentence. A figure claim now also matches when one line of the cited passage holds all its figures, the fiscal year it names and one of its label words (company names don't count); a wrong label, year or figure stays flagged. "FY24-25" no longer reports "25" as an unfound figure. On the 36 saved answers: statements ok 50/60 → 51/60, nothing newly passing that was wrong.
 
 ## Tests
 
