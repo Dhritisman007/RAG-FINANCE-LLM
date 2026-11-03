@@ -222,6 +222,27 @@ def test_numbers_must_come_from_sources() -> None:
     print("PASS (g): numbers absent from every source are flagged; source/question numbers, [N] and list numbering aren't")
 
 
+def test_figure_matched_on_a_table_row() -> None:
+    row = ("(₹ in crore, except per equity share data)\nRevenue from operations — Standalone: 2026 1,48,819, "
+           "2025 1,36,592, YoY % 9.0; Consolidated: 2026 1,78,650, 2025 1,62,990, YoY % 9.6")   # INFY AR p. 64
+    cites = [Citation(rank=1, tier=1, source="", doc_title="Infosys (INFY) Annual Report FY2025-26",
+                      section_heading="", url="", distance=0.1, text_preview="", text=row)]
+
+    def status(answer: str) -> str:
+        calls = iter(range(0, 256, 16))
+        orthogonal = lambda xs: np.eye(256)[next(calls):][:len(xs)]  # semantic score 0: only the row match can pass
+        return check_citations(answer, cites, orthogonal).claims[0].status
+
+    assert status("Infosys's consolidated revenue in FY2025 was ₹1,62,990 crore. [1]") == "ok"
+    assert status("Infosys's consolidated revenue in FY24-25 was ₹1,62,990 crore. [1]") == "ok"
+    assert status("Infosys's net profit in FY2025 was ₹1,62,990 crore. [1]") == "weak"      # wrong label
+    assert status("Infosys's consolidated revenue in FY2024 was ₹1,62,990 crore. [1]") == "weak"  # wrong year
+    assert status("Infosys's consolidated revenue in FY2025 was ₹1,70,000 crore. [1]") == "weak"  # wrong figure
+    assert status("Infosys reported strong growth in FY2025. [1]") == "weak"                  # no figure to match
+    assert find_ungrounded_numbers("Revenue in FY2024-25 was ₹1,62,990 crore.", [row]) == []   # "25" is a period
+    print("PASS (i): a figure on one table row with its year and label matches; wrong label/year/figure stays weak")
+
+
 if __name__ == "__main__":
     test_same_section_chunks_not_collapsed()
     test_markers_point_to_matching_source_after_reorder()
@@ -229,5 +250,6 @@ if __name__ == "__main__":
     test_split_cited_claims_formats()
     test_check_flags_swapped_invalid_and_uncited()
     test_numbers_must_come_from_sources()
+    test_figure_matched_on_a_table_row()
     test_soft_per_document_cap()
     print("\nAll citation tests passed.")

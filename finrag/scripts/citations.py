@@ -377,6 +377,7 @@ NUMBER_RE = re.compile(r"(?<![\w.])\$?\d[\d,]*(?:\.\d+)?%?")
 # In source text PDFs glue labels to figures ("YoY growth117%" in Eternal's report), so a number counts as
 # present there even right after a letter; the answer side keeps NUMBER_RE ("FY26" isn't a figure).
 SOURCE_NUMBER_RE = re.compile(r"(?<![\d.,])\$?\d[\d,]*(?:\.\d+)?%?")
+FY_RE = re.compile(r"\bFY\s?'?(\d{4}|\d{2})(?:\s?[-–]\s?(\d{2,4}))?\b", re.I)   # FY2025, FY25, FY2024-25: a period, not a figure
 
 
 def _norm_number(token: str) -> str:
@@ -392,7 +393,7 @@ def find_ungrounded_numbers(answer: str, sources: list[str]) -> list[str]:
     It can't catch a real number attached to the wrong label (e.g. an expense
     line quoted as revenue) — that needs the reader to check the source.
     """
-    text = MARKER_RE.sub(" ", answer)
+    text = FY_RE.sub(" ", MARKER_RE.sub(" ", answer))   # the "25" of "FY24-25" isn't an amount
     text = re.sub(r"^\s*\d+[.)]\s", " ", text, flags=re.M)  # list numbering
     known = {_norm_number(m.group(0)) for s in sources for m in SOURCE_NUMBER_RE.finditer(s)}
     missing = []
@@ -421,6 +422,34 @@ def _quoted_in(claim: str, c: Citation) -> bool:
 def _sentences(text: str) -> list[str]:
     parts = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n", text)]
     return [s for s in parts if len(s) > 20] or [text]
+
+
+# Words that say nothing about WHICH line item a figure is ("revenue was 1,62,990 crore").
+NOT_LABELS = {"that", "this", "with", "from", "were", "than", "year", "years", "fiscal", "period", "company",
+              "crore", "crores", "lakh", "lakhs", "million", "millions", "billion", "rupees", "about", "around",
+              "approximately", "reported", "stood", "amounted"}
+
+
+def _figures_in_row(claim: str, c: Citation) -> bool:
+    """A figure claim is supported by one line of the passage that holds all its figures, the fiscal
+    year it names, and at least one of its label words ("revenue", "consolidated"); company names
+    don't count as labels. Table rows ("Consolidated: 2026 1,78,650, 2025 1,62,990") embed far from
+    a prose sentence, so the semantic score alone calls a correct figure weak. A figure under the wrong
+    label ("net profit was 1,62,990") still fails: the row has the number but none of the claim's labels."""
+    if not find_ungrounded_numbers(claim, []):
+        return False                                   # no figures: nothing to match row by row
+    years = {(m.group(2) or m.group(1))[-2:] for m in FY_RE.finditer(claim)}
+    company = set(_words(c.doc_title).split())
+    labels = {w for w in _words(claim).split()
+              if len(w) >= 4 and not any(ch.isdigit() for ch in w) and w not in NOT_LABELS | company}
+    for sentence in _sentences(c.text or c.text_preview):
+        if find_ungrounded_numbers(claim, [sentence]):
+            continue
+        if not all(re.search(rf"(?:\b20|\bFY\s?'?|[-–]){yy}\b", sentence, re.I) for yy in years):
+            continue
+        if labels & set(_words(sentence).split()):
+            return True
+    return False
 
 
 def check_citations(
@@ -462,7 +491,9 @@ def check_citations(
         cited_best = max(support[n] for n in nums)
         best = max(support, key=support.get)
         check = ClaimCheck(text, nums, "ok", support=cited_best)
-        if best not in nums and support[best] >= MISCITE_MIN_BEST and support[best] - cited_best >= MISCITE_MARGIN:
+        if any(_figures_in_row(text, by_rank[n]) for n in nums):
+            pass                                       # its figures, year and label are on one line of the cited passage
+        elif best not in nums and support[best] >= MISCITE_MIN_BEST and support[best] - cited_best >= MISCITE_MARGIN:
             check.status, check.suggested, check.suggested_support = "miscited", best, support[best]
         elif cited_best < WEAK_SUPPORT and not any(_quoted_in(text, by_rank[n]) for n in nums):
             check.status = "weak"
