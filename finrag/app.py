@@ -200,6 +200,9 @@ def trust_bar(res: dict) -> None:
             chips.append(("warn", f"⚠ {len(report.ungrounded_numbers)} figure(s) not found in the sources"))
         elif re.search(r"\d{2,}", res["answer"]):
             chips.append(("good", "✓ All figures found in the sources"))
+        if report.period_mismatches:
+            n = len(report.period_mismatches)
+            chips.append(("warn", f"⚠ {n} year/quarter{'s' if n != 1 else ''} not in the cited source"))
     docs = list(dict.fromkeys(compact_title(source_info(c)[1]) for c in res.get("citations", [])))
     if docs and not res.get("refusal"):
         first = docs[0] if len(docs[0]) <= 52 else docs[0][:50] + "…"
@@ -211,7 +214,8 @@ def trust_bar(res: dict) -> None:
     if chips:
         st.markdown('<div class="chips">' + "".join(f'<span class="chip {cls}">{html.escape(text)}</span>'
                                                      for cls, text in chips) + "</div>", unsafe_allow_html=True)
-    if report is not None and (report.problems or report.ungrounded_numbers or report.uncited_answer):
+    if report is not None and (report.problems or report.ungrounded_numbers or report.uncited_answer
+                               or report.period_mismatches):
         with st.expander("What the check found"):
             render_report(report)
 
@@ -238,6 +242,10 @@ def render_report(report: CitationReport | None) -> None:
     if report.ungrounded_numbers:
         st.warning(md("Numbers not found in any source (possibly invented): "
                       + ", ".join(report.ungrounded_numbers[:12])))
+    for p in report.period_mismatches[:6]:
+        cited = ", ".join(f"[{n}]" for n in p.cited)
+        st.markdown(md(f"- ⚠ **{p.period}** isn't mentioned in {cited} — the figure may be from a different "
+                       f"year or quarter: “{short_claim(p.claim)}”"))
 
 
 def render_assistant(res: dict, show_details: bool) -> None:

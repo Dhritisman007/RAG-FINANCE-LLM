@@ -306,11 +306,19 @@ class ClaimCheck:
 
 
 @dataclass
+class PeriodMismatch:
+    period: str               # as the answer wrote it, e.g. "third quarter of 2026"
+    cited: list[int]          # the passages it should be in
+    claim: str
+
+
+@dataclass
 class CitationReport:
     claims: list[ClaimCheck]
     uncited_answer: bool      # answer has text but no [N] markers at all
     unused_sources: list[int]
     ungrounded_numbers: list[str] = field(default_factory=list)  # numbers found in no source
+    period_mismatches: list[PeriodMismatch] = field(default_factory=list)  # years/quarters not in the cited passage
 
     @property
     def problems(self) -> list[ClaimCheck]:
@@ -452,6 +460,125 @@ def _figures_in_row(claim: str, c: Citation) -> bool:
     return False
 
 
+# ---------------------------------------------------------------------------
+# 4b. Period checking -- is the year / quarter a claim names in the passage it cites?
+# ---------------------------------------------------------------------------
+# Models answer "What was revenue in Q3 2026?" with a Q1 figure labelled "Q3 2026", or quote a
+# FY2024-25 row as FY2025-26: the figure is in the source, so the number check passes. The question
+# is no evidence here -- the period must appear in the cited passage (or its title / filing date).
+
+ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+_MONTH = (r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?"
+          r"|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b\.?")
+_DAY_MONTH = rf"(?:{_MONTH}\s+\d{{1,2}},?|\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTH},?)"   # "June 30," / "31st March,"
+# Year after a quarter: "2026", "fiscal (year) 2026", "FY26", "FY 2025-26", "'26". A bare two-digit
+# number isn't a year ("Q3 15% growth").
+_Q_YEAR = r"(?:\s*(?:of\s+)?(?:fiscal\s+(?:year\s+)?)?((?:19|20)\d{2})|\s*(?:of\s+)?FY\s?'?(\d{2}(?:\d{2})?)|\s*'(\d{2}))(?:\s?[-–]\s?(\d{2,4}))?\b"
+QUARTER_RE = re.compile(
+    rf"\b(?:Q([1-4])(?!\d)|([1-4])Q(?![a-z])|(first|second|third|fourth)\s+(fiscal\s+)?quarter)(?:{_Q_YEAR})?", re.I)
+QUARTER_MONTH_RE = re.compile(   # "three months ended September 30, 2026", "quarter ended 31st March, 2026"
+    rf"\b(?:three\s+months|quarter|quarterly\s+period)\s+ended\s+(?:on\s+)?({_DAY_MONTH})(?:\s*((?:19|20)\d{{2}}))?", re.I)
+FISCAL_YEAR_RE = re.compile(   # "fiscal 2026", "fiscal year ended June 30, 2026", "financial year 2025-26", "year ended March 31, 2026"
+    rf"\b(?:(?:fiscal|financial)\s+(?:year\s+)?(?:ended\s+(?:on\s+)?{_DAY_MONTH}\s*)?|year\s+ended\s+(?:on\s+)?{_DAY_MONTH}\s*)"
+    r"((?:19|20)\d{2})(?:\s?[-–]\s?(\d{2,4}))?\b", re.I)
+SPLIT_YEAR_RE = re.compile(r"\b((?:19|20)\d{2})\s?[-–]\s?(\d{2})\b(?!\s?[-–]\d)")   # "2025-26" (not a date "2025-10-31")
+
+
+def _yy(year: str | None, end: str | None = None) -> str | None:
+    """Two-digit year a period ends in: "2026" -> "26", ("2025", "26") -> "26"."""
+    y = end or year
+    return y[-2:] if y else None
+
+
+def _month_of(text: str) -> int:
+    return MONTHS.index(re.search(_MONTH, text, re.I).group(0)[:3].lower()) + 1
+
+
+def periods_in(text: str) -> list[tuple[str, tuple]]:
+    """Years and quarters `text` names -> [(as written, key)]. Keys: ("Q", quarter, yy, fiscal),
+    ("M", month, yy) for "three months ended <month>", ("FY", yy, year-end month or None). Bare years ("in 2025") are left
+    to the number check: they're as often a date as a period."""
+    found, spans = [], []
+    for m in QUARTER_RE.finditer(text):
+        q = int(m.group(1) or m.group(2) or ORDINALS[m.group(3).lower()])
+        yy = _yy(m.group(5) or m.group(6) or m.group(7), m.group(8))
+        fiscal = bool(m.group(4)) or bool(re.search(r"fiscal|FY", m.group(0), re.I))
+        found.append((m.group(0).strip(), ("Q", q, yy, fiscal)))
+        spans.append(m.span())
+    for m in QUARTER_MONTH_RE.finditer(text):
+        found.append((m.group(0).strip(" ,"), ("M", _month_of(m.group(1)), _yy(m.group(2)))))
+        spans.append(m.span())
+    for regex in (FY_RE, FISCAL_YEAR_RE, SPLIT_YEAR_RE):   # in this order: "FY 2025-26" isn't also "2025-26"
+        for m in regex.finditer(text):
+            if not any(a < m.end() and m.start() < b for a, b in spans):
+                ended = re.search(rf"ended\s+(?:on\s+)?({_DAY_MONTH})", m.group(0), re.I)
+                found.append((m.group(0).strip(), ("FY", _yy(m.group(1), m.group(2)),
+                                                   _month_of(ended.group(1)) if ended else None)))
+                spans.append(m.span())
+    return found
+
+
+def _year_in(yy: str | None, text: str) -> bool:
+    """`text` names the year: "2026", "FY26", "FY 2025-26", "2025-26"."""
+    return yy is None or bool(re.search(rf"(?:\b(?:19|20)|\bFY\s?'?|\b(?:19|20)\d\d\s?[-–]\s?){yy}\b", text, re.I))
+
+
+def _quarter_labels(text: str) -> set[int]:
+    return {int(m.group(1) or m.group(2) or ORDINALS[m.group(3).lower()])
+            for m in re.finditer(r"\bQ([1-4])(?!\d)|\b([1-4])Q(?![a-z])|\b(first|second|third|fourth)\s+(?:fiscal\s+)?quarter",
+                                 text, re.I)}
+
+
+def _filed_soon_after(yy: str | None, month: int | None, source: str) -> bool:
+    """"year ended December 31, 2025" is covered by "TSLA 10-K filed 2026-01-29": SEC reports are filed
+    within ~4 months of the period end (10-K 60-90 days, 10-Q 40-45). Needs the month: Nvidia's fiscal
+    2026 ended in January 2026, so a February 2026 filing says nothing about "fiscal 2025"."""
+    m = re.search(r"\bfiled (\d{4})-(\d{2})-\d{2}\b", source)
+    if not (m and yy and month):
+        return False
+    months_after = (int(m.group(1)) - (2000 + int(yy))) * 12 + int(m.group(2)) - month
+    return 0 <= months_after <= 4
+
+
+def _period_support(key: tuple, source: str) -> str:
+    """"match" | "unknown" | "no" -- does one cited source cover this period?"""
+    kind = key[0]
+    if kind == "FY":
+        return "match" if _year_in(key[1], source) or _filed_soon_after(key[1], key[2], source) else "no"
+    if kind == "M":
+        months = {_month_of(m.group(0)) for m in re.finditer(rf"\b{_MONTH}", source, re.I)}
+        return "match" if key[1] in months and _year_in(key[2], source) else "no"
+    _, q, yy, fiscal = key
+    if not _year_in(yy, source):
+        return "no"
+    labels = _quarter_labels(source)
+    if labels:              # the filing's own words ("first quarter") decide
+        return "match" if q in labels else "no"
+    month_ends = {_month_of(m.group(1)) for m in QUARTER_MONTH_RE.finditer(source)}
+    if month_ends and fiscal:
+        return "unknown"    # "three months ended March" is fiscal Q3 at Microsoft, Q1 at Netflix: can't tell
+    return "match" if 3 * q in month_ends else "no"   # calendar quarter: Q3 ends in September
+
+
+def find_period_mismatches(claims: list[tuple[str, list[int]]], by_rank: dict[int, Citation]) -> list[PeriodMismatch]:
+    """Periods each cited claim names that none of its cited passages covers. Gap statements ("Q3 2026
+    results aren't in the sources") are skipped: naming a missing period is the point of them."""
+    out = []
+    for text, nums in claims:
+        cited = [by_rank[n] for n in nums if n in by_rank]
+        if not cited or ABSTAIN_RE.search(text):
+            continue
+        sources = [f"{c.doc_title} {c.section_heading} {c.date_published}\n{c.text or c.text_preview}"
+                   for c in cited]
+        for written, key in periods_in(text):
+            support = {_period_support(key, s) for s in sources}
+            if "match" not in support and "unknown" not in support \
+                    and written not in [p.period for p in out if p.claim == text]:
+                out.append(PeriodMismatch(written, nums, text))
+    return out
+
+
 def check_citations(
     answer: str,
     citations: list[Citation],
@@ -500,7 +627,8 @@ def check_citations(
         checks.append(check)
 
     return CitationReport(checks, uncited_answer=False,
-                          unused_sources=sorted(set(by_rank) - used), ungrounded_numbers=ungrounded)
+                          unused_sources=sorted(set(by_rank) - used), ungrounded_numbers=ungrounded,
+                          period_mismatches=find_period_mismatches(claims, by_rank))
 
 
 def format_citation_report(report: CitationReport) -> str:
@@ -508,6 +636,9 @@ def format_citation_report(report: CitationReport) -> str:
     if report.ungrounded_numbers:
         numbers = ("\n  # numbers not found in any source (possibly invented): "
                    + ", ".join(report.ungrounded_numbers[:12]))
+    for p in report.period_mismatches[:6]:
+        numbers += (f"\n  # period not in its source: \"{p.period}\" isn't mentioned in "
+                    + ", ".join(f"[{n}]" for n in p.cited))
     if report.uncited_answer:
         return "Citation check: ⚠ the answer has no [N] citations — its claims can't be traced to sources." + numbers
     if not report.claims:

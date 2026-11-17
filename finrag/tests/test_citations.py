@@ -17,6 +17,7 @@ from citations import (  # noqa: E402
     check_citations,
     format_citation_report,
     find_ungrounded_numbers,
+    periods_in,
     split_cited_claims,
     citations_from_chroma_results,
     deduplicate_citations,
@@ -243,6 +244,46 @@ def test_figure_matched_on_a_table_row() -> None:
     print("PASS (i): a figure on one table row with its year and label matches; wrong label/year/figure stays weak")
 
 
+def test_period_must_be_in_the_cited_passage() -> None:
+    def cite(title: str, text: str) -> list[Citation]:
+        return [Citation(rank=1, tier=2, source="", doc_title=title, section_heading="", url="", distance=0.1,
+                         text_preview="", text=text)]
+
+    def flagged(answer: str, cites: list[Citation]) -> list[str]:
+        return [p.period for p in check_citations(answer, cites, bow_encode).period_mismatches]
+
+    xom_q1 = cite("XOM 10-Q filed 2026-05-04", "Three Months Ended March 31, 2026 2025 Sales and other operating "
+                  "revenue 83,161 81,058. First quarter earnings were $7.7 billion.")   # Qwen3 called this "Q3"
+    assert flagged("ExxonMobil's revenue in the third quarter of 2026 was $83,161 million [1].", xom_q1) == ["third quarter of 2026"]
+    assert flagged("ExxonMobil's revenue in Q3 FY26 was $83,161 million [1].", xom_q1) == ["Q3 FY26"]  # its own label decides
+    assert flagged("Revenue in the first quarter of 2026 was $83,161 million [1].", xom_q1) == []
+    assert flagged("Revenue for the three months ended March 31, 2026 was $83,161 million [1].", xom_q1) == []
+    assert flagged("Revenue in Q1 2025 was $81,058 million [1].", xom_q1) == []
+    assert flagged("The sources don't cover the third quarter of 2026; Q1 2026 revenue was $83,161 million [1].",
+                   xom_q1) == []                                                     # gap statement
+    nflx = cite("NFLX 10-Q filed 2026-04-17", "Revenues for the three months ended March 31, 2026 were 12,195")
+    assert flagged("Netflix's Q1 2026 revenue was $12,195 million [1].", nflx) == []    # calendar quarter
+    assert flagged("Netflix's Q4 2026 revenue was $12,195 million [1].", nflx) == ["Q4 2026"]
+    msft = cite("MSFT 10-Q filed 2026-04-29", "Revenue for the three months ended March 31, 2026 was 82,886")
+    assert flagged("Revenue in the third quarter of fiscal 2026 was $82,886 million [1].", msft) == []   # fiscal: can't tell
+
+    infy = cite("Infosys (INFY) Annual Report FY2025-26", "Consolidated revenue: 2026 1,78,650, 2025 1,62,990")
+    assert flagged("Revenue in FY 2025-26 was ₹1,78,650 crore [1].", infy) == []
+    assert flagged("Revenue in FY2024 was ₹1,62,990 crore [1].", infy) == ["FY2024"]
+    assert flagged("Revenue for the year ended 31st March, 2024 was ₹1,62,990 crore [1].", infy) == ["year ended 31st March, 2024"]
+    nvda = cite("NVDA 10-K filed 2026-02-25", "Revenue for fiscal year 2026 was $215,938 million")
+    assert flagged("Nvidia's revenue in fiscal year 2025 was $215,938 million [1].", nvda) == ["fiscal year 2025"]
+    tsla = cite("TSLA 10-K filed 2026-01-29", "Our Compensation Committee oversees our human capital strategy.")
+    assert flagged("See the 10-K for the year ended December 31, 2025 [1].", tsla) == []   # filed a month later
+    assert flagged("See the 10-K for the year ended December 31, 2024 [1].", tsla) == ["year ended December 31, 2024"]
+
+    assert periods_in("Q3 15% growth") == [("Q3", ("Q", 3, None, False))]             # 15 isn't a year
+    assert periods_in("filed 2025-10-31 in the market") == []                          # a date, not FY2025-10
+    report = check_citations("Revenue in FY2024 was ₹1,62,990 crore [1].", infy, bow_encode)
+    assert 'period not in its source: "FY2024"' in format_citation_report(report)
+    print("PASS (j): a year or quarter the cited passage doesn't mention is flagged; the question is no evidence")
+
+
 if __name__ == "__main__":
     test_same_section_chunks_not_collapsed()
     test_markers_point_to_matching_source_after_reorder()
@@ -251,5 +292,6 @@ if __name__ == "__main__":
     test_check_flags_swapped_invalid_and_uncited()
     test_numbers_must_come_from_sources()
     test_figure_matched_on_a_table_row()
+    test_period_must_be_in_the_cited_passage()
     test_soft_per_document_cap()
     print("\nAll citation tests passed.")

@@ -125,6 +125,7 @@ def evaluate_question(q: dict, collection, model: str | None, options: dict,
         "invalid": statuses.count("invalid"),
         "uncited": report.uncited_answer,
         "invented_numbers": report.ungrounded_numbers,
+        "wrong_periods": [p.period for p in report.period_mismatches],
         # each required fact is a string or a list of forms that ALL appear verbatim in the
         # filing (e.g. ["215.9", "215,938"] = billions in the narrative, millions in the table)
         "facts_ok": (all(any(normalize_number_text(alt) in norm for alt in ([f] if isinstance(f, str) else f))
@@ -202,6 +203,8 @@ def print_failures(results: list[dict], with_answers: bool) -> None:
                 issues.append("required figure missing")
             if x["invented_numbers"]:
                 issues.append(f"numbers not in sources: {', '.join(x['invented_numbers'][:5])}")
+            if x.get("wrong_periods"):   # a --resume checkpoint from before Day 29 lacks it
+                issues.append(f"periods not in the cited source: {', '.join(x['wrong_periods'][:5])}")
             if x["miscited"] or x["weak"] or x["invalid"]:
                 issues.append(f"citations: {x['miscited']} miscited, {x['weak']} weak, {x['invalid']} invalid")
             if x["uncited"] and not x["abstained"]:
