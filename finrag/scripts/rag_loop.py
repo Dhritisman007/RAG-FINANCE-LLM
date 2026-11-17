@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import textwrap
@@ -69,7 +70,7 @@ import prices  # noqa: E402
 import prompts  # noqa: E402
 
 # ── Paths & constants ────────────────────────────────────────────────────────
-CHROMA_DIR = Path.home() / ".finrag_chroma_db"
+CHROMA_DIR = Path(os.environ.get("PORTIQ_CHROMA_DIR") or Path.home() / ".finrag_chroma_db").expanduser()
 COLLECTION_NAME = "finrag_chunks"
 EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -678,6 +679,21 @@ def rag_query(
 def local_models() -> list[str]:
     """Local models: Ollama's (excluding cloud models) plus MLX's when its server is up."""
     return [n for n in backends.available_models() if not CLOUD_MODEL_RE.search(n)]
+
+
+def download_store(repo_id: str) -> None:
+    """Website only: free hosts start with an empty disk, so fetch the prebuilt store from a private
+    Hugging Face dataset (HF_TOKEN read access). A startup step, never run at question time. Whole
+    store or nothing: it downloads beside CHROMA_DIR and is renamed only once complete."""
+    import huggingface_hub.constants as hub_constants
+    from huggingface_hub import snapshot_download
+    partial = CHROMA_DIR.with_name(CHROMA_DIR.name + ".partial")
+    was_offline, hub_constants.HF_HUB_OFFLINE = hub_constants.HF_HUB_OFFLINE, False  # get_embedder() sets it
+    try:
+        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=partial)
+    finally:
+        hub_constants.HF_HUB_OFFLINE = was_offline
+    partial.rename(CHROMA_DIR)
 
 
 def open_collection() -> chromadb.Collection | None:

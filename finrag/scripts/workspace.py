@@ -35,13 +35,23 @@ class NoWorkspace(RuntimeError):
     """Hosted mode, but this request has no signed-in user — personal data must not be touched."""
 
 
+def settings_from_secrets(secrets: dict) -> None:
+    """On Streamlit Community Cloud settings arrive as secrets. Copy the plain top-level ones (PORTIQ_MODE,
+    PORTIQ_LLM_URL, …) into the environment before any other module reads it: Streamlit only does that once
+    st.secrets is first touched — too late for PORTIQ_MODE, and a website that started in local mode would
+    show every visitor the same holdings. Real environment variables win; tables ([auth]) stay in st.secrets."""
+    for key, value in secrets.items():
+        if isinstance(value, (str, int, float)) and not isinstance(value, bool):
+            os.environ.setdefault(key, str(value))
+
+
 def hosted() -> bool:
     return os.environ.get("PORTIQ_MODE", "").strip().lower() == "hosted"
 
 
 def data_root() -> Path:
-    """Where hosted users' folders live (a Hugging Face Space mounts persistent storage at /data)."""
-    return Path(os.environ.get("PORTIQ_DATA_DIR", "/data/portiq"))
+    """Where hosted users' folders live ("~/portiq-data" on Streamlit Cloud, whose disk is wiped on restart)."""
+    return Path(os.environ.get("PORTIQ_DATA_DIR", "/data/portiq")).expanduser()
 
 
 @dataclass(frozen=True)

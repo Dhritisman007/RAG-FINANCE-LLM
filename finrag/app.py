@@ -35,6 +35,11 @@ from pathlib import Path
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent / "scripts"))
+import workspace  # noqa: E402
+try:   # first: the other modules read their settings from the environment
+    workspace.settings_from_secrets(st.secrets.to_dict())
+except Exception:
+    pass   # no secrets file (local runs: settings come from .env)
 import llm_backends as backends  # noqa: E402
 import prices  # noqa: E402
 import prompts  # noqa: E402
@@ -43,7 +48,6 @@ import mutual_funds  # noqa: E402
 import remote_store  # noqa: E402
 import usage  # noqa: E402
 import portfolio_db  # noqa: E402
-import workspace  # noqa: E402
 from brokers.credentials import get_secret  # noqa: E402
 from brokers.csv_adapter import guess_mapping, parse_rows, read_headers  # noqa: E402
 from brokers.base import BrokerError, MalformedResponse  # noqa: E402
@@ -85,6 +89,12 @@ if st.get_option("browser.gatherUsageStats") or (
 # ── Cached resources ─────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner="Loading the vector store…")
 def get_collection():
+    if HOSTED and not r.CHROMA_DIR.exists() and os.environ.get("PORTIQ_STORE_REPO"):
+        try:
+            r.download_store(os.environ["PORTIQ_STORE_REPO"])
+        except Exception as e:   # the page then says the assistant is off; details in the server log
+            print(f"[ERROR] vector store download failed: {type(e).__name__}: {e}", file=sys.stderr)
+            return None
     with contextlib.redirect_stdout(io.StringIO()):
         return r.open_collection()
 

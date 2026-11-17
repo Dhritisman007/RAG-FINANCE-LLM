@@ -8,3 +8,11 @@ ollama>=0.4.0
 casparser>=1.4.1
 psycopg[binary]>=3.2
 cryptography>=42
+# The app (Streamlit Community Cloud installs from this file)
+streamlit[auth]>=1.51   # [auth] = Authlib, for Google sign-in (st.login)
+numpy>=2.0
+pandas>=2.2
+plotly>=6.0
+yfinance>=1.0
+python-dotenv>=1.0
+huggingface_hub>=1.0    # embedding model + the website's vector store download

@@ -1,0 +1,23 @@
+# Settings for the WEBSITE (Streamlit Community Cloud runs `streamlit run finrag/app.py` from the
+# repository root, so it only reads this file). Local runs from finrag/ use finrag/.streamlit/config.toml.
+# No server.address here: if PORTIQ_MODE=hosted were ever missing from the secrets, the app would start
+# in local mode, see it isn't bound to 127.0.0.1, and refuse to run rather than share one portfolio.
+[server]
+headless = true
+fileWatcherType = "none"   # see finrag/.streamlit/config.toml
+maxUploadSize = 20         # MB: broker CSVs and CAS PDFs are far smaller
+
+[browser]
+gatherUsageStats = false   # the app refuses to start with usage statistics on
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+base = "dark"
+primaryColor = "#6366f1"
+backgroundColor = "#0b0f17"
+secondaryBackgroundColor = "#121826"
+textColor = "#e5e7eb"
+borderColor = "#1f2937"
+baseRadius = "10px"
