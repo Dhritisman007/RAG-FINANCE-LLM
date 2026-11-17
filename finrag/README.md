@@ -43,6 +43,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 26 | Daily question limits (website) | `usage.py`, `llm_backends.py`, `app.py` | ✅ Done |
 | 27 | Users' data survives free hosting (encrypted Postgres mirror) | `remote_store.py`, `app.py`, `usage.py` | ✅ Done — tested on local Postgres |
 | 28 | Coal India + NTPC reports; table-row citation check | `scrape_tier2_india.py`, `build_vectorstore.py`, `citations.py` | ✅ Done — all 50 Nifty 50 reports |
+| 29 | Year/quarter check: the period an answer names must be in its cited passage | `citations.py`, `app.py`, `evaluate.py` | ✅ Done |
 
 ---
 
@@ -481,12 +482,20 @@ Free hosting (Streamlit Community Cloud) wipes its disk on every restart and wak
 - `build_vectorstore.py --only-source nse_annual_report --tickers COALINDIA.NS,NTPC.NS` embeds just those companies (minutes, not the ~hour of re-embedding all annual reports). Re-chunking left all 56,536 existing passages byte-identical; retrieval on the 66 golden questions unchanged (precision 92%, MRR 0.96). "CIL" (capitalised) now means Coal India.
 - **Citation check:** a correct table figure showed "0 of 1 statement matches its source" next to "All figures found" — a table row embeds far from a prose sentence. A figure claim now also matches when one line of the cited passage holds all its figures, the fiscal year it names and one of its label words (company names don't count); a wrong label, year or figure stays flagged. "FY24-25" no longer reports "25" as an unfound figure. On the 36 saved answers: statements ok 50/60 → 51/60, nothing newly passing that was wrong.
 
+### Day 29 — The year or quarter an answer names must be in the passage it cites
+- **Why:** the figure check passes when a real figure gets the wrong period. Qwen3 answered "ExxonMobil's revenue in the third quarter of 2026 was $83,161 million" from the *first*-quarter 10-Q, and "fiscal 2025" from Nvidia's fiscal 2026 report — every number was in the source.
+- **Check:** each cited statement's periods — "FY2025-26", "FY26", "fiscal (year) 2026", "financial year 2025-26", "year ended 31st March, 2026", "Q3 FY26", "third quarter of fiscal 2026", "three months ended September 30, 2026" — must appear in a passage it cites (text, title or filing date). The question doesn't count: an answer repeating the asked-for period has to find it in the source. Gap statements ("the sources don't cover Q3 2026") are skipped.
+- **Quarters:** the filing's own label decides ("first quarter" ≠ Q3). A passage that only says "three months ended March 31" is matched as a calendar quarter (Netflix Q1); if the answer says *fiscal* quarter it isn't flagged, since that's Q3 at Microsoft and Q1 at Netflix and the passage can't tell which. A dated year-end ("year ended December 31, 2025") also counts as covered by a 10-K filed within 4 months of it (SEC deadline), but undated "fiscal 2025" doesn't: Nvidia's fiscal 2026 ended January 2026.
+- **App:** an amber "⚠ 1 year/quarter not in the cited source" chip; "What the check found" names the period and the passage. `evaluate.py` records `wrong_periods` and lists them under "Needs attention".
+- **Calibration** on all 208 saved answers (re-retrieved): 40 cited statements name a period, 2 flagged — both real (the ExxonMobil Q1-as-Q3 and Nvidia fiscal-year answers). One false alarm on the way (Tesla's "10-K for the year ended December 31, 2025", from a filing dated 2026-01-29) fixed by the filing-date rule.
+- Not checked: bare years ("in 2025" — as often a date as a period; the number check still needs them in some source), and which *column* of a multi-year table a figure came from.
+
 ## Tests
 
 Plain scripts (no pytest needed):
 
 ```bash
-python tests/test_citations.py   # citation labels, dedup, checker, number check
+python tests/test_citations.py   # citation labels, dedup, checker, number check, year/quarter check
 python tests/test_router.py      # 33 labelled queries (accuracy table), mixed queries, plans, flags
 python tests/test_prompts.py     # grounding/style rules per route, [N] label order, no-context answer, cloud-model refusal
 python tests/test_evaluate.py    # refusal detection, label matching, golden-set consistency
