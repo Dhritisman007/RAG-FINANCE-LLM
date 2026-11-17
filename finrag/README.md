@@ -44,6 +44,7 @@ Built day-by-day as a structured learning project — each script corresponds to
 | 27 | Users' data survives free hosting (encrypted Postgres mirror) | `remote_store.py`, `app.py`, `usage.py` | ✅ Done — tested on local Postgres |
 | 28 | Coal India + NTPC reports; table-row citation check | `scrape_tier2_india.py`, `build_vectorstore.py`, `citations.py` | ✅ Done — all 50 Nifty 50 reports |
 | 29 | Year/quarter check: the period an answer names must be in its cited passage | `citations.py`, `app.py`, `evaluate.py` | ✅ Done |
+| 30 | Website on the free stack (Streamlit Cloud + private HF index + Groq + Neon) | `publish_store.py`, `rag_loop.py`, `workspace.py`, `app.py` | 🔧 Code ready — accounts next ([guide](docs/deploy-streamlit-cloud.md)) |
 
 ---
 
@@ -490,6 +491,13 @@ Free hosting (Streamlit Community Cloud) wipes its disk on every restart and wak
 - **Calibration** on all 208 saved answers (re-retrieved): 40 cited statements name a period, 2 flagged — both real (the ExxonMobil Q1-as-Q3 and Nvidia fiscal-year answers). One false alarm on the way (Tesla's "10-K for the year ended December 31, 2025", from a filing dated 2026-01-29) fixed by the filing-date rule.
 - Not checked: bare years ("in 2025" — as often a date as a period; the number check still needs them in some source), and which *column* of a multi-year table a figure came from.
 
+### Day 30 — Ready for the free website (Streamlit Community Cloud)
+- **Where:** Hugging Face Spaces now needs a paid plan for apps that run code, so the website goes on Streamlit Community Cloud (free: up to 2.7 GB memory, sleeps after 12 h idle). Measured locally without the local model: search peaks at ~1.2 GB (store + embedder + exact index), leaving room for the app. Steps: [`docs/deploy-streamlit-cloud.md`](docs/deploy-streamlit-cloud.md); settings template: [`docs/streamlit-secrets.example.toml`](docs/streamlit-secrets.example.toml).
+- **Search index:** the host starts with an empty disk, so on first start the app downloads the store from a **private** Hugging Face dataset (`PORTIQ_STORE_REPO`, `HF_TOKEN`) — into a `.partial` folder renamed only when complete, so a cut-off download is never opened. `scripts/publish_store.py` uploads it: only the files the collection uses (1.29 GB of 1.3), copied with SQLite's backup API, opened and searched before upload, and it refuses a public dataset (the store holds web articles that aren't ours to republish).
+- **Settings arrive as secrets:** Streamlit copies top-level secrets into the environment only once `st.secrets` is first read — after modules read `PORTIQ_MODE`, so the site could have started in local mode with one shared portfolio. `workspace.settings_from_secrets` copies them first. The website's `.streamlit/config.toml` (repo root — the only one Community Cloud reads) has no `server.address`, so a missing `PORTIQ_MODE` makes the app refuse to start rather than run in local mode.
+- `requirements.txt` now lists everything the app imports, including `streamlit[auth]` (Authlib — Google sign-in needs it; it wasn't installed). `secrets.toml` is git-ignored.
+- **Rehearsal:** started from the repo root exactly as Community Cloud does, all settings from a secrets file, answers through the OpenAI-compatible API path (the local MLX server standing in for Groq): website mode, privacy notice naming host and model server, an answer with its checks.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -515,6 +523,7 @@ python tests/test_cas.py              # CAS → holdings, no personal data store
 python tests/test_mutual_funds.py     # AMFI NAV parsing + cache (previous NAV, bad files), ₹ pricing, never sent to Yahoo, CAMS statement with costs
 python tests/test_remote_store.py     # encrypted Postgres mirror (needs PORTIQ_TEST_DATABASE_URL; skipped otherwise)
 python tests/test_usage.py            # per-user and site caps, refunds, midnight reset, atomic reserve, report, forget; local mode unlimited
+python tests/test_hosting.py          # website: secrets → settings first, all-or-nothing index download, no local-mode website
 python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
 

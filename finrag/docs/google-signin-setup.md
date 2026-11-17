@@ -84,15 +84,7 @@ If Google shows "Access blocked" or "app not verified": the account isn't in
 Keeping `secrets.toml` there is harmless: the normal local app
 (`streamlit run app.py`, without `PORTIQ_MODE=hosted`) never asks anyone to sign in.
 
-## 6. When the website exists (Phase 2 — later)
-- Clients → your client → add the website's redirect URI, e.g.
-  `https://<your-space>.hf.space/oauth2callback` → **Save**. Keep the localhost
-  one for testing.
-- On the website, `redirect_uri` in the secrets is the website's URI.
-  (Spaces keep secrets as environment variables; the deployment will write
-  `secrets.toml` from them at start-up — part of the Phase 2 files.)
-- Branding → **Authorized domains**: the website's domain. **TODO, unverified:**
-  whether Google accepts `hf.space` there or a custom domain you own is needed.
-- Audience → **Publish app** when you open the site to everyone. **Unverified:**
-  whether Google asks for a review for a basic-sign-in app with no logo — follow
-  its prompts if it does.
+## 6. When the website exists
+See [`deploy-streamlit-cloud.md`](deploy-streamlit-cloud.md) step 5: add
+`https://<your-app>.streamlit.app/oauth2callback` as a redirect URI and the same `[auth]` section, with that
+`redirect_uri`, to the app's secrets in Streamlit Cloud.
