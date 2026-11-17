@@ -3,7 +3,7 @@
 | Part | Service (free tier) | What it holds |
 |---|---|---|
 | Web app | Streamlit Community Cloud (≤ 2.7 GB memory, sleeps after 12 h idle) | the app, from this GitHub repo |
-| Search index | Hugging Face — **private** dataset | the 1.3 GB vector store (`scripts/publish_store.py`) |
+| Search index | Hugging Face — **private** dataset | the vector store without the web articles, 1.2 GB (`scripts/publish_store.py`) |
 | Answers | Groq API (~200k tokens/day per model ≈ 50 questions) | nothing kept by PortIQ; see the privacy notice |
 | Users' portfolios | Neon Postgres | encrypted copies (`scripts/remote_store.py`) — the app's disk is wiped on restart |
 | Sign-in | Google (OAuth client) | nothing: PortIQ keeps a one-way code of the account ID |
