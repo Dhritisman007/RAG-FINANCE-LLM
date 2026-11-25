@@ -498,6 +498,14 @@ Free hosting (Streamlit Community Cloud) wipes its disk on every restart and wak
 - `requirements.txt` now lists everything the app imports, including `streamlit[auth]` (Authlib — Google sign-in needs it; it wasn't installed). `secrets.toml` is git-ignored.
 - **Rehearsal:** started from the repo root exactly as Community Cloud does, all settings from a secrets file, answers through the OpenAI-compatible API path (the local MLX server standing in for Groq): website mode, privacy notice naming host and model server, an answer with its checks.
 
+### Day 31 — Wikipedia explainers; only openly licensed papers on the website
+- **Why:** the website shows every cited passage in full, so its copy may only hold text we're allowed to republish. Day 30 left out the Investopedia articles, which left concept questions on the website with nothing to answer from.
+- **Wikipedia (CC BY-SA 4.0):** `scripts/scrape_wikipedia.py` fetches **47 articles** for the manifest's concept topics (`config/corpus_manifest.yaml`: compound interest → "Compound interest", market order → "Order (exchange)", simple interest → "Interest (finance)", quantitative easing…) — **986 passages**, in both the local app and the website. It reads the rendered article, not the plain-text extract, which turned formulas into "A=P(1+rn)tn": MathML becomes "A=P(1+r/n)^(tn)". Infoboxes, tables, footnote markers and See also / References sections are dropped. Each passage links to the exact revision it came from (`oldid`), and its source card reads "<article> — Wikipedia" with "text under CC BY-SA 4.0" linked to the licence. Two topics that resolve to one article are refused: the duplicate flag would drop both copies (it happened to market and limit order).
+- **arXiv papers:** `scripts/arxiv_licenses.py` records each paper's licence from arXiv's own record (OAI-PMH, one request every 3 s) in `config/arxiv_licenses.yaml`. Only 15 of 79 papers are CC BY, CC BY-SA or CC0. The rest are under arXiv's default licence, which lets arXiv distribute them, not us. `publish_store.py` removes their 2,779 passages from the website's copy, and stops if a paper has no recorded licence.
+- **Website copy: 53,049 passages** (56,764 local, minus 936 Investopedia and 2,779 closed-licence paper passages), with SEC filings, annual reports, Wikipedia and the open papers.
+- **Retrieval, 66 golden questions:** local precision 93% (concept questions 95%), hit rate 100%, MRR 0.96. Website copy (`evaluate.py --subset-store` drops labels for documents it doesn't have): hit rate 100%, MRR 0.96, precision 92%. The six market-microstructure questions (q19–q24) have no openly licensed paper on the website, so they aren't scored there. q42 (quantitative easing) gained the new Wikipedia article as a relevant document.
+- **Install on the website:** PyPI's Linux PyTorch is a 539 MB wheel plus NVIDIA CUDA packages, all useless without a GPU. `requirements.txt` installs the 192 MB CPU-only wheel on Linux / Python 3.13 instead; on the Mac nothing changes.
+
 ## Tests
 
 Plain scripts (no pytest needed):
@@ -523,7 +531,7 @@ python tests/test_cas.py              # CAS → holdings, no personal data store
 python tests/test_mutual_funds.py     # AMFI NAV parsing + cache (previous NAV, bad files), ₹ pricing, never sent to Yahoo, CAMS statement with costs
 python tests/test_remote_store.py     # encrypted Postgres mirror (needs PORTIQ_TEST_DATABASE_URL; skipped otherwise)
 python tests/test_usage.py            # per-user and site caps, refunds, midnight reset, atomic reserve, report, forget; local mode unlimited
-python tests/test_hosting.py          # website: secrets → settings first, all-or-nothing index download, no local-mode website
+python tests/test_hosting.py          # website: secrets → settings first, all-or-nothing index download, no local-mode website, open licences only, Wikipedia → text
 python tests/test_workspace.py        # hosted mode: users isolated (incl. answer context, threads), nobody signed in reads nothing, consent, delete, no brokers
 ```
 
