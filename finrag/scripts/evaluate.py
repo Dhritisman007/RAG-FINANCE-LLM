@@ -79,6 +79,19 @@ def validate_labels(golden: list[dict], collection) -> list[str]:
             if not any(t.startswith(label) for t in titles)]
 
 
+def prune_labels(golden: list[dict], collection) -> tuple[list[dict], list[str]]:
+    """For a filtered copy of the store: drop relevant_docs labels it has no document for. -> (questions with
+    the remaining labels, ids of questions that had labels and now have none -- their retrieval isn't scored)."""
+    titles = {m["doc_title"] for m in r.get_all(collection, ["metadatas"])["metadatas"]}
+    out, lost = [], []
+    for q in golden:
+        kept = [label for label in q["relevant_docs"] if any(t.startswith(label) for t in titles)]
+        if q["relevant_docs"] and not kept:
+            lost.append(q["id"])
+        out.append({**q, "relevant_docs": kept})
+    return out, lost
+
+
 def normalize_number_text(text: str) -> str:
     return text.replace(",", "").replace("$", "")
 
@@ -233,6 +246,9 @@ def main() -> None:
                         help="Re-score the answers saved in a previous --answers run (no generation).")
     parser.add_argument("--no-diversity", action="store_true",
                         help="Disable the per-document cap for broad technical questions (A/B comparison).")
+    parser.add_argument("--subset-store", action="store_true",
+                        help="The store is a filtered copy (the website's, PORTIQ_CHROMA_DIR=...): labels matching "
+                             "no document are dropped, and questions left with none are listed, not scored.")
     args = parser.parse_args()
     if args.no_diversity:
         import router
@@ -243,6 +259,11 @@ def main() -> None:
         collection = r.open_collection()
     if collection is None:
         sys.exit("Vector store not found — run scripts/build_vectorstore.py")
+    if args.subset_store:
+        golden, lost = prune_labels(golden, collection)
+        if lost:
+            print(f"(filtered store: {len(lost)} question(s) have no relevant document left, not scored for "
+                  f"retrieval: {', '.join(lost)})")
     bad = validate_labels(golden, collection)
     if bad:
         sys.exit("Golden-set labels that match no document:\n  " + "\n  ".join(bad))

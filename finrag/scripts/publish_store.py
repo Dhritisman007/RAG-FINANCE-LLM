@@ -3,10 +3,11 @@ publish_store.py -- copy the vector store to a PRIVATE Hugging Face dataset for 
 
 Free hosts (Streamlit Community Cloud) start with an empty disk; the hosted app downloads the store
 from this dataset on its first start (rag_loop.download_store, PORTIQ_STORE_REPO + HF_TOKEN).
-The website's copy leaves out the web articles (tier 1, Investopedia): visitors can read every
-cited passage in full, and those articles aren't ours to republish. Concept questions then use the
-other tiers (the concept route's fallback). The dataset must still stay private -- it is the whole
-index -- so this refuses to upload into a public one.
+Visitors can read every cited passage in full, so the website's copy keeps only what may be
+republished: SEC filings, annual reports, Wikipedia (CC BY-SA, credited on each source card) and the
+arXiv papers under an open licence (config/arxiv_licenses.yaml, from scripts/arxiv_licenses.py).
+Investopedia's articles and the other papers stay in the local app only. The dataset must still be
+private -- it is a copy of the index, not a publication -- so this refuses to upload into a public one.
 
 Only the files the collection uses are sent (the Chroma folder also keeps old segment folders),
 copied with SQLite's backup API so a running app can't hand it a half-written database, and the
@@ -30,10 +31,11 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import arxiv_licenses  # noqa: E402
 import rag_loop as r  # noqa: E402
 
 
-WEB_ARTICLE_TIERS = [1]   # left out of the website's copy (see the module docstring)
+NOT_REPUBLISHABLE_SOURCES = ["investopedia"]   # left out of the website's copy (see the module docstring)
 
 
 def open_copy(dst: Path):
@@ -42,9 +44,22 @@ def open_copy(dst: Path):
     return client.get_collection(r.COLLECTION_NAME)
 
 
+def closed_papers(coll) -> list[str]:
+    """Ids of arXiv passages whose paper isn't under an open licence. Stops if a paper's licence was never
+    looked up: unknown isn't open, but it more likely means arxiv_licenses.py wasn't run after new papers."""
+    licences = arxiv_licenses.load()
+    got = coll.get(where={"tier": 3}, include=["metadatas"])
+    missing = sorted({arxiv_licenses.base_id(m["arxiv_id"]) for m in got["metadatas"]} - set(licences))
+    if missing:
+        sys.exit(f"No licence recorded for {len(missing)} papers ({', '.join(missing[:5])}…): "
+                 "run scripts/arxiv_licenses.py. Nothing uploaded.")
+    return [i for i, m in zip(got["ids"], got["metadatas"])
+            if not arxiv_licenses.is_open(licences[arxiv_licenses.base_id(m["arxiv_id"])])]
+
+
 def stage(src: Path, dst: Path) -> int:
-    """Copy the database and the vector segment folders it references into `dst`, then remove the web
-    articles from the copy. -> passages removed."""
+    """Copy the database and the vector segment folders it references into `dst`, then remove what may
+    not be republished from the copy. -> passages removed."""
     db = sqlite3.connect(f"file:{src / 'chroma.sqlite3'}?mode=ro", uri=True)
     segments = [row[0] for row in db.execute("SELECT id FROM segments WHERE scope = 'VECTOR'")]
     out = sqlite3.connect(dst / "chroma.sqlite3")
@@ -55,7 +70,10 @@ def stage(src: Path, dst: Path) -> int:
         shutil.copytree(src / seg, dst / seg)
     coll = open_copy(dst)
     before = coll.count()
-    coll.delete(where={"tier": {"$in": WEB_ARTICLE_TIERS}})
+    coll.delete(where={"source": {"$in": NOT_REPUBLISHABLE_SOURCES}})
+    closed = closed_papers(coll)
+    for i in range(0, len(closed), 5000):
+        coll.delete(ids=closed[i:i + 5000])
     removed = before - coll.count()
     del coll
     out = sqlite3.connect(dst / "chroma.sqlite3")
@@ -68,9 +86,8 @@ def check(dst: Path, expected: int) -> None:
     coll = open_copy(dst)
     if coll.count() != expected:
         sys.exit(f"Copy has {coll.count()} passages, expected {expected} — not uploading.")
-    left = coll.get(where={"tier": {"$in": WEB_ARTICLE_TIERS}}, limit=1)["ids"]
-    if left:
-        sys.exit("Web articles are still in the copy — not uploading.")
+    if coll.get(where={"source": {"$in": NOT_REPUBLISHABLE_SOURCES}}, limit=1)["ids"] or closed_papers(coll):
+        sys.exit("The copy still holds passages that may not be republished — not uploading.")
     hits = coll.query(query_embeddings=[r.get_embedder().embed_query("What is a P/E ratio?")], n_results=1)
     if not hits["ids"][0]:
         sys.exit("The copy returned nothing for a test search — not uploading.")
@@ -99,9 +116,9 @@ def main() -> None:
         files = sorted(p for p in dst.rglob("*") if p.is_file() and not p.name.startswith("._"))
         size = sum(f.stat().st_size for f in files)
         print(f"Staged {len(files)} files, {size / 1e9:.2f} GB: {expected:,} passages "
-              f"({removed:,} web-article passages left out)")
+              f"({removed:,} not republishable, left out)")
         check(dst, expected)
-        print("Copy opens and searches correctly; no web articles in it.")
+        print("Copy opens and searches correctly; only republishable passages in it.")
         if args.keep:
             kept = Path(args.stage_dir) / "portiq-store"
             shutil.rmtree(kept, ignore_errors=True)
@@ -119,7 +136,7 @@ def main() -> None:
             sys.exit(f"{args.repo} is public — make it private on huggingface.co first. Nothing uploaded.")
         api.upload_folder(repo_id=args.repo, repo_type="dataset", folder_path=str(dst),
                           ignore_patterns=["._*", ".DS_Store"],   # macOS metadata on external drives
-                          commit_message=f"PortIQ vector store: {expected:,} passages, no web articles")
+                          commit_message=f"PortIQ vector store: {expected:,} republishable passages")
         print(f"Uploaded to the private dataset {args.repo}.")
 
 
