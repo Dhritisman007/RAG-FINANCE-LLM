@@ -16,3 +16,6 @@ plotly>=6.0
 yfinance>=1.0
 python-dotenv>=1.0
 huggingface_hub>=1.0    # embedding model + the website's vector store download
+# Website (Linux, Python 3.13): CPU-only PyTorch for the embedder. PyPI's Linux torch also installs ~2 GB of
+# NVIDIA GPU libraries the host has no GPU for. Elsewhere this line is skipped and torch comes from PyPI as usual.
+torch @ https://download.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.13"

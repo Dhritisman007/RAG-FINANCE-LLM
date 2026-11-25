@@ -3,7 +3,7 @@
 | Part | Service (free tier) | What it holds |
 |---|---|---|
 | Web app | Streamlit Community Cloud (≤ 2.7 GB memory, sleeps after 12 h idle) | the app, from this GitHub repo |
-| Search index | Hugging Face — **private** dataset | the vector store without the web articles, 1.2 GB (`scripts/publish_store.py`) |
+| Search index | Hugging Face — **private** dataset | the vector store with only republishable passages, ≤ 1.3 GB (`scripts/publish_store.py`) |
 | Answers | Groq API (~200k tokens/day per model ≈ 50 questions) | nothing kept by PortIQ; see the privacy notice |
 | Users' portfolios | Neon Postgres | encrypted copies (`scripts/remote_store.py`) — the app's disk is wiped on restart |
 | Sign-in | Google (OAuth client) | nothing: PortIQ keeps a one-way code of the account ID |
@@ -45,7 +45,8 @@ runs read that file, and `PORTIQ_MODE = "hosted"` there would turn your local ap
 2. **Create app** → *Deploy a public app from GitHub*: repository `Dhritisman007/RAG-FINANCE-LLM`, branch `main`,
    main file `finrag/app.py`, App URL e.g. `portiq` → `https://portiq.streamlit.app` (if taken, pick another and
    use it below).
-3. **Advanced settings** → Python **3.13** → paste the secrets (without `[auth]` for now — next step) → **Deploy**.
+3. **Advanced settings** → Python **3.13** (`requirements.txt` installs CPU-only PyTorch, 192 MB, for 3.13; another
+   version gets PyPI's Linux PyTorch, which adds ~2 GB of NVIDIA GPU libraries) → paste the secrets (without `[auth]` for now — next step) → **Deploy**.
 4. First start: installing takes a few minutes; then it downloads the index (1.3 GB) and the embedding model.
    Without `[auth]` the page says "Sign-in isn't set up" — expected.
 
