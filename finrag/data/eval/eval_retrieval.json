@@ -10,8 +10,8 @@
    "n": 22,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.9682539682539681,
-   "precision": 0.9166666666666666
+   "mrr": 0.9761904761904762,
+   "precision": 0.9523809523809523
   },
   "technical": {
    "n": 33,
@@ -31,8 +31,8 @@
    "n": 66,
    "route_acc": 1.0,
    "hit": 1.0,
-   "mrr": 0.961111111111111,
-   "precision": 0.9166666666666666
+   "mrr": 0.9638888888888889,
+   "precision": 0.9291666666666667
   }
  },
  "results": [
@@ -46,11 +46,11 @@
     "[1] t1 compound interest (0.093)",
     "[2] t1 compound interest (0.112)",
     "[3] t1 compound interest (0.116)",
-    "[4] t1 compound interest (0.131)"
+    "[4] t1 simple interest (Wikipedia) (0.117)"
    ],
    "hit": true,
    "rr": 1.0,
-   "precision": 1.0
+   "precision": 0.75
   },
   {
    "id": "q02",
@@ -93,8 +93,8 @@
    "retrieved": [
     "[1] t1 SIP (systematic investment plan) (0.123)",
     "[2] t1 SIP (systematic investment plan) (0.140)",
-    "[3] t1 SIP (systematic investment plan) (0.176)",
-    "[4] t1 SIP (systematic investment plan) (0.185)"
+    "[3] t1 SIP (systematic investment plan) (Wikipedia) (0.151)",
+    "[4] t1 SIP (systematic investment plan) (0.176)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -107,10 +107,10 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 diversification (0.131)",
-    "[2] t1 diversification (0.132)",
-    "[3] t1 diversification (0.171)",
-    "[4] t1 diversification (0.183)"
+    "[1] t1 diversification (Wikipedia) (0.111)",
+    "[2] t1 diversification (0.131)",
+    "[3] t1 diversification (0.132)",
+    "[4] t1 diversification (Wikipedia) (0.161)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -123,13 +123,13 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 mutual funds basics (0.192)",
-    "[2] t1 exchange-traded funds (ETF) (0.201)",
-    "[3] t1 index funds (0.203)",
-    "[4] t1 index funds (0.204)"
+    "[1] t1 index funds (Wikipedia) (0.179)",
+    "[2] t1 mutual funds basics (0.192)",
+    "[3] t1 exchange-traded funds (ETF) (0.201)",
+    "[4] t1 index funds (0.203)"
    ],
    "hit": true,
-   "rr": 0.3333333333333333,
+   "rr": 1.0,
    "precision": 0.5
   },
   {
@@ -139,14 +139,14 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 net asset value (NAV) (0.159)",
-    "[2] t1 net asset value (NAV) (0.168)",
-    "[3] t1 net asset value (NAV) (0.179)",
-    "[4] t1 net present value (NPV) (0.231)"
+    "[1] t1 net asset value (NAV) (Wikipedia) (0.137)",
+    "[2] t1 net asset value (NAV) (0.159)",
+    "[3] t1 net asset value (NAV) (0.168)",
+    "[4] t1 net asset value (NAV) (0.179)"
    ],
    "hit": true,
    "rr": 1.0,
-   "precision": 0.75
+   "precision": 1.0
   },
   {
    "id": "q08",
@@ -156,9 +156,9 @@
    "answerable": true,
    "retrieved": [
     "[1] t1 expense ratio (0.102)",
-    "[2] t1 expense ratio (0.132)",
-    "[3] t1 expense ratio (0.136)",
-    "[4] t1 expense ratio (0.195)"
+    "[2] t1 expense ratio (Wikipedia) (0.110)",
+    "[3] t1 expense ratio (0.132)",
+    "[4] t1 expense ratio (0.136)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -172,9 +172,9 @@
    "answerable": true,
    "retrieved": [
     "[1] t1 price-to-earnings (P/E) ratio (0.145)",
-    "[2] t1 price-to-earnings (P/E) ratio (0.171)",
-    "[3] t1 price-to-earnings (P/E) ratio (0.176)",
-    "[4] t1 price-to-earnings (P/E) ratio (0.176)"
+    "[2] t1 price-to-earnings (P/E) ratio (Wikipedia) (0.161)",
+    "[3] t1 price-to-earnings (P/E) ratio (0.171)",
+    "[4] t1 price-to-earnings (P/E) ratio (Wikipedia) (0.174)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -187,13 +187,13 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 yield to maturity (0.166)",
-    "[2] t1 yield to maturity (0.177)",
-    "[3] t1 yield to maturity (0.189)",
-    "[4] t1 bonds and yield (0.211)"
+    "[1] t1 bonds and yield (Wikipedia) (0.146)",
+    "[2] t1 yield to maturity (0.166)",
+    "[3] t1 yield to maturity (Wikipedia) (0.167)",
+    "[4] t1 yield to maturity (0.177)"
    ],
    "hit": true,
-   "rr": 1.0,
+   "rr": 0.5,
    "precision": 0.75
   },
   {
@@ -206,7 +206,7 @@
     "[1] t1 dollar-cost averaging (0.196)",
     "[2] t1 dollar-cost averaging (0.202)",
     "[3] t1 dollar-cost averaging (0.209)",
-    "[4] t1 dollar-cost averaging (0.221)"
+    "[4] t1 dollar-cost averaging (Wikipedia) (0.210)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -219,10 +219,10 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 put options (0.129)",
-    "[2] t1 put options (0.158)",
-    "[3] t1 put options (0.181)",
-    "[4] t1 options basics (calls/puts) (0.197)"
+    "[1] t1 put options (Wikipedia) (0.108)",
+    "[2] t1 put options (0.129)",
+    "[3] t1 put options (0.158)",
+    "[4] t1 put options (0.181)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -237,8 +237,8 @@
    "retrieved": [
     "[1] t1 annual percentage yield (APY) (0.163)",
     "[2] t1 annual percentage yield (APY) (0.182)",
-    "[3] t1 annual percentage rate (APR) (0.194)",
-    "[4] t1 annual percentage yield (APY) (0.215)"
+    "[3] t1 annual percentage yield (APY) (Wikipedia) (0.193)",
+    "[4] t1 annual percentage rate (APR) (0.194)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -604,9 +604,9 @@
    "answerable": true,
    "retrieved": [
     "[1] t1 diversification (0.196)",
-    "[2] t1 diversification (0.211)",
-    "[3] t1 diversification (0.226)",
-    "[4] t1 diversification (0.226)"
+    "[2] t1 diversification (Wikipedia) (0.202)",
+    "[3] t1 diversification (0.211)",
+    "[4] t1 asset allocation (Wikipedia) (0.220)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -620,7 +620,7 @@
    "answerable": true,
    "retrieved": [
     "[1] t1 dividends (0.218)",
-    "[2] t1 dividends (0.232)",
+    "[2] t1 dividends (Wikipedia) (0.219)",
     "[3] t2 AAPL 10-K filed 2025-10-31 (0.305)",
     "[4] t2 AAPL 10-K filed 2025-10-31 (0.334)",
     "[5] t2 AAPL 10-Q filed 2026-07-31 (0.347)",
@@ -696,14 +696,14 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 inflation (0.324)",
-    "[2] t2 JPM 10-K filed 2026-02-13 (0.340)",
-    "[3] t2 HDFC Bank (HDFCBANK) Annual Report FY2025-26 (0.344)",
-    "[4] t2 Larsen & Toubro (LT) Annual Report FY2025-26 (0.345)"
+    "[1] t1 quantitative easing (Wikipedia) (0.137)",
+    "[2] t1 quantitative easing (Wikipedia) (0.234)",
+    "[3] t1 quantitative easing (Wikipedia) (0.254)",
+    "[4] t1 quantitative easing (Wikipedia) (0.266)"
    ],
    "hit": true,
    "rr": 1.0,
-   "precision": 0.25
+   "precision": 1.0
   },
   {
    "id": "q43",
@@ -888,10 +888,10 @@
    "got_route": "concept",
    "answerable": true,
    "retrieved": [
-    "[1] t1 Roth IRA (0.137)",
-    "[2] t1 Roth IRA (0.145)",
-    "[3] t1 Roth IRA (0.153)",
-    "[4] t1 individual retirement account (IRA) (0.199)"
+    "[1] t1 Roth IRA (Wikipedia) (0.119)",
+    "[2] t1 Roth IRA (0.137)",
+    "[3] t1 Roth IRA (0.145)",
+    "[4] t1 Roth IRA (0.153)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -907,7 +907,7 @@
     "[1] t1 liquidity (0.126)",
     "[2] t1 liquidity (0.129)",
     "[3] t1 liquidity (0.130)",
-    "[4] t1 liquidity (0.162)"
+    "[4] t1 liquidity (Wikipedia) (0.136)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -921,9 +921,9 @@
    "answerable": true,
    "retrieved": [
     "[1] t1 arbitrage (0.101)",
-    "[2] t1 arbitrage (0.103)",
-    "[3] t1 arbitrage (0.173)",
-    "[4] t1 arbitrage (0.207)"
+    "[2] t1 arbitrage (Wikipedia) (0.102)",
+    "[3] t1 arbitrage (0.103)",
+    "[4] t1 arbitrage (Wikipedia) (0.155)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -954,8 +954,8 @@
    "retrieved": [
     "[1] t1 401(k) plan (0.172)",
     "[2] t1 401(k) plan (0.175)",
-    "[3] t1 401(k) plan (0.204)",
-    "[4] t1 401(k) plan (0.208)"
+    "[3] t1 401(k) plan (Wikipedia) (0.187)",
+    "[4] t1 401(k) plan (0.204)"
    ],
    "hit": true,
    "rr": 1.0,
@@ -970,8 +970,8 @@
    "retrieved": [
     "[1] t1 bid-ask spread (0.087)",
     "[2] t1 bid-ask spread (0.110)",
-    "[3] t1 bid-ask spread (0.115)",
-    "[4] t1 bid-ask spread (0.135)"
+    "[3] t1 bid-ask spread (Wikipedia) (0.113)",
+    "[4] t1 bid-ask spread (0.115)"
    ],
    "hit": true,
    "rr": 1.0,

@@ -153,6 +153,9 @@ def render_valuation(valued: list[dict] | None) -> None:
 def source_info(c: Citation) -> tuple[str, str, str]:
     """(icon, document, where in it) for a source card."""
     section = c.section_heading if c.section_heading and c.section_heading != c.doc_title else ""
+    if c.source == "wikipedia":   # CC BY-SA: credit the article and the licence (the title links the revision)
+        article = re.sub(r"\s*\(Wikipedia\)$", "", c.doc_title)
+        return "📖", f"{article} — Wikipedia", " · ".join(filter(None, [section, "text under CC BY-SA 4.0"]))
     if c.tier == 1:
         return "📖", f"{c.doc_title} — {c.source.title()}", section or "Explainer"
     if c.tier == 2 and "Annual Report FY" in c.doc_title:
@@ -174,8 +177,12 @@ def render_sources(citations: list[Citation], refusal: bool = False, show_detail
             title = f'<a href="{html.escape(c.url, quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>'
         if show_details:
             where += f" · distance {c.distance:.3f}"
+        where_html = html.escape(where)
+        if c.source == "wikipedia":
+            where_html = where_html.replace("CC BY-SA 4.0", '<a href="https://creativecommons.org/licenses/by-sa/4.0/" '
+                                            'target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>')
         cards.append(f'<div class="src"><div class="n">{c.rank}</div><div><div class="t">{icon} {title}</div>'
-                     f'<div class="s">{html.escape(where)}</div></div></div>')
+                     f'<div class="s">{where_html}</div></div></div>')
     st.markdown(f'<p class="pane-title" style="margin-top:8px">{head}</p><div class="srcs">{"".join(cards)}</div>',
                 unsafe_allow_html=True)
     with st.expander("Read the cited passages"):

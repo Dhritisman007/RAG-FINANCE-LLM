@@ -197,6 +197,9 @@ def chunk_document(text: str, metadata: dict) -> list[dict]:
                 "date_published": metadata.get("date_published"),
                 "company_ticker": metadata.get("company_ticker"),
                 "arxiv_id": metadata.get("arxiv_id"),
+                # only where a licence is stated (Wikipedia): source cards credit it, and the other
+                # sources' passages stay byte-identical, so nothing else is re-embedded
+                **({"license": metadata["license"]} if metadata.get("license") else {}),
             })
             chunk_index += 1
 
